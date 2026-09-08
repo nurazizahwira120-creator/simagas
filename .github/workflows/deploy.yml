@@ -3,137 +3,35 @@ name: Deploy SIMAGAS ke cPanel
 on:
   push:
     branches:
-      - main          # ganti ke 'master' kalau branch utama Anda bernama itu
-  workflow_dispatch:  # tombol "Run workflow" manual di tab Actions
-
-# Dua deploy yang berjalan bersamaan bisa saling menimpa berkas di tengah
-# unggahan dan meninggalkan campuran versi lama & baru di server. Ini membuat
-# deploy berikutnya menunggu yang sedang berjalan selesai.
-concurrency:
-  group: deploy-cpanel
-  cancel-in-progress: false
+      - main
 
 jobs:
   deploy:
+    name: Sinkronisasi Otomatis ke cPanel
     runs-on: ubuntu-latest
-
     steps:
-      - name: Ambil kode
-        uses: actions/checkout@v4
+    - name: Ambil Kode dari GitHub
+      uses: actions/checkout@v4
 
-      # ---------------------------------------------------------------
-      # 1. BANGUN ASET FRONTEND
-      # ---------------------------------------------------------------
-      # Hasil `npm run build` (public/build/*) WAJIB ikut diunggah. Nama
-      # berkasnya ber-hash — app-CQ-xVDHC.css — jadi setiap perubahan isi
-      # menghasilkan nama baru dan browser pasti mengunduhnya. Inilah inti
-      # "asset versioning": bukan setelan yang perlu dinyalakan, melainkan
-      # perilaku bawaan Vite yang harus dijaga agar hasilnya benar-benar
-      # sampai ke server.
-      - name: Siapkan Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
+    - name: Kirim File Inti ke Backend
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        server-dir: /backend_simagas/
+        exclude: |
+          public/**
+          .env
+          vendor/**
 
-      - name: Pasang dependensi & build aset
-        run: |
-          npm ci
-          npm run build
-
-      # ---------------------------------------------------------------
-      # 2. DEPENDENSI PHP
-      # ---------------------------------------------------------------
-      # Hanya perlu kalau folder vendor/ TIDAK ikut di-commit (umumnya
-      # memang di-gitignore). Kalau vendor/ Anda ikut di repo, hapus dua
-      # langkah ini.
-      - name: Siapkan PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, zip, gd, fileinfo, bcmath
-
-      - name: composer install
-        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-
-      # ---------------------------------------------------------------
-      # 3. UNGGAH LEWAT FTP
-      # ---------------------------------------------------------------
-      # exclude WAJIB diperhatikan: .env, storage/, dan public/storage milik
-      # SERVER, bukan repo. Menimpanya berarti menghapus kredensial database
-      # dan seluruh berkas yang pernah diunggah guru (foto profil, RPP).
-      - name: Unggah ke cPanel (FTP)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          local-dir: ./
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}   # contoh: /public_html/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/tests/**
-            .env
-            .env.*
-            storage/**
-            public/storage/**
-            README.md
-
-      # ---------------------------------------------------------------
-      # 4. BERSIHKAN CACHE SERVER
-      # ---------------------------------------------------------------
-      # Tanpa langkah ini, berkas PHP & Blade yang baru sudah ada di server
-      # tapi Laravel tetap menjalankan versi lama dari cache — gejalanya
-      # persis seperti "file belum tersalin", tanpa satu pun pesan error.
-      #
-      # --retry 5: FTP kadang melaporkan selesai sementara server masih
-      # menulis berkas terakhir. Mencoba ulang jauh lebih murah daripada
-      # deploy yang dinyatakan sukses padahal cache-nya belum bersih.
-      #
-      # Token dikirim lewat HEADER, bukan query string: query string tercatat
-      # apa adanya di access log Apache/LiteSpeed.
-      - name: Bersihkan cache Laravel di server
-        run: |
-          echo "Memanggil endpoint pembersih cache..."
-
-          kode=$(curl -sS -o respons.json -w "%{http_code}" \
-            -X POST \
-            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
-            -H "Accept: application/json" \
-            --max-time 60 \
-            --retry 5 --retry-delay 10 --retry-all-errors \
-            "${{ secrets.APP_URL }}/deploy/bersihkan")
-
-          echo "HTTP $kode"
-          cat respons.json || true
-          echo
-
-          if [ "$kode" != "200" ]; then
-            echo "::error::Pembersihan cache GAGAL (HTTP $kode)."
-            echo "::error::404 = DEPLOY_TOKEN belum diisi di .env server."
-            echo "::error::403 = token di GitHub Secrets tidak sama dengan yang di .env."
-            echo "::error::419 = pengecualian CSRF belum ada di bootstrap/app.php."
-            exit 1
-          fi
-
-          echo "Cache server bersih. Tab yang sedang terbuka akan ikut menyegarkan sendiri."
-
-      # ---------------------------------------------------------------
-      # 5. VERIFIKASI
-      # ---------------------------------------------------------------
-      # Memastikan situsnya benar-benar hidup SESUDAH deploy. Tanpa ini,
-      # deploy yang membuat aplikasi error 500 tetap dilaporkan hijau.
-      - name: Pastikan situs hidup
-        run: |
-          kode=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 30 \
-            --retry 3 --retry-delay 5 --retry-all-errors "${{ secrets.APP_URL }}/login")
-
-          echo "Halaman login: HTTP $kode"
-
-          if [ "$kode" != "200" ]; then
-            echo "::error::Situs tidak menjawab 200 sesudah deploy (HTTP $kode)."
-            exit 1
-          fi
+    - name: Kirim Aset Publik ke Public_html
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./public/
+        server-dir: /public_html/
+        exclude: |
+          index.php
