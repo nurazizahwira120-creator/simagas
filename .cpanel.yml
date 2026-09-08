@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - php artisan optimize:clear
+    - php artisan view:clear
