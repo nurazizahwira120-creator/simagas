@@ -9,6 +9,7 @@ use App\Models\AbsensiPegawai;
 use App\Models\AbsensiSiswa;
 use App\Models\Pegawai;
 use App\Models\Siswa;
+use App\Services\NotifikasiKehadiran;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -151,6 +152,18 @@ class ScannerController extends Controller
         // guru piket menatap layar menunggu tiap kali satu siswa lewat.
         $this->antrekanNotifikasiHadir($siswa, $absensi);
 
+        // Notifikasi HP (Web Push) ke wali murid. Jalur KEDUA yang
+        // sepenuhnya terpisah dari WhatsApp di atas: WhatsApp butuh kuota
+        // gateway dan nomor yang terdaftar, push tidak butuh keduanya.
+        // Keduanya sengaja dipertahankan — wali murid yang belum memasang
+        // aplikasi tetap dapat WhatsApp, yang sudah memasang dapat
+        // pemberitahuan seketika di layar kuncinya.
+        //
+        // relationLoaded dicek supaya query wali murid tidak dijalankan
+        // dua kali: antrekanNotifikasiHadir() di atas sudah menyentuhnya.
+        $siswa->loadMissing('waliMurid');
+        app(NotifikasiKehadiran::class)->siswaMasuk($siswa, $absensi);
+
         return response()->json([
             'success' => true,
             'status' => 'ok',
@@ -224,6 +237,14 @@ class ScannerController extends Controller
 
         // TIDAK dispatch SendWhatsAppNotification di sini — job itu khusus
         // memberi tahu wali murid, tidak relevan untuk kehadiran pegawai.
+        //
+        // Notifikasi HP TETAP dikirim, tapi ke pegawainya SENDIRI: bukti
+        // terima yang tersimpan di riwayat notifikasi HP-nya, menjawab
+        // pertanyaan "tadi absen saya masuk tidak ya?" yang paling sering
+        // ditanyakan setelah scan di gerbang.
+        $pegawai->loadMissing('user');
+        app(NotifikasiKehadiran::class)->pegawaiMasuk($pegawai, $absensi);
+
         return response()->json([
             'success' => true,
             'status' => 'ok',

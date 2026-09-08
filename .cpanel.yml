@@ -1,5 +1,30 @@
 ---
+# Dijalankan cPanel setiap kali Anda menekan "Deploy HEAD Commit" di
+# Git Version Control.
+#
+# ============ KENAPA "migrate --force" DITAMBAHKAN ============
+# Sebelumnya berkas ini hanya membersihkan cache. Artinya setiap fitur baru
+# yang menambah kolom database TIDAK PERNAH ikut terpasang: kodenya sampai
+# di server, kolomnya tidak ada, dan yang terlihat pengguna adalah error 500
+# di halaman yang kemarin baik-baik saja.
+#
+# Fitur notifikasi HP menambah kolom `fcm_token` ke tabel users. Tanpa baris
+# migrate di bawah, setiap pembukaan halaman oleh pengguna yang sudah
+# mengizinkan notifikasi akan menabrak kolom yang belum ada.
+#
+# --force WAJIB: tanpa itu Laravel menolak menjalankan migration di
+# environment production karena menunggu jawaban "yes" yang tidak akan
+# pernah datang — deploy-nya menggantung, lalu gagal karena timeout.
+#
+# Migration di project ini semuanya bersifat MENAMBAH (kolom/tabel baru),
+# tidak ada yang menghapus data. Jadi aman dijalankan otomatis.
+# ==============================================================
+#
+# config:clear didahulukan supaya migrate membaca .env yang terbaru, bukan
+# salinan lama di bootstrap/cache/config.php. optimize:clear di akhir sudah
+# mencakup view:clear, route:clear, dan cache:clear sekaligus.
 deployment:
   tasks:
+    - php artisan config:clear
+    - php artisan migrate --force
     - php artisan optimize:clear
-    - php artisan view:clear

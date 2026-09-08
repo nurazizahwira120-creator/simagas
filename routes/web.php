@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DeployController;
+use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Guru\WaliKelasController;
@@ -101,6 +102,32 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
+
+    /*
+    |----------------------------------------------------------------------
+    | Token perangkat untuk Notifikasi HP (Web Push / Firebase)
+    |----------------------------------------------------------------------
+    | Dipanggil browser di latar belakang, BUKAN dibuka manusia — tidak ada
+    | halaman apa pun di balik dua rute ini.
+    |
+    | Berada DI DALAM grup 'auth' dan tanpa 'role:...' apa pun: semua peran
+    | boleh memasang notifikasi di HP-nya. Yang menentukan token itu milik
+    | siapa adalah SESI yang sedang login, bukan isi permintaannya — karena
+    | itu tidak ada parameter user_id di mana pun. Kalau ada, siapa saja
+    | bisa menempelkan token perangkatnya sendiri ke akun orang lain dan
+    | sejak itu ikut menerima notifikasi kehadiran anak orang tersebut.
+    |
+    | throttle:30,1 — pemanggilnya skrip yang jalan otomatis di setiap
+    | pembukaan halaman: longgar untuk pemakaian wajar, tetap menahan skrip
+    | yang macet dalam perulangan.
+    */
+    Route::post('/fcm/token', [FcmTokenController::class, 'simpan'])
+        ->middleware('throttle:30,1')
+        ->name('fcm.token.simpan');
+
+    Route::delete('/fcm/token', [FcmTokenController::class, 'hapus'])
+        ->middleware('throttle:30,1')
+        ->name('fcm.token.hapus');
 
     /*
     |----------------------------------------------------------------------

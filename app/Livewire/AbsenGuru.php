@@ -7,6 +7,7 @@ use App\Models\AbsensiPegawai;
 use App\Jobs\SendWhatsAppNotification;
 use App\Models\Pengaturan;
 use App\Models\PengaturanSistem;
+use App\Services\NotifikasiKehadiran;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -139,6 +140,14 @@ class AbsenGuru extends Component
         }
 
         $this->kirimKonfirmasiWa($pegawai, $absensi);
+
+        // Notifikasi HP ke pegawai yang bersangkutan — bukti terima yang
+        // tetap ada di riwayat notifikasi HP-nya. Layar konfirmasi di
+        // bawah ini hilang begitu halamannya ditutup, dan "tadi absen
+        // saya masuk tidak ya?" adalah pertanyaan yang paling sering
+        // muncul keesokan harinya.
+        $pegawai->loadMissing('user');
+        app(NotifikasiKehadiran::class)->pegawaiMasuk($pegawai, $absensi);
 
         $this->pesan('ok', 'Absen berhasil',
             'Kehadiran tercatat pukul ' . $absensi->jam_masuk->format('H:i')

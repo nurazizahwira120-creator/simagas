@@ -136,7 +136,7 @@
      | dikenal bukan error. Pernah terjadi dan butuh berjam-jam untuk
      | ditelusuri; sekarang aplikasinya yang memberi tahu sendiri.
      */
-    $versiAset = '2026-09-05d';
+    $versiAset = '2026-09-08a';
 
     $pengguna = auth()->user();
     $inisial = $pengguna
@@ -858,6 +858,25 @@
         })();
         </script>
     @endif
+
+    {{-- ====================================================================
+         NOTIFIKASI HP (Web Push / Firebase) — PELENGKAP Pusher di atas.
+
+         Keduanya sengaja hidup berdampingan dan tidak saling menggantikan,
+         karena tugasnya memang berbeda:
+
+           Pusher   -> aplikasi SEDANG DIBUKA. Lonceng bertambah dan berbunyi
+                       seketika, tanpa perlu izin apa pun dari pengguna.
+           Firebase -> aplikasi SEDANG TERTUTUP. Notifikasi muncul di layar
+                       kunci HP lengkap dengan nada bawaan HP — sesuatu yang
+                       TIDAK MUNGKIN dilakukan Pusher, karena koneksi
+                       WebSocket-nya ikut mati begitu tabnya ditutup.
+
+         Ditaruh PALING AKHIR supaya window.simagasBunyiNotif (didefinisikan
+         di blok Pusher di atas) sudah tersedia saat notifikasi latar depan
+         hendak membunyikannya.
+         ==================================================================== --}}
+    @include('partials.firebase-push')
 @endauth
 
 </body>

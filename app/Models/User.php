@@ -28,6 +28,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        // Token perangkat push tidak boleh ikut ter-serialize ke JSON.
+        // Beberapa endpoint mengembalikan objek user apa adanya, dan token
+        // yang bocor ke browser orang lain bisa dipakai memancing
+        // notifikasi palsu ke HP pemiliknya.
+        'fcm_token',
     ];
 
     protected function casts(): array
@@ -37,7 +42,35 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => UserRole::class,
             'status' => StatusAkun::class,
+            'fcm_token_updated_at' => 'datetime',
         ];
+    }
+
+    /*
+     |----------------------------------------------------------------------
+     | Web Push (Firebase Cloud Messaging)
+     |----------------------------------------------------------------------
+     | Kolom `fcm_token` SENGAJA TIDAK dimasukkan ke $fillable. Token itu
+     | tidak pernah datang dari form profil; satu-satunya yang menulisnya
+     | adalah App\Http\Controllers\FcmTokenController lewat pemberian nilai
+     | langsung.
+     |
+     | Kalau ia mass-assignable, siapa pun yang bisa mengirim form pembaruan
+     | profil dapat menempelkan token perangkat MILIKNYA SENDIRI ke akun
+     | orang lain — dan sejak saat itu HP-nya ikut berbunyi setiap kali anak
+     | orang tersebut absen. Itu kebocoran data, bukan sekadar gangguan.
+     */
+
+    /**
+     * Apakah akun ini punya perangkat terdaftar untuk notifikasi push?
+     *
+     * Dipakai untuk memutuskan lebih awal, sebelum payload notifikasi
+     * dirangkai — mayoritas akun (terutama di minggu-minggu pertama fitur
+     * ini dipakai) belum pernah mengizinkan notifikasi di HP-nya.
+     */
+    public function bisaMenerimaPush(): bool
+    {
+        return filled($this->fcm_token);
     }
 
     /**

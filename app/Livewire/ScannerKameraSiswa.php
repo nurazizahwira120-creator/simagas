@@ -6,6 +6,7 @@ use App\Enums\AbsensiStatus;
 use App\Jobs\SendWhatsAppNotification;
 use App\Models\AbsensiSiswa;
 use App\Models\Siswa;
+use App\Services\NotifikasiKehadiran;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -110,10 +111,26 @@ class ScannerKameraSiswa extends Component
             return;
         }
 
-        // Notifikasi WhatsApp ke wali murid diantrekan lewat queue, sama
-        // seperti jalur scanner Piket — supaya satu kejadian "siswa hadir"
-        // memberi hasil yang sama dari mana pun ia di-scan.
-        SendWhatsAppNotification::dispatch($absensi);
+        /*
+         | ============ PERBAIKAN BUG: TANDA TANGAN JOB ============
+         | Baris ini DULU berbunyi:
+         |
+         |     SendWhatsAppNotification::dispatch($absensi);
+         |
+         | dan itu SELALU melempar TypeError, karena job-nya sudah lama
+         | berubah menjadi __construct(string $target, string $message).
+         | Akibatnya siswa yang di-scan lewat komponen ini TERCATAT HADIR
+         | (baris absensinya sudah tersimpan di baris-baris sebelumnya)
+         | lalu layarnya menampilkan error — dan guru men-scan ulang, lalu
+         | dibilang "sudah absen". Persis gejala yang paling membingungkan:
+         | rusak, tapi datanya benar.
+         |
+         | Sekarang nomor & pesannya dirangkai di sini, sama seperti jalur
+         | scanner Piket, supaya satu kejadian "siswa hadir" memberi hasil
+         | yang sama dari mana pun ia di-scan.
+         | =========================================================
+         */
+        $this->kirimNotifikasi($siswa, $absensi);
 
         $jam = $absensi->jam_masuk->format('H:i');
         $this->jumlahBerhasil++;
@@ -126,6 +143,44 @@ class ScannerKameraSiswa extends Component
         ];
 
         $this->catat('ok', $siswa->nama, $siswa->kelas?->nama_kelas ?? $siswa->nis, $jam);
+    }
+
+    /**
+     * Kabari wali murid lewat DUA jalur yang saling melengkapi.
+     *
+     *   WhatsApp -> sampai ke siapa pun yang punya nomor HP, tanpa perlu
+     *               memasang apa pun. Butuh kuota gateway.
+     *   Web Push -> muncul di layar kunci HP dengan nada bawaan HP, gratis,
+     *               tapi hanya untuk wali murid yang sudah mengizinkan
+     *               notifikasi di aplikasi ini.
+     *
+     * Nomor tujuan WhatsApp diambil bertingkat: nomor yang khusus
+     * didaftarkan sekolah (siswa.no_hp_wali) lebih dulu, baru nomor di akun
+     * wali murid yang tertaut. Kalau dua-duanya kosong, WhatsApp-nya
+     * dilewati dengan catatan di log — kehadiran anaknya sudah tercatat,
+     * dan itu yang utama.
+     */
+    private function kirimNotifikasi(Siswa $siswa, AbsensiSiswa $absensi): void
+    {
+        $siswa->loadMissing('waliMurid');
+
+        $tujuan = $siswa->no_hp_wali ?: $siswa->waliMurid?->no_hp;
+
+        if (blank($tujuan)) {
+            Log::warning('Notifikasi WhatsApp dilewati: wali murid tidak punya nomor HP.', [
+                'siswa_id' => $siswa->id,
+                'absensi_id' => $absensi->id,
+            ]);
+        } else {
+            SendWhatsAppNotification::dispatch((string) $tujuan, sprintf(
+                'INFO SIMAGAS: Ananda %s telah HADIR di sekolah pada %s pukul %s. Terima kasih.',
+                $siswa->nama,
+                $absensi->tanggal->translatedFormat('d F Y'),
+                $absensi->jam_masuk->format('H:i'),
+            ));
+        }
+
+        app(NotifikasiKehadiran::class)->siswaMasuk($siswa, $absensi);
     }
 
     private function tolak(string $judul, string $pesan, string $kode): void

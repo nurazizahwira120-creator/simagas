@@ -25,3 +25,22 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Kredensial service account Firebase — JANGAN PERNAH ter-commit.
+# Berkas ini setara kunci rumah: pemegangnya bisa mengirim notifikasi
+# atas nama sekolah ke seluruh HP wali murid.
+/firebase*.json
+/*firebase-adminsdk*.json
+/storage/app/firebase*.json
+/rahasia/
+
+# Folder unduhan dari sesi Claude. Isinya salinan .env yang memuat
+# PUSHER_APP_SECRET — kalau ikut ter-commit, kunci itu terbuka di GitHub
+# untuk SELAMANYA: menghapusnya di commit berikutnya tidak cukup, ia tetap
+# ada di riwayat, dan kunci yang pernah ter-push harus diganti.
+/Claude outputs/
+
+# Arsip .zip tidak perlu masuk repository. Yang sudah terlanjur terlacak
+# (vendor.zip, absensi-smk.zip) TIDAK terpengaruh baris ini — aturan
+# .gitignore hanya berlaku untuk berkas yang belum dilacak.
+*.zip
