@@ -571,6 +571,127 @@
                 'halaman meminta <code>' + versiBlade + '</code>. ' + saran;
             document.body.appendChild(pita);
         }
+
+        /* ============================================================
+           PEMANTAU VERSI RILIS — supaya tab yang SUDAH TERBUKA ikut
+           mendapat pembaruan tanpa Ctrl+Shift+R.
+           ------------------------------------------------------------
+           Yang tidak bisa dilakukan langkah deploy mana pun: mengubah
+           halaman yang sudah terlanjur digambar di layar seseorang.
+           Selama tabnya tidak memuat ulang, ia tetap menjalankan JS dan
+           CSS versi lama — dan itu berlaku untuk cara deploy apa pun,
+           bukan kekurangan konfigurasi.
+
+           Yang BISA dilakukan: memberi tahu tab itu bahwa ada versi baru,
+           lalu memuat ulang untuknya. Itu yang dikerjakan blok ini:
+           menanyakan /versi.json secara berkala dan setiap kali tab
+           kembali dilihat.
+
+           ============ KENAPA TIDAK SELALU MUAT ULANG OTOMATIS ============
+           Karena memuat ulang halaman yang sedang diisi berarti MENGHAPUS
+           pekerjaan orang. Bayangkan wali kelas sudah mencentang absensi
+           28 siswa lalu halamannya menyegar sendiri. Jadi aturannya:
+
+             - tidak ada isian yang tersentuh  -> muat ulang sendiri;
+             - ada isian yang tersentuh        -> tampilkan tawaran, biar
+                                                  penggunanya yang memutuskan.
+
+           Deteksinya memakai perbandingan value vs defaultValue, dan
+           sengaja BERAT SEBELAH ke arah aman: kalau ragu, ia menganggap
+           ada isian dan hanya menawarkan.
+           ================================================================= */
+        var versiRilis = @json(\App\Http\Controllers\DeployController::versiSekarang());
+        var JEDA_PERIKSA = 3 * 60 * 1000;
+        var tawaranTampil = false;
+
+        function adaIsianTersentuh() {
+            var isian = document.querySelectorAll('input, textarea, select');
+
+            for (var i = 0; i < isian.length; i++) {
+                var el = isian[i];
+
+                if (el.disabled || el.readOnly || el.type === 'hidden' ||
+                    el.type === 'submit' || el.type === 'button' || el.type === 'search') {
+                    continue;
+                }
+
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    if (el.checked !== el.defaultChecked) return true;
+                    continue;
+                }
+
+                if (el.tagName === 'SELECT') {
+                    for (var j = 0; j < el.options.length; j++) {
+                        if (el.options[j].selected !== el.options[j].defaultSelected) return true;
+                    }
+                    continue;
+                }
+
+                if ((el.value || '') !== (el.defaultValue || '')) return true;
+            }
+
+            return false;
+        }
+
+        function tawarkanMuatUlang() {
+            if (tawaranTampil) return;
+            tawaranTampil = true;
+
+            var kotak = document.createElement('div');
+            kotak.setAttribute('role', 'status');
+            kotak.style.cssText =
+                'position:fixed;right:16px;bottom:16px;z-index:99998;max-width:22rem;' +
+                'background:#0d9488;color:#fff;border-radius:14px;padding:14px 16px;' +
+                'box-shadow:0 12px 32px rgba(0,0,0,.25);font:14px/1.5 system-ui,sans-serif';
+            kotak.innerHTML =
+                '<strong>Versi baru SIMAGAS tersedia.</strong><br>' +
+                '<span style="opacity:.9">Isian di halaman ini akan hilang kalau dimuat ulang sekarang.</span>';
+
+            var tombol = document.createElement('button');
+            tombol.type = 'button';
+            tombol.textContent = 'Muat Ulang';
+            tombol.style.cssText =
+                'margin-top:10px;background:#fff;color:#0f766e;border:0;border-radius:9px;' +
+                'padding:7px 14px;font-weight:700;cursor:pointer';
+            tombol.addEventListener('click', function () { location.reload(); });
+
+            var nanti = document.createElement('button');
+            nanti.type = 'button';
+            nanti.textContent = 'Nanti';
+            nanti.style.cssText =
+                'margin:10px 0 0 8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);' +
+                'border-radius:9px;padding:7px 12px;font-weight:600;cursor:pointer';
+            nanti.addEventListener('click', function () { kotak.remove(); });
+
+            kotak.appendChild(tombol);
+            kotak.appendChild(nanti);
+            document.body.appendChild(kotak);
+        }
+
+        function periksaVersi() {
+            if (document.visibilityState !== 'visible') return;
+
+            fetch('{{ url('versi.json') }}', { cache: 'no-store', headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    if (! data || ! data.versi || String(data.versi) === String(versiRilis)) return;
+
+                    if (adaIsianTersentuh()) {
+                        tawarkanMuatUlang();
+                    } else {
+                        location.reload();
+                    }
+                })
+                .catch(function () { /* jaringan putus sebentar; coba lagi nanti. */ });
+        }
+
+        // Jangan dijalankan di halaman yang dibuka lewat file:// atau saat
+        // fetch tidak tersedia (browser sangat lama) — tidak ada gunanya dan
+        // hanya menimbulkan error di konsol.
+        if (typeof fetch === 'function' && versiRilis !== '0') {
+            setInterval(periksaVersi, JEDA_PERIKSA);
+            document.addEventListener('visibilitychange', periksaVersi);
+        }
     })();
 </script>
 

@@ -20,6 +20,34 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        /*
+         | Halaman HTML tidak boleh disimpan cache browser.
+         |
+         | Ini yang membuat pembaruan langsung terasa tanpa Ctrl+Shift+R:
+         | berkas CSS/JS sudah ber-hash sehingga pasti terunduh ulang kalau
+         | berubah, TAPI yang menyebut nama berkas itu adalah HTML-nya. HTML
+         | yang tersimpan di cache tetap menunjuk nama berkas lama, jadi aset
+         | barunya tidak pernah diminta. Lihat catatan lengkap di
+         | App\Http\Middleware\CegahCacheHalaman.
+         */
+        $middleware->appendToGroup('web', \App\Http\Middleware\CegahCacheHalaman::class);
+
+        /*
+         | Endpoint deploy DIKECUALIKAN dari pemeriksaan token CSRF.
+         |
+         | Bukan kelalaian: token CSRF melindungi dari permintaan yang dikirim
+         | diam-diam oleh SITUS LAIN memakai sesi login korban. GitHub Actions
+         | tidak punya sesi apa pun — ia memanggil dengan cURL, dan yang
+         | membuktikan identitasnya adalah DEPLOY_TOKEN di header.
+         |
+         | Tanpa pengecualian ini setiap panggilan dijawab 419 "CSRF token
+         | mismatch" dan langkah deploy-nya selalu merah — kegagalan yang
+         | membingungkan karena tokennya sendiri sudah benar.
+         */
+        $middleware->validateCsrfTokens(except: [
+            'deploy/bersihkan',
+        ]);
+
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);

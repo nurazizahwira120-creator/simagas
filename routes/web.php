@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DeployController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Guru\WaliKelasController;
@@ -50,6 +51,38 @@ Route::get('/', function (Request $request) {
 | per role. Setelah berhasil login, AuthController::store() yang menentukan
 | redirect berdasarkan role user (lihat UserRole::dashboardRouteName()).
 */
+/*
+|--------------------------------------------------------------------------
+| Endpoint deploy — DI LUAR middleware 'auth', dan memang harus begitu
+|--------------------------------------------------------------------------
+| GitHub Actions memanggilnya dengan cURL, bukan lewat browser yang login.
+| Pengamannya token, bukan sesi — lihat catatan panjang di DeployController.
+|
+| throttle:6,1 = maksimal 6 permintaan per menit per IP. Ini yang menahan
+| percobaan menebak token: tanpa throttle, sebuah skrip bisa mencoba ribuan
+| kombinasi per menit dan endpoint ini jadi pintu belakang yang terbuka.
+|
+| POST, bukan GET: token dikirim lewat header, dan permintaan POST tidak
+| pernah ikut ter-bookmark, ter-prefetch browser, atau tercatat di riwayat.
+| Query string ?token= tetap diterima sebagai cadangan, tapi jangan dipakai
+| kalau bisa dihindari — query string tercatat apa adanya di access log.
+*/
+Route::post('/deploy/bersihkan', [DeployController::class, 'bersihkan'])
+    ->middleware('throttle:6,1')
+    ->name('deploy.bersihkan');
+
+/*
+| Penanda versi rilis yang sedang berjalan. Dipanggil berkala oleh halaman
+| yang SEDANG TERBUKA di browser pengguna, supaya tab yang sudah dibuka
+| sejak pagi tahu ada pembaruan tanpa perlu ditutup dulu.
+|
+| Tanpa autentikasi dengan sengaja — isinya hanya satu angka waktu, dan
+| pemantaunya harus tetap bekerja di halaman login sekalipun.
+*/
+Route::get('/versi.json', [DeployController::class, 'versi'])
+    ->middleware('throttle:60,1')
+    ->name('versi');
+
 Route::middleware('guest')->group(function () {
     // Login & Registrasi adalah komponen Livewire full-page, jadi rutenya
     // menunjuk langsung ke kelas komponen — tidak ada lagi POST /login
