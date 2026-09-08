@@ -2,29 +2,84 @@
 # Dijalankan cPanel setiap kali Anda menekan "Deploy HEAD Commit" di
 # Git Version Control.
 #
-# ============ KENAPA "migrate --force" DITAMBAHKAN ============
-# Sebelumnya berkas ini hanya membersihkan cache. Artinya setiap fitur baru
-# yang menambah kolom database TIDAK PERNAH ikut terpasang: kodenya sampai
-# di server, kolomnya tidak ada, dan yang terlihat pengguna adalah error 500
-# di halaman yang kemarin baik-baik saja.
+# =====================================================================
+# SUSUNAN FOLDER DI SERVER INI — kenapa berkas harus DISALIN
+# =====================================================================
+# Aplikasi Laravel : /home/simm6468/backend_simagas   <- ini repo git-nya
+# Akar situs (web) : /home/simm6468/public_html       <- FOLDER TERPISAH
 #
-# Fitur notifikasi HP menambah kolom `fcm_token` ke tabel users. Tanpa baris
-# migrate di bawah, setiap pembukaan halaman oleh pengguna yang sudah
-# mengizinkan notifikasi akan menabrak kolom yang belum ada.
+# Keduanya BUKAN folder yang sama, dan public_html bukan symlink. Artinya
+# `git pull` hanya menyegarkan backend_simagas — sementara yang benar-benar
+# dikirim ke browser adalah isi public_html.
 #
-# --force WAJIB: tanpa itu Laravel menolak menjalankan migration di
-# environment production karena menunggu jawaban "yes" yang tidak akan
-# pernah datang — deploy-nya menggantung, lalu gagal karena timeout.
+# Akibatnya sudah pernah terjadi dan sangat membingungkan: kode PHP-nya
+# versi baru, tapi CSS dan service worker yang diunduh HP masih versi lama,
+# tanpa satu pun pesan error. Yang muncul cuma pita merah "berkas CSS-nya
+# versi lama" — kalau pita itu tidak ada, kesalahannya tidak terlihat sama
+# sekali.
 #
-# Migration di project ini semuanya bersifat MENAMBAH (kolom/tabel baru),
-# tidak ada yang menghapus data. Jadi aman dijalankan otomatis.
-# ==============================================================
+# Perintah salin di bawah menutup celah itu supaya tidak perlu diingat
+# manual di setiap rilis.
 #
-# config:clear didahulukan supaya migrate membaca .env yang terbaru, bukan
-# salinan lama di bootstrap/cache/config.php. optimize:clear di akhir sudah
-# mencakup view:clear, route:clear, dan cache:clear sekaligus.
+# ============ YANG SENGAJA TIDAK IKUT DISALIN ============
+# index.php  -> public_html/index.php SUDAH DISESUAIKAN untuk menunjuk ke
+#               ../backend_simagas. Menimpanya dengan index.php bawaan
+#               repo akan MEMATIKAN SELURUH SITUS.
+# .htaccess  -> boleh berisi aturan khusus hosting.
+# storage    -> itu symlink ke storage/app/public; menyalinnya akan
+#               menggantinya dengan folder biasa dan semua foto profil
+#               berhenti tampil.
+# build/     -> ada di .gitignore, jadi tidak pernah ada di repo server.
+# =========================================================
+#
+# ============ KENAPA "migrate --force" ============
+# Tanpa baris itu, setiap fitur yang menambah kolom database tidak pernah
+# ikut terpasang: kodenya sampai, kolomnya tidak ada, dan yang terlihat
+# pengguna adalah error 500 di halaman yang kemarin baik-baik saja.
+#
+# --force WAJIB di production: tanpa itu Laravel menunggu jawaban "yes"
+# yang tidak akan pernah datang, dan deploy-nya menggantung sampai timeout.
+#
+# Seluruh migration di project ini bersifat MENAMBAH (kolom/tabel baru),
+# tidak ada yang menghapus data — jadi aman dijalankan otomatis.
+# ==================================================
+#
+# Jalur ditulis ABSOLUT dan lengkap di setiap baris, bukan memakai variabel
+# atau `cd`: tiap task dijalankan cPanel di shell-nya sendiri, jadi apa pun
+# yang di-set di baris sebelumnya tidak terbawa ke baris berikutnya.
 deployment:
   tasks:
+    # --- 1. Aplikasi -------------------------------------------------
+    # config:clear didahulukan supaya migrate membaca .env terbaru, bukan
+    # salinan lama di bootstrap/cache/config.php.
     - php artisan config:clear
     - php artisan migrate --force
+
+    # --- 2. Segarkan akar situs -------------------------------------
+    # Aset cadangan yang dipakai kalau folder build/ tidak ada. Inilah dua
+    # berkas yang menentukan tampilan situs di server ini.
+    - /bin/cp -f /home/simm6468/backend_simagas/public/simagas.css /home/simm6468/public_html/simagas.css
+    - /bin/cp -f /home/simm6468/backend_simagas/public/simagas.js /home/simm6468/public_html/simagas.js
+
+    # Service worker notifikasi HP. HARUS dilayani dari akar situs —
+    # cakupan (scope) sebuah service worker tidak boleh melebihi folder
+    # tempat berkasnya berada, jadi menaruhnya di subfolder membuatnya
+    # tidak berlaku untuk halaman mana pun.
+    - /bin/cp -f /home/simm6468/backend_simagas/public/firebase-messaging-sw.js /home/simm6468/public_html/firebase-messaging-sw.js
+
+    # Service worker PWA + halaman offline + manifest.
+    - /bin/cp -f /home/simm6468/backend_simagas/public/sw.js /home/simm6468/public_html/sw.js
+    - /bin/cp -f /home/simm6468/backend_simagas/public/offline.html /home/simm6468/public_html/offline.html
+    - /bin/cp -f /home/simm6468/backend_simagas/public/manifest.json /home/simm6468/public_html/manifest.json
+
+    # Gambar & suara notifikasi. Disalin dengan "/." di ujung sumbernya
+    # supaya ISI foldernya yang tersalin, bukan foldernya masuk ke dalam
+    # folder tujuan (cp images public_html/images menghasilkan
+    # public_html/images/images kalau tujuannya sudah ada).
+    - /bin/cp -Rf /home/simm6468/backend_simagas/public/images/. /home/simm6468/public_html/images/
+    - /bin/cp -Rf /home/simm6468/backend_simagas/public/audio/. /home/simm6468/public_html/audio/
+
+    # --- 3. Bersihkan cache ------------------------------------------
+    # Paling akhir: sesudah berkas & database sudah pada tempatnya.
+    # optimize:clear sekaligus mencakup view, route, dan cache aplikasi.
     - php artisan optimize:clear
