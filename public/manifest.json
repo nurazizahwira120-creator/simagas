@@ -1,0 +1,33 @@
+{
+  "name": "SIMAGAS - Sistem Absensi Digital",
+  "short_name": "SIMAGAS",
+  "description": "Absensi digital SMK Islam Assya'roniyyah: scan QR di gerbang, absen radius GPS, dan pantauan kehadiran.",
+  "lang": "id",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f9fafb",
+  "theme_color": "#0d9488",
+  "icons": [
+    {
+      "src": "/images/logo/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/logo/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/logo/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

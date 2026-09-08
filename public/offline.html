@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tidak ada koneksi — SIMAGAS</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <!--
+        Halaman ini disajikan service worker saat perangkat benar-benar tidak
+        punya koneksi. Sengaja TANPA tautan ke CSS aplikasi: kalau jaringannya
+        mati dan CSS-nya kebetulan belum tersimpan, halaman "maaf offline"
+        justru ikut tampil rusak. Gayanya ditulis langsung di sini supaya
+        selalu utuh.
+    -->
+    <style>
+        :root { color-scheme: light dark; }
+        body {
+            margin: 0; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: #f9fafb; color: #1d2939;
+            font: 16px/1.6 "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 24px;
+        }
+        .kotak { max-width: 26rem; text-align: center; }
+        img { width: 84px; height: 84px; border-radius: 18px; }
+        h1 { font-size: 1.35rem; margin: 20px 0 8px; }
+        p { margin: 0 0 8px; color: #667085; font-size: .95rem; }
+        ul { text-align: left; color: #667085; font-size: .9rem; padding-left: 1.2rem; margin: 14px 0 20px; }
+        button {
+            border: 0; border-radius: 10px; background: #0d9488; color: #fff;
+            padding: 12px 22px; font-size: .95rem; font-weight: 600; cursor: pointer;
+        }
+        button:hover { background: #0f766e; }
+        @media (prefers-color-scheme: dark) {
+            body { background: #101828; color: #f2f4f7; }
+            p, ul { color: #98a2b3; }
+        }
+    </style>
+</head>
+<body>
+    <div class="kotak">
+        <img src="/images/logo/icon-192x192.png" alt="SIMAGAS">
+        <h1>Tidak ada koneksi</h1>
+        <p>SIMAGAS butuh internet untuk menampilkan data absensi yang terbaru.</p>
+
+        <ul>
+            <li>Periksa Wi-Fi atau data seluler Anda.</li>
+            <li>Kalau sedang di area sekolah, coba pindah ke tempat yang sinyalnya lebih baik.</li>
+            <li>Absensi yang belum terkirim <strong>tidak</strong> tersimpan di HP — ulangi setelah tersambung.</li>
+        </ul>
+
+        <button type="button" onclick="location.reload()">Coba Lagi</button>
+    </div>
+</body>
+</html>

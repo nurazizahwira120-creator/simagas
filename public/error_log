@@ -1,0 +1,17 @@
+[05-Sep-2026 01:24:50 Asia/Jakarta] PHP Warning:  require_once(/home/simm6468/public_html/../backend_simagas/bootstrap/app.php): Failed to open stream: No such file or directory in /home/simm6468/public_html/index.php on line 18
+[05-Sep-2026 01:24:50 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Failed opening required '/home/simm6468/public_html/../backend_simagas/bootstrap/app.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/simm6468/public_html/index.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/simm6468/public_html/index.php on line 18
+[05-Sep-2026 01:24:51 Asia/Jakarta] PHP Warning:  require_once(/home/simm6468/public_html/../backend_simagas/bootstrap/app.php): Failed to open stream: No such file or directory in /home/simm6468/public_html/index.php on line 18
+[05-Sep-2026 01:24:51 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Failed opening required '/home/simm6468/public_html/../backend_simagas/bootstrap/app.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/simm6468/public_html/index.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/simm6468/public_html/index.php on line 18
+[05-Sep-2026 01:24:51 Asia/Jakarta] PHP Warning:  require_once(/home/simm6468/public_html/../backend_simagas/bootstrap/app.php): Failed to open stream: No such file or directory in /home/simm6468/public_html/index.php on line 18
+[05-Sep-2026 01:24:51 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Failed opening required '/home/simm6468/public_html/../backend_simagas/bootstrap/app.php' (include_path='.:/opt/alt/php83/usr/share/pear:/opt/alt/php83/usr/share/php:/usr/share/pear:/usr/share/php') in /home/simm6468/public_html/index.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/simm6468/public_html/index.php on line 18
+[06-Sep-2026 11:50:35 Asia/Jakarta] PHP Fatal error:  Declaration of App\Imports\SiswaImport::model(array $row) must be compatible with Maatwebsite\Excel\Concerns\ToModel::model(array $row): Illuminate\Database\Eloquent\Model|array|null in /home/simm6468/backend_simagas/app/Imports/SiswaImport.php on line 61
+[06-Sep-2026 11:51:27 Asia/Jakarta] PHP Fatal error:  Declaration of App\Imports\SiswaImport::model(array $row) must be compatible with Maatwebsite\Excel\Concerns\ToModel::model(array $row): Illuminate\Database\Eloquent\Model|array|null in /home/simm6468/backend_simagas/app/Imports/SiswaImport.php on line 61
