@@ -44,3 +44,12 @@ Thumbs.db
 # (vendor.zip, absensi-smk.zip) TIDAK terpengaruh baris ini — aturan
 # .gitignore hanya berlaku untuk berkas yang belum dilacak.
 *.zip
+
+# Berkas installer Laravel yang ikut terunduh ke akar project (282 KB,
+# bukan bagian dari aplikasi). Tanpa baris ini `git add -A` akan
+# memasukkannya ke repository dan ikut terkirim ke server setiap deploy.
+/laravel
+/composer.phar
+
+# Skrip bantu sekali pakai buatan sesi ini.
+/1-KIRIM-KE-GITHUB.bat

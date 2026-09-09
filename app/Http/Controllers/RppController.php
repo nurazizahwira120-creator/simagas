@@ -194,15 +194,28 @@ class RppController extends Controller
         // inline = tampil di viewer; attachment = dipaksa terunduh.
         $mode = $request->boolean('unduh') ? 'attachment' : 'inline';
 
+        // Header Content-Disposition-nya DIBIARKAN DIRAKIT LARAVEL (argumen
+        // keempat), bukan dirangkai sendiri dengan tanda kutip.
+        //
+        // Nama berkasnya dirangkai dari judul RPP yang diketik guru. Begitu di
+        // dalamnya ada tanda kutip, koma, atau huruf beraksen, header rakitan
+        // tangan menjadi tidak sah — dan browser yang menerima header rusak
+        // TIDAK menampilkan pesan error apa pun: ia hanya menolak membuka
+        // PDF-nya. makeDisposition() milik Symfony menangani pelolosan
+        // karakter dan menyediakan filename* (RFC 5987) untuk nama non-ASCII.
         return $disk->response($rpp->file_path, $rpp->namaUnduhan(), [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $mode . '; filename="' . $rpp->namaUnduhan() . '"',
 
             // Berkas bisa diganti dengan yang baru di id yang sama; tanpa ini
             // browser bisa menahan versi lama di cache dan guru mengira
             // unggahannya gagal.
             'Cache-Control' => 'private, max-age=0, must-revalidate',
-        ]);
+
+            // Sebagian proxy hosting memaksa "nosniff". Dengan tipe yang sudah
+            // kita nyatakan sendiri di atas, header ini aman dan justru
+            // memastikan browser memakai application/pdf apa adanya.
+            'X-Content-Type-Options' => 'nosniff',
+        ], $mode);
     }
 
     public function destroy(Rpp $rpp): RedirectResponse

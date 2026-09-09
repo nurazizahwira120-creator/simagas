@@ -12,6 +12,7 @@ use App\Models\AbsensiPegawai;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\Siswa;
+use App\Services\PemampatFoto;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -519,13 +520,39 @@ class JurnalAbsenKelas extends Component
         $jalurLama = $sesi->foto_bukti;
 
         try {
+            // Foto dipampatkan SELAGI MASIH BERKAS SEMENTARA, sebelum pindah
+            // ke penyimpanan permanen. Berkas sementara memang dirancang untuk
+            // dibuang, jadi menulisinya di tempat tidak berisiko; kalau
+            // pemampatannya gagal, yang tersimpan tinggal foto aslinya.
+            //
+            // Tanpa langkah ini satu foto kamera HP berukuran 3–5 MB, dan
+            // ~1.100 foto per bulan berarti sekitar 3 GB per bulan yang tidak
+            // pernah dihapus siapa pun. Lihat App\Services\PemampatFoto.
+            $ekstensi = $this->fotoBukti->extension();
+
+            // getRealPath() hanya masuk akal untuk disk lokal. Kalau suatu saat
+            // disk unggahan sementara dipindah ke S3, panggilan ini melempar —
+            // dan itu tidak boleh membuat unggahannya ikut gagal.
+            try {
+                $jalurSementara = $this->fotoBukti->getRealPath();
+            } catch (\Throwable $e) {
+                $jalurSementara = null;
+            }
+
+            if (is_string($jalurSementara) && PemampatFoto::keJpeg($jalurSementara)) {
+                // Isinya sekarang JPEG, jadi ekstensinya harus ikut berubah.
+                // Kalau tidak, berkas .png yang isinya JPEG akan dilayani
+                // dengan Content-Type yang salah saat diunduh.
+                $ekstensi = 'jpg';
+            }
+
             // Nama berkas dibuat sistem (UUID + ekstensi), BUKAN memakai nama
             // asli dari HP guru. Nama asli bisa mengandung karakter yang
             // menyulitkan di server, dan yang lebih penting: nama yang bisa
             // ditebak membuat foto orang lain bisa dibuka dengan menerka URL.
             $jalur = $this->fotoBukti->storeAs(
                 self::FOLDER_BUKTI,
-                (string) Str::uuid() . '.' . $this->fotoBukti->extension(),
+                (string) Str::uuid() . '.' . $ekstensi,
                 'public',
             );
 

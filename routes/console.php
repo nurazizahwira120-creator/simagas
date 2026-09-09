@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\BuatLaporanBulanan;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -32,36 +33,74 @@ Artisan::command('inspire', function () {
 | lalu hampir selalu langsung keluar tanpa mengerjakan apa pun. Menyetel
 | cron-nya sendiri sebulan sekali hampir pasti meleset, karena ia harus
 | kebetulan menyala persis pada menit yang dijadwalkan.
+|
+| Kalau hosting mengeluh soal jumlah proses, jadwal cron "setiap 5 menit"
+| juga cukup: tugas di bawah jatuh tempo pada menit :00, dan menit itu
+| selalu ikut terkena kelipatan lima.
+|
+| (Pola cron-nya tidak ditulis apa adanya di sini dengan sengaja — tanda
+| bintang-garis-miringnya akan MENUTUP blok komentar ini lebih awal dan
+| membuat seluruh berkas gagal di-parse.)
 | ===========================================================
 */
 
 /*
- | Laporan kehadiran bulanan.
- |
- | Tanggal 1 pukul 01:00 — dini hari, saat tidak ada seorang pun memakai
- | aplikasi. Merekap ratusan siswa sementara guru piket sedang men-scan di
- | gerbang akan membuat keduanya lambat.
- |
- | timezone() WAJIB ditulis eksplisit. Server hosting umumnya berjalan di
- | UTC, dan tanpa baris ini "pukul 01:00" berarti 08:00 WIB — laporannya
- | tetap jadi, tapi tepat di jam tersibuk sekolah.
- |
- | withoutOverlapping() mencegah dua proses merekap bulan yang sama
- | bersamaan kalau yang pertama belum selesai.
- |
- | runInBackground() SENGAJA tidak dipakai: perintah ini menulis berkas dan
- | baris database, dan kalau gagal kita ingin kode keluarnya terbaca cron —
- | bukan hilang di proses latar belakang.
- */
-Schedule::command('simagas:laporan-bulanan')
-    ->monthlyOn(1, '01:00')
-    ->timezone('Asia/Jakarta')
-    ->withoutOverlapping(30)
-    ->onSuccess(function () {
-        Log::info('Laporan bulanan otomatis berhasil dibuat.');
-    })
-    ->onFailure(function () {
+|--------------------------------------------------------------------------
+| Laporan kehadiran bulanan — tanggal 1 pukul 01:00 WIB
+|--------------------------------------------------------------------------
+|
+| ============ KENAPA Schedule::call(), BUKAN Schedule::command() ============
+| Bentuk yang lazim dan lebih pendek adalah:
+|
+|   Schedule::command('simagas:laporan-bulanan')->monthlyOn(1, '01:00');
+|
+| dan di hosting ini bentuk itu TIDAK AKAN PERNAH BERHASIL.
+|
+| Schedule::command() menjalankan perintahnya sebagai PROSES BARU lewat
+| Symfony Process, yang bergantung pada fungsi PHP `proc_open`. Hosting ini
+| mematikan proc_open — hal yang sama sudah terbukti saat composer gagal
+| memanggil `artisan package:discover`:
+|
+|   The Process class relies on proc_open, which is not available on your
+|   PHP installation.
+|
+| Akibatnya kalau dibiarkan: cron menyala tiap menit, menemukan tugasnya
+| jatuh tempo tanggal 1 pukul 01:00, lalu gagal dengan error itu — sekali
+| sebulan, jam satu pagi, tanpa ada seorang pun yang melihat layarnya. Yang
+| tampak keesokan harinya hanya: laporannya tidak ada.
+|
+| Schedule::call() memanggil Artisan DI DALAM proses yang sedang berjalan.
+| Tidak ada sub-proses, tidak ada proc_open. Seluruh penjadwalannya (jam,
+| timezone, penguncian) tetap ditangani Laravel seperti biasa.
+| ===========================================================================
+|
+| ->name() WAJIB ada di sini, tidak seperti pada Schedule::command().
+| withoutOverlapping() perlu nama untuk kunci mutex-nya, dan tanpa itu
+| Laravel melempar "A scheduled event name is required to prevent
+| overlapping" — saat cron berjalan, bukan saat berkas ini disimpan.
+|
+| timezone() juga WAJIB ditulis eksplisit. Server hosting umumnya berjalan
+| di UTC, dan tanpa baris ini "pukul 01:00" berarti 08:00 WIB — laporannya
+| tetap jadi, tapi tepat di jam tersibuk sekolah.
+*/
+Schedule::call(function () {
+    $kode = Artisan::call(BuatLaporanBulanan::class);
+
+    if ($kode !== 0) {
         // Kegagalan jam 1 pagi tidak akan dilihat siapa pun sampai ada yang
         // mencari laporannya. Barisnya masuk log supaya jejaknya ada.
-        Log::error('Laporan bulanan otomatis GAGAL. Periksa storage/logs/laravel.log.');
-    });
+        Log::error('Laporan bulanan otomatis GAGAL.', [
+            'kode_keluar' => $kode,
+            'keluaran' => Artisan::output(),
+        ]);
+
+        // return false -> exitCode 1 -> terbaca sebagai gagal oleh penjadwal.
+        return false;
+    }
+
+    Log::info('Laporan bulanan otomatis berhasil dibuat.');
+})
+    ->name('simagas-laporan-bulanan')
+    ->monthlyOn(1, '01:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(30);
