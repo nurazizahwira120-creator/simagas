@@ -11,6 +11,7 @@ use App\Models\Pengumuman;
 use App\Models\PengaturanSistem;
 use App\Models\User;
 use App\Notifications\PengumumanBaru;
+use App\Services\NotifikasiPengumuman;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -270,6 +271,7 @@ class KelolaPengumuman extends Component
 
         Notification::send($daftarPenerima, PengumumanBaru::dari($pengumuman));
         $this->siarkan($pengumuman, $daftarPenerima->pluck('id')->all());
+        $hasilPush = $this->dorongKeHp($pengumuman, $daftarPenerima);
 
         $jumlahWa = 0;
 
@@ -284,7 +286,8 @@ class KelolaPengumuman extends Component
         unset($this->riwayat, $this->ringkasanPenerima);
 
         $ringkas = 'Pengumuman terkirim ke ' . $daftarPenerima->count()
-            . ' pengguna (langsung berbunyi di lonceng mereka).';
+            . ' pengguna (langsung berbunyi di lonceng mereka).'
+            . app(NotifikasiPengumuman::class)->ringkasan($hasilPush);
 
         if ($data['kirim_wa']) {
             $ringkas .= $jumlahWa > 0
@@ -412,6 +415,7 @@ class KelolaPengumuman extends Component
 
         Notification::send($daftarPenerima, PengumumanBaru::dari($pengumuman));
         $this->siarkan($pengumuman, $daftarPenerima->pluck('id')->all());
+        $hasilPush = $this->dorongKeHp($pengumuman, $daftarPenerima);
 
         // Kiriman ulang TIDAK menyentuh WhatsApp. Pesan WA berbiaya dan tidak
         // bisa ditarik; mengulangnya harus keputusan sadar, bukan efek samping
@@ -421,7 +425,43 @@ class KelolaPengumuman extends Component
 
         $this->pesan('ok', 'Notifikasi dikirim ulang',
             'Dikirim ulang ke ' . $daftarPenerima->count()
-            . ' pengguna. WhatsApp TIDAK ikut dikirim ulang.');
+            . ' pengguna. WhatsApp TIDAK ikut dikirim ulang.'
+            . app(NotifikasiPengumuman::class)->ringkasan($hasilPush));
+    }
+
+    /* ================= NOTIFIKASI HP (Web Push) ================= */
+
+    /**
+     * Dorong pengumuman ke layar kunci HP penerimanya.
+     *
+     * Isinya dipisah ke App\Services\NotifikasiPengumuman, bukan ditulis di
+     * sini, karena kelas ini sudah memegang terlalu banyak urusan: validasi,
+     * lonceng, Pusher, WhatsApp, dan riwayat. Satu lagi yang dijejalkan
+     * membuat simpan() mustahil dibaca sekali jalan.
+     *
+     * Daftar penerimanya SENGAJA dioper apa adanya — bukan di-query ulang di
+     * dalam service. Query kedua bisa memberi hasil berbeda (ada akun yang
+     * baru disetujui sedetik sebelumnya), dan hasilnya adalah orang yang
+     * menerima notifikasi HP tanpa pernah punya loncengnya — atau sebaliknya.
+     *
+     * @param  \Illuminate\Support\Collection<int, User>  $penerima
+     * @return array{terkirim: int, punya_hp: int, dilewati: int}
+     */
+    private function dorongKeHp(Pengumuman $pengumuman, $penerima): array
+    {
+        try {
+            return app(NotifikasiPengumuman::class)->siarkan($pengumuman, $penerima);
+        } catch (\Throwable $e) {
+            // Sama seperti Pusher dan WhatsApp: pengumumannya SUDAH tersimpan
+            // dan SUDAH masuk lonceng. Gangguan di layanan luar tidak boleh
+            // berubah jadi layar error untuk pekerjaan yang sudah selesai.
+            Log::warning('Push pengumuman gagal — pengumuman tetap tersimpan.', [
+                'pengumuman_id' => $pengumuman->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['terkirim' => 0, 'punya_hp' => 0, 'dilewati' => 0];
+        }
     }
 
     /* ================= PUSHER ================= */

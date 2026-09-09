@@ -158,6 +158,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Batas penerima untuk SATU kali siaran pengumuman
+    |--------------------------------------------------------------------------
+    | FCM HTTP v1 tidak punya endpoint multicast: satu penerima = satu
+    | permintaan HTTP ke Google. Pada mode 'sync' seluruh panggilan itu
+    | terjadi di dalam permintaan web yang sama, jadi kepala sekolah menatap
+    | layar sampai selesai — dan PHP di hosting memutus prosesnya jauh
+    | sebelum 200 panggilan tuntas.
+    |
+    | Angka ini menjaga agar yang terjadi adalah "sebagian terkirim dan
+    | dilaporkan apa adanya", bukan "layar error padahal separuh HP sudah
+    | berbunyi".
+    |
+    | Kalau penerimanya sudah melampaui angka ini, jangan dinaikkan —
+    | jalankan queue worker (cron cPanel: `php artisan queue:work
+    | --stop-when-empty`) lalu isi FIREBASE_PUSH_QUEUE=database. Sesudah itu
+    | batas ini tidak lagi berpengaruh.
+    */
+    'batas_siaran' => (int) env('FIREBASE_BATAS_SIARAN', 200),
+
+    /*
+    |--------------------------------------------------------------------------
     | Ikon & lencana notifikasi
     |--------------------------------------------------------------------------
     | Jalur relatif dari akar situs. Dipakai oleh service worker saat
