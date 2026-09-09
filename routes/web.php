@@ -3,6 +3,7 @@
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\LaporanBulananController;
+use App\Http\Controllers\RekapKbmController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Guru\WaliKelasController;
@@ -377,6 +378,24 @@ Route::middleware('auth')->group(function () {
         // catatan di LaporanBulananController.
         Route::get('/laporan-bulanan/{laporan}/unduh', [LaporanBulananController::class, 'unduh'])
             ->name('laporan-bulanan.unduh');
+
+        /*
+        | Rekap KBM per Jadwal — ditumpangkan pada closure yang sama karena
+        | hak aksesnya persis sama (kepsek + super_admin) dan keduanya berada
+        | di kelompok menu "Pusat Laporan". Closure terpisah hanya akan
+        | menambah satu nama variabel yang harus diingat untuk di-`use` di dua
+        | grup rute di bawah.
+        |
+        | Rute unduhnya TANPA parameter jalur: seluruh saringannya (periode,
+        | kelas, mapel, guru) dibawa sebagai query string, sama persis dengan
+        | yang ada di URL halaman. Itu yang membuat tombol "Unduh PDF" cukup
+        | meneruskan saringan yang sedang tampil, tanpa jalur pembentukan data
+        | kedua yang bisa menyimpang dari layar.
+        */
+        Route::view('/rekap-kbm', 'laporan.rekap-kbm')->name('rekap-kbm');
+
+        Route::get('/rekap-kbm/unduh', [RekapKbmController::class, 'unduh'])
+            ->name('rekap-kbm.unduh');
     };
 
     // role:kepsek — hanya kepsek, TIDAK termasuk super_admin (lihat grup

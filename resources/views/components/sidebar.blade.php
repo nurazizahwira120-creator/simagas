@@ -55,9 +55,13 @@
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
-        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*', 'anak' => [
+        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.rekap-kbm*', 'anak' => [
             ['label' => 'Absensi Harian',       'icon' => 'clock',            'route' => '.laporan-harian',  'match' => '.laporan-harian'],
             ['label' => 'Rekap Bulanan Siswa',  'icon' => 'document-report',  'route' => '.laporan',         'match' => '.laporan'],
+            // Acuannya JADWAL PELAJARAN, bukan siswa. Menjawab pertanyaan
+            // yang tidak bisa dijawab butir mana pun di atas maupun di bawah:
+            // jam & mata pelajaran mana yang paling banyak ditinggalkan.
+            ['label' => 'Rekap KBM per Jadwal', 'icon' => 'calendar',         'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
             // Arsip PDF hasil Cron Job — beda dari 'Rekap Bulanan Siswa' di
             // atas yang dihitung langsung saat halaman dibuka. Yang ini
             // berkas jadi, siap unduh & cetak, dan mencakup pegawai juga.
@@ -203,6 +207,12 @@
         ['label' => 'Daftar Izin Pegawai',          'icon' => 'clipboard-check', 'route' => '.daftar-izin-pegawai', 'match' => '.daftar-izin-pegawai'],
         ['label' => 'Pantauan Kehadiran Siswa',     'icon' => 'academic-cap',    'route' => '.pantauan-siswa',    'match' => '.pantauan-siswa'],
         ['label' => 'Laporan & Rekapitulasi',       'icon' => 'document-report', 'route' => '.laporan',           'match' => '.laporan'],
+
+        // Pasangan dari butir di atas. 'Laporan & Rekapitulasi' menghitung
+        // kehadiran di GERBANG per siswa; yang ini menghitung kehadiran di
+        // KELAS per jadwal pelajaran. Selisih keduanya persis yang dicari
+        // kepala sekolah: anak yang masuk pagi lalu hilang di jam ketiga.
+        ['label' => 'Rekap KBM per Jadwal',         'icon' => 'calendar',        'route' => '.rekap-kbm',         'match' => '.rekap-kbm*'],
 
         // Ditaruh tepat di bawahnya: keduanya menjawab pertanyaan yang
         // bersambung — "bagaimana bulan ini berjalan", lalu "berikan saya
