@@ -79,34 +79,43 @@
          di kepala berkas. --}}
     <table>
         <tr>
-            <td width="20%" style="padding-right:6px;">
+            <td width="17%" style="padding-right:6px;">
                 <div class="kartu">
                     <div class="angka">{{ $ringkas['jumlah_pegawai'] }}</div>
                     <div class="label">Pegawai</div>
                 </div>
             </td>
-            <td width="20%" style="padding-right:6px;">
+            <td width="17%" style="padding-right:6px;">
                 <div class="kartu">
                     <div class="angka">{{ $ringkas['jumlah_siswa'] }}</div>
                     <div class="label">Siswa</div>
                 </div>
             </td>
-            <td width="20%" style="padding-right:6px;">
+            <td width="17%" style="padding-right:6px;">
                 <div class="kartu">
                     <div class="angka">{{ number_format($ringkas['kehadiran_pegawai'], 0, ',', '.') }}</div>
                     <div class="label">Hari hadir pegawai</div>
                 </div>
             </td>
-            <td width="20%" style="padding-right:6px;">
+            <td width="17%" style="padding-right:6px;">
                 <div class="kartu">
                     <div class="angka">{{ number_format($ringkas['total_sesi_mengajar'], 0, ',', '.') }}</div>
                     <div class="label">Sesi KBM tervalidasi</div>
                 </div>
             </td>
-            <td width="20%">
+            <td width="16%" style="padding-right:6px;">
                 <div class="kartu">
                     <div class="angka">{{ number_format($ringkas['total_bolos'], 0, ',', '.') }}</div>
                     <div class="label">Kejadian bolos</div>
+                </div>
+            </td>
+            {{-- Kartu ini menjelaskan bobot bagian C: 40 pertemuan dan 4
+                 pertemuan menghasilkan persentase yang sama-sama "sekian
+                 persen", tapi keyakinan terhadap keduanya jauh berbeda. --}}
+            <td width="16%">
+                <div class="kartu">
+                    <div class="angka">{{ number_format($ringkas['total_pertemuan_kbm'], 0, ',', '.') }}</div>
+                    <div class="label">Pertemuan KBM tercatat</div>
                 </div>
             </td>
         </tr>
@@ -192,6 +201,60 @@
         </table>
     @endif
 
+    {{-- ============ REKAP KBM PER MATA PELAJARAN ============
+         Bagian B di atas menghitung kehadiran di GERBANG. Bagian ini
+         menghitung kehadiran DI KELAS, dikelompokkan per mata pelajaran.
+         Selisih keduanya persis yang dicari kepala sekolah: anak yang masuk
+         gerbang pagi lalu tidak ada di jam ketiga tercatat HADIR di bagian B
+         dan BOLOS di bagian ini.
+
+         Diurutkan dari persentase TERENDAH — laporan ini dibaca untuk
+         memutuskan tindakan, dan kalau diurutkan menurut abjad yang perlu
+         ditindak justru terselip di baris paling bawah. --}}
+    <h2>C. Rekapitulasi KBM per Mata Pelajaran</h2>
+
+    @if (empty($kbm_mapel))
+        <p class="kosong">
+            Belum ada catatan jurnal KBM pada bulan ini. Bagian ini terisi otomatis
+            begitu guru mulai mengisi menu Jurnal &amp; Absen Kelas.
+        </p>
+    @else
+        <table class="data">
+            <thead>
+                <tr>
+                    <th width="4%" class="tengah">No</th>
+                    <th width="30%">Mata Pelajaran &mdash; diurutkan dari kehadiran terendah</th>
+                    <th width="9%" class="tengah">Kelas</th>
+                    <th width="11%" class="tengah">Pertemuan</th>
+                    <th width="9%" class="tengah">Hadir</th>
+                    <th width="7%" class="tengah">Izin</th>
+                    <th width="7%" class="tengah">Sakit</th>
+                    <th width="7%" class="tengah">Alpa</th>
+                    <th width="8%" class="tengah">Bolos</th>
+                    <th width="8%" class="tengah">%</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($kbm_mapel as $i => $m)
+                    <tr class="{{ $i % 2 ? 'zebra' : '' }}">
+                        <td class="tengah">{{ $i + 1 }}</td>
+                        <td>{{ $m['mapel'] }}</td>
+                        <td class="tengah">{{ $m['kelas'] }}</td>
+                        <td class="tengah">{{ $m['pertemuan'] }}</td>
+                        <td class="tengah tebal">{{ $m['hadir'] }}</td>
+                        <td class="tengah">{{ $m['izin'] }}</td>
+                        <td class="tengah">{{ $m['sakit'] }}</td>
+                        <td class="tengah {{ $m['alpa'] > 0 ? 'merah' : '' }}">{{ $m['alpa'] }}</td>
+                        <td class="tengah {{ $m['bolos'] > 0 ? 'merah' : '' }}">{{ $m['bolos'] }}</td>
+                        <td class="tengah {{ $m['persen'] !== null && $m['persen'] < 75 ? 'merah' : 'tebal' }}">
+                            {{ $m['persen'] === null ? '—' : $m['persen'] . '%' }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     <div class="kaki">
         <strong>Cara membaca angka di laporan ini:</strong><br>
         &bull; <strong>Hari kerja</strong> dihitung sebagai seluruh hari Senin&ndash;Sabtu dalam bulan ini.
@@ -203,7 +266,17 @@
         Sesi yang hanya di-scan lalu ditinggalkan tidak ikut dihitung.<br>
         &bull; <strong>Bolos</strong> adalah siswa yang tercatat masuk gerbang pada pagi harinya namun
         ditandai tidak hadir oleh guru di jam pelajaran &mdash; berbeda dari <strong>Alpa</strong>, yang
-        berarti tidak hadir sejak dari rumah.<br><br>
+        berarti tidak hadir sejak dari rumah.<br>
+        &bull; <strong>Persentase di bagian B dan bagian C mengukur hal yang berbeda dan memang tidak
+        seharusnya sama.</strong> Bagian B membandingkan kehadiran di gerbang terhadap jumlah hari kerja;
+        bagian C membandingkan status &ldquo;hadir&rdquo; terhadap seluruh catatan jurnal pada mata
+        pelajaran tersebut. Angka bagian C yang lebih rendah berarti ada siswa yang masuk sekolah
+        tetapi tidak sampai ke kelas.<br>
+        &bull; <strong>Pertemuan</strong> di bagian C adalah banyaknya kali jurnal benar-benar diisi,
+        bukan banyaknya baris absensi &mdash; satu pertemuan di kelas berisi 32 anak dihitung
+        <strong>satu</strong>. Mata pelajaran dengan pertemuan sedikit persentasenya belum tentu
+        mewakili keadaan sebenarnya, karena itu kedua kolom sengaja ditaruh berdekatan supaya
+        dibaca bersamaan.<br><br>
         Dokumen ini dihasilkan otomatis oleh SIMAGAS dan tidak memerlukan tanda tangan basah.
     </div>
 

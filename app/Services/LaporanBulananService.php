@@ -145,6 +145,11 @@ class LaporanBulananService
             ];
         })->all();
 
+        // ---------------------------------------------------------------
+        // KBM PER MATA PELAJARAN
+        // ---------------------------------------------------------------
+        $kbmMapel = $this->rekapMapel($awal, $akhir);
+
         return [
             'periode' => $awal,
             'label_periode' => $awal->translatedFormat('F Y'),
@@ -153,6 +158,7 @@ class LaporanBulananService
 
             'pegawai' => $barisPegawai,
             'siswa' => $barisSiswa,
+            'kbm_mapel' => $kbmMapel,
 
             'ringkas' => [
                 'jumlah_pegawai' => count($barisPegawai),
@@ -161,6 +167,8 @@ class LaporanBulananService
                 'kehadiran_siswa' => array_sum(array_column($barisSiswa, 'hadir')),
                 'total_sesi_mengajar' => array_sum(array_column($barisPegawai, 'sesi_mengajar')),
                 'total_bolos' => array_sum(array_column($barisSiswa, 'bolos')),
+                'jumlah_mapel' => count($kbmMapel),
+                'total_pertemuan_kbm' => array_sum(array_column($kbmMapel, 'pertemuan')),
             ],
         ];
     }
@@ -258,6 +266,120 @@ class LaporanBulananService
             ->setPaper('a4', 'landscape')
             ->setOption(['isRemoteEnabled' => false])
             ->output();
+    }
+
+    /**
+     * Rekap jurnal KBM dikelompokkan per MATA PELAJARAN.
+     *
+     * ============ KENAPA BAGIAN INI ADA ============
+     * Bagian B laporan ini menghitung kehadiran di GERBANG: satu baris per
+     * siswa per hari, dari scan QR pagi. Angka itu tidak bisa menjawab
+     * pertanyaan yang justru paling sering muncul di rapat — pelajaran mana
+     * yang paling banyak ditinggalkan siswa.
+     *
+     * Selisih keduanya bukan hal teoretis: anak yang masuk gerbang pukul
+     * 06.45 lalu tidak ada di kelas pada jam ketiga tercatat HADIR di bagian
+     * B dan BOLOS di bagian ini. Tanpa bagian ini, kejadian itu hanya tampak
+     * sebagai satu angka total tanpa petunjuk pelajaran mana yang terdampak.
+     * ===============================================
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function rekapMapel(CarbonImmutable $awal, CarbonImmutable $akhir): array
+    {
+        $rentang = [$awal->toDateString(), $akhir->toDateString()];
+
+        /*
+         | Hitungan status per mata pelajaran — SATU query agregat.
+         |
+         | SUM(CASE WHEN ...) dipakai, bukan COUNT(IF(...)) atau
+         | FILTER (WHERE ...): bentuk ini satu-satunya yang dimengerti MySQL
+         | (produksi) sekaligus SQLite (pengujian). Nilai statusnya diambil
+         | dari enum, bukan diketik ulang — 'alpa' di tabel KBM beda satu
+         | huruf dari 'alpha' di absensi_siswa, dan salah ketik satu huruf
+         | menghasilkan kolom nol yang terlihat wajar.
+         */
+        $hitung = AbsensiKbmSiswa::query()
+            ->join('jadwal_pelajaran', 'jadwal_pelajaran.id', '=', 'absensi_kbm_siswa.jadwal_id')
+            ->whereBetween('absensi_kbm_siswa.tanggal', $rentang)
+            ->groupBy('jadwal_pelajaran.mata_pelajaran')
+            ->select('jadwal_pelajaran.mata_pelajaran')
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw($this->jumlahStatus(StatusKbm::Hadir) . ' as hadir')
+            ->selectRaw($this->jumlahStatus(StatusKbm::Sakit) . ' as sakit')
+            ->selectRaw($this->jumlahStatus(StatusKbm::Izin) . ' as izin')
+            ->selectRaw($this->jumlahStatus(StatusKbm::Alpa) . ' as alpa')
+            ->selectRaw($this->jumlahStatus(StatusKbm::Bolos) . ' as bolos')
+            ->get()
+            ->keyBy('mata_pelajaran');
+
+        /*
+         | Jumlah PERTEMUAN dan jumlah KELAS tidak bisa ikut query di atas.
+         |
+         | Keduanya butuh COUNT(DISTINCT dua kolom sekaligus) — MySQL
+         | menulisnya COUNT(DISTINCT a, b), SQLite tidak mengenal bentuk itu
+         | sama sekali. Menuliskan salah satu berarti laporan ini jalan di
+         | satu tempat dan meledak di tempat lain.
+         |
+         | Karena itu pasangan (jadwal, tanggal) yang unik diambil apa adanya
+         | lalu dihitung di PHP. Jumlah barisnya kecil — satu pertemuan
+         | menghasilkan SATU baris di sini, bukan sebanyak siswanya — jadi
+         | sebulan penuh hanya ratusan baris.
+         */
+        $pertemuan = AbsensiKbmSiswa::query()
+            ->join('jadwal_pelajaran', 'jadwal_pelajaran.id', '=', 'absensi_kbm_siswa.jadwal_id')
+            ->whereBetween('absensi_kbm_siswa.tanggal', $rentang)
+            ->distinct()
+            ->get([
+                'jadwal_pelajaran.mata_pelajaran',
+                'jadwal_pelajaran.kelas_id',
+                'absensi_kbm_siswa.jadwal_id',
+                'absensi_kbm_siswa.tanggal',
+            ]);
+
+        $jumlahPertemuan = $pertemuan->countBy('mata_pelajaran');
+        $jumlahKelas = $pertemuan->groupBy('mata_pelajaran')
+            ->map(fn ($b) => $b->pluck('kelas_id')->unique()->count());
+
+        $baris = $hitung->map(function ($h) use ($jumlahPertemuan, $jumlahKelas) {
+            $total = (int) $h->total;
+            $hadir = (int) $h->hadir;
+
+            return [
+                'mapel' => $h->mata_pelajaran,
+                'pertemuan' => (int) $jumlahPertemuan->get($h->mata_pelajaran, 0),
+                'kelas' => (int) $jumlahKelas->get($h->mata_pelajaran, 0),
+                'total' => $total,
+                'hadir' => $hadir,
+                'sakit' => (int) $h->sakit,
+                'izin' => (int) $h->izin,
+                'alpa' => (int) $h->alpa,
+                'bolos' => (int) $h->bolos,
+                'persen' => $total > 0 ? round($hadir / $total * 100, 1) : null,
+            ];
+        })->values();
+
+        /*
+         | Diurutkan dari persentase TERENDAH, bukan menurut abjad.
+         |
+         | Laporan ini dibaca untuk memutuskan tindakan, dan yang perlu
+         | ditindak ada di baris paling bawah kalau diurutkan menurut abjad —
+         | tempat yang paling mudah terlewat. Urutan ini menaruhnya di baris
+         | pertama. Alasannya ikut dicetak di kepala tabel supaya pembacanya
+         | tidak mengira daftarnya berantakan.
+         */
+        return $baris->sortBy([
+            ['persen', 'asc'],
+            ['mapel', 'asc'],
+        ])->values()->all();
+    }
+
+    /**
+     * Potongan SQL "hitung baris berstatus X" yang berlaku di MySQL & SQLite.
+     */
+    private function jumlahStatus(StatusKbm $status): string
+    {
+        return "SUM(CASE WHEN absensi_kbm_siswa.status = '" . $status->value . "' THEN 1 ELSE 0 END)";
     }
 
     /**
