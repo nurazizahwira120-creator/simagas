@@ -93,16 +93,37 @@
             <form wire:submit.prevent="masuk" class="mt-7 space-y-5">
 
                 <div>
-                    <label for="email" class="mb-1.5 block text-sm font-semibold text-navy-700">Email</label>
+                    <label for="identitas" class="mb-1.5 block text-sm font-semibold text-navy-700">
+                        Email, NIS, atau No. HP
+                    </label>
                     <div class="relative">
                         <span class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-brand-faint">
-                            <x-icon name="mail" class="h-5 w-5" />
+                            <x-icon name="identification" class="h-5 w-5" />
                         </span>
-                        <input id="email" type="email" wire:model="email"
-                            autocomplete="username" required autofocus
-                            placeholder="nama@assyaroniyyah.sch.id"
+                        {{-- type="text", BUKAN type="email".
+
+                             Kalau tetap type="email", browser menolak
+                             "1234567890" sebagai isian tidak sah dan formnya
+                             tidak terkirim sama sekali — validasi bawaan
+                             browser itu berjalan sebelum satu baris pun kode
+                             kita dijalankan, dan pesannya ("Sertakan tanda @")
+                             tidak bisa diubah. Wali murid yang mengetik NIS
+                             anaknya akan mengira sistemnya rusak.
+
+                             inputmode dibiarkan bawaan (bukan "numeric"):
+                             kolom ini juga menerima email, dan memaksa papan
+                             angka di HP membuat pengguna email harus
+                             berpindah papan ketik lebih dulu. --}}
+                        <input id="identitas" name="identitas" type="text" wire:model="identitas"
+                            autocomplete="username" autocapitalize="none" spellcheck="false"
+                            required autofocus
+                            placeholder="nama@sekolah.id / 1234567890 / 0812xxxxxxx"
                             class="w-full rounded-xl border-0 bg-gray-50 py-3.5 pl-12 pr-4 text-sm text-brand-ink ring-1 ring-inset ring-gray-200 transition placeholder:text-brand-faint focus:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-teal-500">
                     </div>
+                    <p class="mt-1.5 text-xs text-brand-muted">
+                        Wali murid boleh memakai <strong>NIS anak</strong> atau <strong>nomor HP</strong>
+                        yang terdaftar di sekolah.
+                    </p>
                 </div>
 
                 {{-- x-data lokal hanya untuk tombol lihat/sembunyikan sandi.

@@ -3,8 +3,10 @@
 namespace App\Livewire\Auth;
 
 use App\Enums\StatusAkun;
+use App\Services\PencariAkunLogin;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +18,18 @@ use Livewire\Component;
  * Satu pintu masuk untuk SEMUA 8 role. Tidak ada halaman login per role —
  * yang membedakan hanya tujuan redirect, lihat UserRole::dashboardRouteName().
  *
+ * ============ LOGIN MULTI-KREDENSIAL ============
+ * Kolom pertama menerima TIGA macam identitas: email, NIS anak, atau nomor
+ * HP. Penerjemahannya ada di App\Services\PencariAkunLogin — termasuk
+ * penjelasan kenapa NIS bermuara ke akun WALI MURID, bukan akun siswa
+ * (siswa memang tidak punya akun di sistem ini).
+ *
+ * Yang penting dijaga di berkas ini: apa pun jenis identitasnya, jalur
+ * pemeriksaan kata sandi, status akun, dan pembatasan percobaan HARUS tetap
+ * satu. Menambah cabang "kalau NIS maka begini" adalah cara paling cepat
+ * membuat salah satu jalur diam-diam kehilangan penjagaannya.
+ * ================================================
+ *
  * PENTING — kenapa pembatasan percobaan login ditulis manual di sini:
  * Versi lama memakai middleware `throttle:5,1` yang dipasang pada rute
  * POST /login. Begitu form ini pindah ke Livewire, submit-nya TIDAK lagi
@@ -24,7 +38,7 @@ use Livewire\Component;
  * tidak berlaku — dan kalau tidak diganti, halaman login ini akan menerima
  * tebakan kata sandi tanpa batas sama sekali. Jadi pembatasannya dipindahkan
  * ke dalam komponen memakai RateLimiter, dengan aturan yang sama seperti
- * sebelumnya: 5 percobaan per menit per kombinasi email + alamat IP.
+ * sebelumnya: 5 percobaan per menit per kombinasi identitas + alamat IP.
  */
 #[Layout('layouts.tamu')]
 #[Title('Masuk')]
@@ -36,7 +50,20 @@ class Login extends Component
     /** Lama penguncian dalam detik. */
     private const LAMA_KUNCI = 60;
 
-    public string $email = '';
+    /**
+     * Hash bcrypt dari teks acak yang tidak diketahui siapa pun.
+     *
+     * Dipakai HANYA untuk membakar waktu ketika identitasnya tidak ditemukan.
+     * Tanpa ini, percobaan dengan identitas yang tidak terdaftar dijawab
+     * hampir seketika, sedangkan identitas terdaftar dengan sandi salah
+     * butuh ~100 ms untuk memeriksa hash. Selisih itu cukup untuk memilah
+     * mana akun yang benar-benar ada — dan daftar nomor HP wali murid yang
+     * valid adalah bahan mentah yang berguna bagi penipu.
+     */
+    private const HASH_PALSU = '$2y$12$tLzTBILP03p66Q81tSiz1.vtSFtXTLHRtWAxbIMjNse5YYFQZmMNW';
+
+    /** Email, NIS anak, atau nomor HP. */
+    public string $identitas = '';
 
     public string $password = '';
 
@@ -45,7 +72,10 @@ class Login extends Component
     protected function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            // Sengaja TIDAK ada aturan 'email' di sini. Kolom ini menerima
+            // tiga bentuk sekaligus, jadi validasinya hanya memastikan ada
+            // isinya; benar atau tidaknya ditentukan saat pencarian akun.
+            'identitas' => ['required', 'string', 'max:150'],
             'password' => ['required', 'string'],
         ];
     }
@@ -53,33 +83,66 @@ class Login extends Component
     protected function messages(): array
     {
         return [
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
+            'identitas.required' => 'Email, NIS, atau nomor HP wajib diisi.',
+            'identitas.max' => 'Isian terlalu panjang.',
             'password.required' => 'Kata sandi wajib diisi.',
         ];
     }
 
-    public function masuk()
+    public function masuk(PencariAkunLogin $pencari)
     {
         $this->validate();
 
         $this->pastikanBelumDikunci();
 
-        if (! Auth::attempt(
-            ['email' => $this->email, 'password' => $this->password],
-            $this->ingatSaya,
-        )) {
-            RateLimiter::hit($this->kunciPembatas(), self::LAMA_KUNCI);
+        $temuan = $pencari->cari($this->identitas);
 
-            // Kata sandi dikosongkan sebelum melempar error. Selain enak
-            // dipakai (kolomnya bersih untuk diketik ulang), ini juga menjaga
-            // agar kata sandi tidak ikut terbawa pulang di snapshot Livewire
-            // yang dikirim balik ke browser bersama pesan errornya.
+        /*
+         | Satu nomor HP dipakai dua akun. Ini SATU-SATUNYA kegagalan yang
+         | pesannya berbeda dari yang lain, dan itu disengaja.
+         |
+         | Membocorkan "nomor ini dipakai dua akun" memang memberi tahu
+         | sedikit tentang data yang ada. Alternatifnya jauh lebih buruk:
+         | menolak dengan pesan "salah" membuat orang tua yang nomornya
+         | kebetulan kembar mencoba berulang kali, terkunci, lalu menelepon
+         | sekolah — dan tidak seorang pun bisa menebak sebabnya. Yang
+         | dibocorkan pun bukan identitas siapa pun, hanya fakta bahwa nomor
+         | itu tidak bisa dipakai sebagai penanda tunggal.
+         */
+        if ($temuan['ganda']) {
             $this->reset('password');
 
             throw ValidationException::withMessages([
-                'email' => 'Email atau kata sandi yang Anda masukkan salah.',
+                'identitas' => 'Nomor HP ini terdaftar di lebih dari satu akun. '
+                    . 'Silakan masuk memakai email, atau hubungi admin sekolah.',
             ]);
+        }
+
+        $user = $temuan['user'];
+
+        if (! $user) {
+            /*
+             | Identitasnya tidak ditemukan. Waktu pemeriksaan hash tetap
+             | dibakar supaya lamanya jawaban sama dengan kasus "akun ada,
+             | sandi salah" — lihat catatan pada HASH_PALSU.
+             */
+            Hash::check($this->password, self::HASH_PALSU);
+
+            $this->gagalkan();
+        }
+
+        /*
+         | Auth::attempt() dipanggil dengan 'id', bukan dengan email/no_hp.
+         |
+         | Akunnya sudah ketemu di atas; yang tersisa hanyalah memverifikasi
+         | kata sandinya. Menyerahkannya ke attempt() — dan bukan memanggil
+         | Hash::check lalu Auth::login sendiri — membuat semua perilaku
+         | bawaan Laravel tetap jalan: rehash otomatis kalau cost bcrypt-nya
+         | berubah, event Attempting/Failed/Login untuk audit, dan penanganan
+         | "ingat saya".
+         */
+        if (! Auth::attempt(['id' => $user->id, 'password' => $this->password], $this->ingatSaya)) {
+            $this->gagalkan();
         }
 
         /** @var \App\Models\User $user */
@@ -103,7 +166,7 @@ class Login extends Component
 
             $this->reset('password');
 
-            throw ValidationException::withMessages(['email' => $pesan]);
+            throw ValidationException::withMessages(['identitas' => $pesan]);
         }
 
         RateLimiter::clear($this->kunciPembatas());
@@ -117,6 +180,30 @@ class Login extends Component
         );
     }
 
+    /**
+     * Satu pesan untuk SEMUA kegagalan pencocokan.
+     *
+     * Baik identitasnya tidak terdaftar maupun sandinya yang salah,
+     * jawabannya sama persis. Pesan yang membedakan keduanya ("NIS tidak
+     * ditemukan" vs "sandi salah") berarti halaman ini bisa dipakai untuk
+     * memastikan NIS atau nomor HP mana yang benar-benar terdaftar di
+     * sekolah — cukup dengan mencoba satu per satu.
+     */
+    private function gagalkan(): never
+    {
+        RateLimiter::hit($this->kunciPembatas(), self::LAMA_KUNCI);
+
+        // Kata sandi dikosongkan sebelum melempar error. Selain enak dipakai
+        // (kolomnya bersih untuk diketik ulang), ini juga menjaga agar kata
+        // sandi tidak ikut terbawa pulang di snapshot Livewire yang dikirim
+        // balik ke browser bersama pesan errornya.
+        $this->reset('password');
+
+        throw ValidationException::withMessages([
+            'identitas' => 'Email/NIS/No. HP atau kata sandi yang Anda masukkan salah.',
+        ]);
+    }
+
     private function pastikanBelumDikunci(): void
     {
         if (! RateLimiter::tooManyAttempts($this->kunciPembatas(), self::BATAS_PERCOBAAN)) {
@@ -128,18 +215,31 @@ class Login extends Component
         $detik = RateLimiter::availableIn($this->kunciPembatas());
 
         throw ValidationException::withMessages([
-            'email' => "Terlalu banyak percobaan masuk. Coba lagi dalam {$detik} detik.",
+            'identitas' => "Terlalu banyak percobaan masuk. Coba lagi dalam {$detik} detik.",
         ]);
     }
 
     /**
-     * Kunci pembatas dibuat per email + IP, bukan per IP saja: satu sekolah
-     * biasanya keluar lewat satu alamat IP, jadi membatasi per IP berarti
-     * satu guru yang salah ketik lima kali ikut mengunci seluruh ruang guru.
+     * Kunci pembatas dibuat per identitas + IP, bukan per IP saja: satu
+     * sekolah biasanya keluar lewat satu alamat IP, jadi membatasi per IP
+     * berarti satu guru yang salah ketik lima kali ikut mengunci seluruh
+     * ruang guru.
+     *
+     * Nomor HP dibakukan lebih dulu, supaya "0812-3456-7890" dan
+     * "+62 812 3456 7890" dihitung sebagai SATU identitas. Tanpa itu, satu
+     * orang bisa mendapat 5 percobaan untuk setiap cara penulisan nomor yang
+     * sama — dan batasnya berhenti menjadi batas.
      */
     private function kunciPembatas(): string
     {
-        return Str::transliterate(Str::lower($this->email) . '|' . request()->ip());
+        $identitas = trim($this->identitas);
+
+        if (! str_contains($identitas, '@')) {
+            $baku = app(PencariAkunLogin::class)->bakukanHp($identitas);
+            $identitas = $baku !== '' ? $baku : $identitas;
+        }
+
+        return Str::transliterate(Str::lower($identitas) . '|' . request()->ip());
     }
 
     public function render()
