@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\FcmTokenController;
+use App\Http\Controllers\LaporanBulananController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Guru\WaliKelasController;
@@ -356,13 +357,36 @@ Route::middleware('auth')->group(function () {
         Route::get('/kelas/{kelas}/qr-siswa', [SiswaQrController::class, 'kelas'])->name('siswa.qr-kelas');
     };
 
+    /*
+    |----------------------------------------------------------------------
+    | Laporan Bulanan (Executive View)
+    |----------------------------------------------------------------------
+    | Dipakai DUA grup: kepsek dan super_admin. Ditulis sebagai closure yang
+    | dipanggil di keduanya, bukan disalin dua kali — dua salinan rute
+    | berarti perbaikan di satu tempat diam-diam tidak ikut di tempat lain.
+    |
+    | Rute unduhnya TIDAK memakai Route::resource: yang dibutuhkan hanya dua
+    | (daftar + unduh), dan resource akan mendaftarkan lima rute lain yang
+    | tidak punya controller-nya.
+    */
+    $daftarkanLaporanBulanan = function () {
+        Route::view('/laporan-bulanan', 'laporan.bulanan')->name('laporan-bulanan');
+
+        // {laporan} di-binding ke model MonthlyReport lewat type-hint di
+        // controller. Hak aksesnya tetap diperiksa ulang di sana — lihat
+        // catatan di LaporanBulananController.
+        Route::get('/laporan-bulanan/{laporan}/unduh', [LaporanBulananController::class, 'unduh'])
+            ->name('laporan-bulanan.unduh');
+    };
+
     // role:kepsek — hanya kepsek, TIDAK termasuk super_admin (lihat grup
     // 'super-admin.' di bawah, yang punya panel sendiri di URL berbeda).
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan) {
             $daftarkanRppPengawas();
+            $daftarkanLaporanBulanan();
             $daftarkanPanelAdminKesiswaan();
             $daftarkanPengumuman();
             $daftarkanEkskul();
@@ -382,8 +406,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan) {
             $daftarkanRppPengawas();
+            $daftarkanLaporanBulanan();
             $daftarkanPanelAdminKesiswaan();
             $daftarkanPengumuman();
             $daftarkanEkskul();

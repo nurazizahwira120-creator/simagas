@@ -8,6 +8,7 @@ use App\Enums\StatusKbm;
 use App\Jobs\SendWhatsAppNotification;
 use App\Models\AbsensiKbmSiswa;
 use App\Models\AbsensiMengajar;
+use App\Models\AbsensiPegawai;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\Siswa;
@@ -15,8 +16,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Jurnal & Absen Kelas — guru mengisi daftar hadir siswa untuk jam pelajaran
@@ -40,6 +43,14 @@ use Livewire\Component;
  */
 class JurnalAbsenKelas extends Component
 {
+    use WithFileUploads;
+
+    /** Batas ukuran foto bukti dalam kilobyte (4 MB). */
+    private const MAKS_FOTO_KB = 4096;
+
+    /** Folder foto bukti di dalam disk 'public'. */
+    private const FOLDER_BUKTI = 'bukti-mengajar';
+
     /**
      * Toleransi menit sebelum jam mulai & sesudah jam selesai.
      *
@@ -62,6 +73,18 @@ class JurnalAbsenKelas extends Component
 
     /** @var array{tipe: string, judul: string, pesan: string}|null */
     public ?array $notif = null;
+
+    /**
+     * Foto bukti mengajar yang SEDANG dipilih di form — belum tersimpan.
+     *
+     * Tipenya sengaja tidak dideklarasikan: saat form dibuka isinya null,
+     * saat berkas dipilih isinya TemporaryUploadedFile. Menuliskan salah
+     * satu tipe saja membuat Livewire melempar TypeError di salah satu dari
+     * dua keadaan itu.
+     *
+     * @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null
+     */
+    public $fotoBukti = null;
 
     public function mount(): void
     {
@@ -128,11 +151,63 @@ class JurnalAbsenKelas extends Component
             ->first(fn (AbsensiMengajar $a) => in_array($this->normalkan($a->kode_kelas), $sasaran, true));
     }
 
-    /** Form hanya boleh muncul & disimpan kalau keduanya terpenuhi. */
+    /**
+     * Absen kedatangan (Radius GPS) guru ini HARI INI — mata rantai pertama.
+     *
+     * ============ KENAPA INI DIPERIKSA DI SINI ============
+     * Sebelumnya jurnal hanya menuntut scan QR ruangan. Celahnya nyata:
+     * stiker QR itu benda fisik yang bisa difoto sekali lalu di-scan dari
+     * mana saja — termasuk dari rumah. Absen radius GPS-lah yang
+     * membuktikan orangnya benar-benar berada di area sekolah hari itu.
+     *
+     * Dua-duanya diperlukan dan tidak saling menggantikan:
+     *   GPS  menjawab "apakah ia datang ke sekolah?"
+     *   QR   menjawab "apakah ia masuk ke ruangan yang benar?"
+     * ======================================================
+     */
+    #[Computed]
+    public function absenDatang(): ?AbsensiPegawai
+    {
+        $pegawaiId = auth()->user()?->pegawai?->id;
+
+        if (! $pegawaiId) {
+            return null;
+        }
+
+        return AbsensiPegawai::where('pegawai_id', $pegawaiId)
+            ->whereDate('tanggal', today())
+            ->whereNotNull('jam_masuk')
+            ->first();
+    }
+
+    /**
+     * Form hanya boleh muncul & disimpan kalau KETIGANYA terpenuhi:
+     * sudah absen datang, ada jam yang sedang berjalan, dan QR ruangannya
+     * cocok dengan jadwal itu.
+     */
     #[Computed]
     public function bolehMengisi(): bool
     {
-        return $this->jadwalAktif !== null && $this->scanCocok !== null;
+        return $this->absenDatang !== null
+            && $this->jadwalAktif !== null
+            && $this->scanCocok !== null;
+    }
+
+    /**
+     * Sesi ini sudah diakhiri guru? Kalau ya, form dikunci — jurnal yang
+     * sudah ditutup tidak boleh diubah diam-diam.
+     */
+    #[Computed]
+    public function sesiSelesai(): bool
+    {
+        return (bool) $this->scanCocok?->sudahSelesai();
+    }
+
+    /** Foto bukti mengajar sudah tersimpan untuk sesi ini? */
+    #[Computed]
+    public function buktiTersimpan(): bool
+    {
+        return (bool) $this->scanCocok?->adaBukti();
     }
 
     /**
@@ -220,11 +295,21 @@ class JurnalAbsenKelas extends Component
         // ini, siapa pun yang sudah login bisa memanggil $wire.simpan() dari
         // konsol tanpa pernah menyentuh stiker QR di ruangan mana pun.
         // Properti publik juga tidak dipercaya karena ikut dikirim browser.
-        unset($this->jadwalAktif, $this->scanCocok, $this->bolehMengisi, $this->daftarSiswa);
+        $this->segarkanPemeriksaan();
 
         if (! $this->bolehMengisi) {
             $this->pesan('error', 'Tidak bisa menyimpan',
-                'Jam pelajaran ini sudah lewat, atau Anda belum men-scan QR ruangannya. Muat ulang halaman untuk melihat keadaan terkini.');
+                'Jam pelajaran ini sudah lewat, Anda belum absen kedatangan, atau belum men-scan QR ruangannya. Muat ulang halaman untuk melihat keadaan terkini.');
+
+            return;
+        }
+
+        // Sesi yang sudah ditutup tidak boleh diubah lagi. Tanpa penjagaan
+        // ini, jurnal yang sudah "diakhiri" dan sudah masuk laporan masih
+        // bisa disunting lewat $wire.simpan() dari konsol browser.
+        if ($this->sesiSelesai) {
+            $this->pesan('warn', 'Sesi sudah diakhiri',
+                'Sesi kelas ini sudah Anda akhiri, jadi jurnalnya terkunci. Hubungi admin bila ada yang perlu dikoreksi.');
 
             return;
         }
@@ -342,6 +427,201 @@ class JurnalAbsenKelas extends Component
                 ? ". {$jumlahBolos} siswa ditandai BOLOS karena tadi pagi tercatat masuk gerbang."
                 : '.')
         ));
+    }
+
+    /* ================= BUKTI MENGAJAR & AKHIRI SESI ================= */
+
+    /**
+     * Buang cache semua #[Computed] yang menentukan hak akses.
+     *
+     * Wajib dipanggil di AWAL setiap method Livewire yang menulis data.
+     * Setiap method Livewire adalah endpoint HTTP tersendiri, dan nilai
+     * #[Computed] yang sudah ter-cache berasal dari permintaan sebelumnya —
+     * bisa saja jam pelajarannya sudah lewat sejak halaman dibuka.
+     */
+    private function segarkanPemeriksaan(): void
+    {
+        unset(
+            $this->absenDatang,
+            $this->jadwalAktif,
+            $this->scanCocok,
+            $this->bolehMengisi,
+            $this->sesiSelesai,
+            $this->buktiTersimpan,
+            $this->daftarSiswa,
+        );
+    }
+
+    /**
+     * Validasi berkas dijalankan SAAT DIPILIH, bukan hanya saat disimpan.
+     *
+     * Hook bawaan Livewire ini menembak begitu $fotoBukti berubah, jadi guru
+     * langsung tahu fotonya kebesaran — bukan setelah menunggu unggahan
+     * 8 MB selesai lalu ditolak.
+     */
+    public function updatedFotoBukti(): void
+    {
+        $this->validateOnly('fotoBukti', $this->aturanFoto());
+    }
+
+    /** @return array<string, array<int, string>> */
+    private function aturanFoto(): array
+    {
+        return [
+            // 'image' saja tidak cukup: ia hanya memeriksa MIME yang dikirim
+            // browser, dan MIME bisa dipalsukan. 'mimes' memaksa Laravel
+            // memeriksa isi berkasnya sungguhan lewat ekstensi + finfo.
+            'fotoBukti' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . self::MAKS_FOTO_KB],
+        ];
+    }
+
+    /** @return array<string, string> */
+    protected function messages(): array
+    {
+        return [
+            'fotoBukti.required' => 'Pilih dulu foto bukti mengajarnya.',
+            'fotoBukti.image' => 'Berkas yang dipilih bukan gambar.',
+            'fotoBukti.mimes' => 'Format yang diterima hanya JPG, PNG, atau WEBP.',
+            'fotoBukti.max' => 'Ukuran foto maksimal 4 MB. Kecilkan dulu atau foto ulang dengan resolusi lebih rendah.',
+        ];
+    }
+
+    /**
+     * Simpan foto bukti mengajar ke storage, lalu tautkan ke baris sesi.
+     *
+     * Foto disimpan LEBIH DULU, barulah kolomnya diperbarui. Urutan ini
+     * disengaja: kalau kolomnya diisi duluan dan penyimpanan berkasnya
+     * gagal, database menunjuk berkas yang tidak ada — dan tombol "Akhiri
+     * Sesi" terbuka untuk bukti yang sebenarnya tidak pernah ada.
+     */
+    public function unggahBukti(): void
+    {
+        $this->notif = null;
+        $this->segarkanPemeriksaan();
+
+        if (! $this->bolehMengisi) {
+            $this->pesan('error', 'Tidak bisa mengunggah',
+                'Jam pelajaran ini sudah lewat, atau Anda belum absen kedatangan / men-scan QR ruangannya.');
+
+            return;
+        }
+
+        if ($this->sesiSelesai) {
+            $this->pesan('warn', 'Sesi sudah diakhiri',
+                'Sesi kelas ini sudah ditutup, jadi buktinya tidak bisa diganti lagi.');
+
+            return;
+        }
+
+        $this->validate($this->aturanFoto());
+
+        $sesi = $this->scanCocok;
+        $jalurLama = $sesi->foto_bukti;
+
+        try {
+            // Nama berkas dibuat sistem (UUID + ekstensi), BUKAN memakai nama
+            // asli dari HP guru. Nama asli bisa mengandung karakter yang
+            // menyulitkan di server, dan yang lebih penting: nama yang bisa
+            // ditebak membuat foto orang lain bisa dibuka dengan menerka URL.
+            $jalur = $this->fotoBukti->storeAs(
+                self::FOLDER_BUKTI,
+                (string) Str::uuid() . '.' . $this->fotoBukti->extension(),
+                'public',
+            );
+
+            if ($jalur === false || blank($jalur)) {
+                throw new \RuntimeException('Storage menolak menyimpan berkas.');
+            }
+
+            $sesi->forceFill(['foto_bukti' => $jalur])->save();
+        } catch (\Throwable $e) {
+            Log::error('Gagal menyimpan foto bukti mengajar.', [
+                'absensi_mengajar_id' => $sesi->id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->pesan('error', 'Gagal mengunggah',
+                'Foto tidak berhasil disimpan. Coba lagi, atau pakai foto dengan ukuran lebih kecil.');
+
+            return;
+        }
+
+        // Bukti lama dihapus SESUDAH yang baru tersimpan dan tercatat.
+        // Kalau dihapus lebih dulu lalu penyimpanan baru gagal, guru
+        // kehilangan bukti yang tadinya sudah sah.
+        if ($jalurLama && $jalurLama !== $jalur) {
+            try {
+                Storage::disk('public')->delete($jalurLama);
+            } catch (\Throwable $e) {
+                // Berkas yatim di disk tidak merusak apa pun. Dicatat saja.
+                Log::warning('Foto bukti lama gagal dihapus.', [
+                    'jalur' => $jalurLama,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->reset('fotoBukti');
+        $this->segarkanPemeriksaan();
+
+        $this->pesan('ok', 'Bukti tersimpan',
+            'Foto bukti mengajar berhasil diunggah. Tombol "Akhiri Sesi Kelas" sekarang aktif.');
+    }
+
+    /**
+     * Tutup sesi mengajar. HANYA boleh kalau foto buktinya sudah tersimpan.
+     *
+     * Pemeriksaan buktiTersimpan dilakukan DI SINI, bukan cuma dengan
+     * menonaktifkan tombolnya di layar. Atribut `disabled` pada tombol
+     * adalah HTML biasa yang bisa dicabut siapa pun lewat inspect element,
+     * dan wire:click tetap bisa dipanggil langsung dari konsol browser —
+     * jadi tombol yang mati di layar sama sekali bukan pengaman.
+     */
+    public function akhiriSesi(): void
+    {
+        $this->notif = null;
+        $this->segarkanPemeriksaan();
+
+        if (! $this->bolehMengisi) {
+            $this->pesan('error', 'Tidak bisa mengakhiri sesi',
+                'Jam pelajaran ini sudah lewat, atau syarat kehadirannya belum terpenuhi.');
+
+            return;
+        }
+
+        if ($this->sesiSelesai) {
+            $this->pesan('warn', 'Sudah diakhiri',
+                'Sesi kelas ini memang sudah ditutup sebelumnya.');
+
+            return;
+        }
+
+        if (! $this->buktiTersimpan) {
+            $this->pesan('error', 'Bukti mengajar belum ada',
+                'Unggah dulu satu foto bukti mengajar sebelum mengakhiri sesi kelas.');
+
+            return;
+        }
+
+        try {
+            $this->scanCocok->forceFill(['waktu_selesai' => now()])->save();
+        } catch (\Throwable $e) {
+            Log::error('Gagal menutup sesi mengajar.', [
+                'absensi_mengajar_id' => $this->scanCocok->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->pesan('error', 'Gagal mengakhiri sesi',
+                'Terjadi kesalahan saat menutup sesi. Coba lagi sebentar.');
+
+            return;
+        }
+
+        $this->segarkanPemeriksaan();
+
+        $this->pesan('ok', 'Sesi kelas diakhiri',
+            'Kehadiran mengajar Anda tercatat lengkap dengan bukti. Jurnal jam ini sekarang terkunci.');
     }
 
     /**

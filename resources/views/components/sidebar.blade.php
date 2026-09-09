@@ -55,9 +55,13 @@
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
-        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai', 'anak' => [
+        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*', 'anak' => [
             ['label' => 'Absensi Harian',       'icon' => 'clock',            'route' => '.laporan-harian',  'match' => '.laporan-harian'],
             ['label' => 'Rekap Bulanan Siswa',  'icon' => 'document-report',  'route' => '.laporan',         'match' => '.laporan'],
+            // Arsip PDF hasil Cron Job — beda dari 'Rekap Bulanan Siswa' di
+            // atas yang dihitung langsung saat halaman dibuka. Yang ini
+            // berkas jadi, siap unduh & cetak, dan mencakup pegawai juga.
+            ['label' => 'Laporan Bulanan (PDF)', 'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
             ['label' => 'Rekap Bulanan Pegawai','icon' => 'briefcase',        'route' => '.laporan-pegawai', 'match' => '.laporan-pegawai'],
         ]],
 
@@ -199,6 +203,11 @@
         ['label' => 'Daftar Izin Pegawai',          'icon' => 'clipboard-check', 'route' => '.daftar-izin-pegawai', 'match' => '.daftar-izin-pegawai'],
         ['label' => 'Pantauan Kehadiran Siswa',     'icon' => 'academic-cap',    'route' => '.pantauan-siswa',    'match' => '.pantauan-siswa'],
         ['label' => 'Laporan & Rekapitulasi',       'icon' => 'document-report', 'route' => '.laporan',           'match' => '.laporan'],
+
+        // Ditaruh tepat di bawahnya: keduanya menjawab pertanyaan yang
+        // bersambung — "bagaimana bulan ini berjalan", lalu "berikan saya
+        // berkasnya untuk rapat komite".
+        ['label' => 'Laporan Bulanan (PDF)',        'icon' => 'download',        'route' => '.laporan-bulanan',   'match' => '.laporan-bulanan*'],
 
         ['label' => 'Kelola Pengumuman',             'icon' => 'bell',            'route' => '.pengumuman',        'match' => '.pengumuman'],
         ['label' => 'Jadwal Ekskul',                 'icon' => 'clock',           'route' => '.ekskul',            'match' => '.ekskul*'],
