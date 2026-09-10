@@ -148,8 +148,26 @@
                                                 @foreach ($pilihanStatus as $s)
                                                     @php $aktif = ($status[$siswa->id] ?? '') === $s->value; @endphp
                                                     <label class="cursor-pointer">
+                                                        {{-- ============ WAJIB .live ============
+                                                             Sama persis dengan kasus di Jurnal &
+                                                             Absen Kelas: radio aslinya sr-only, dan
+                                                             warna terpilihnya digambar SERVER dari
+                                                             $aktif. Dengan `wire:model` biasa
+                                                             (deferred sejak Livewire v3), server
+                                                             tidak pernah merender ulang saat
+                                                             diklik — pembina mengklik status dan
+                                                             tampilannya tidak berubah sama sekali.
+
+                                                             `peer` di sini hanya dipakai untuk
+                                                             cincin fokus, BUKAN untuk warna
+                                                             terpilih: warnanya berbeda per status
+                                                             dan dirangkai saat runtime, sehingga
+                                                             tidak bisa dipakai dengan varian
+                                                             peer-checked: (Tailwind hanya membuat
+                                                             class yang terlihat saat build).
+                                                             ====================================== --}}
                                                         <input type="radio" class="peer sr-only"
-                                                            wire:model="status.{{ $siswa->id }}" value="{{ $s->value }}">
+                                                            wire:model.live="status.{{ $siswa->id }}" value="{{ $s->value }}">
                                                         <span class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2
                                                             {{ $aktif
                                                                 ? $warnaStatus[$s->value]

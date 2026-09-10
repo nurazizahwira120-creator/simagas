@@ -208,8 +208,28 @@
                                                        {{ $dipilih
                                                             ? $pilihan->kelasTitik()
                                                             : 'border-gray-200 text-brand-muted hover:border-brand-500 dark:border-gray-800 dark:text-brand-faint' }}">
+                                                {{-- ============ WAJIB .live ============
+                                                     Radio aslinya disembunyikan (sr-only); yang
+                                                     dilihat guru adalah lingkaran dan warna yang
+                                                     DIGAMBAR SERVER dari $status[...].
+
+                                                     Dengan `wire:model` biasa, Livewire v3+
+                                                     menahan nilainya sampai permintaan berikutnya
+                                                     (deferred). Akibatnya guru mengklik "Alpa",
+                                                     radio tersembunyinya memang berpindah, tapi
+                                                     server tidak pernah merender ulang — warna dan
+                                                     titiknya tetap di "Hadir", dan kolom Keterangan
+                                                     tidak pernah muncul.
+
+                                                     Yang terlihat di layar: mengklik status sama
+                                                     sekali tidak ada efeknya. Nilainya sebenarnya
+                                                     TETAP ikut tersimpan saat Simpan ditekan — dan
+                                                     justru itu yang berbahaya: guru menyerah atau
+                                                     menekan berulang kali tanpa pernah tahu apa
+                                                     yang sedang tercatat.
+                                                     ====================================== --}}
                                                 <input type="radio"
-                                                    wire:model="status.{{ $siswa->id }}"
+                                                    wire:model.live="status.{{ $siswa->id }}"
                                                     value="{{ $pilihan->value }}"
                                                     class="sr-only">
 
