@@ -166,9 +166,35 @@
                 </div>
             </div>
 
+            {{-- ================================================================
+                 TABEL DI LAYAR BESAR, DAFTAR BERTUMPUK DI HP
+
+                 ============ KENAPA min-w-nya HANYA md: ============
+                 Sebelumnya tabel ini selalu `min-w-[760px]`. Di layar 360px
+                 (ukuran HP paling umum di sekolah ini) akibatnya terukur:
+                 tabelnya 760px di dalam wadah 326px, dan kolom "Status
+                 Kehadiran" mulai pada x=559 — 199px DI LUAR layar.
+
+                 Artinya satu-satunya kontrol yang harus disentuh guru justru
+                 yang paling tidak terjangkau: ia harus menggeser tabel ke
+                 samping dulu, dan sesudah digeser tombolnya masih terpotong
+                 di tepi. Yang dirasakan guru: "halamannya geser sendiri ke
+                 samping dan tombolnya kepotong".
+
+                 Di bawah md: seluruh elemen tabel dijadikan block (max-md:*),
+                 sehingga tiap siswa tampil sebagai satu kartu bertumpuk dan
+                 TIDAK ada yang perlu digeser ke samping sama sekali.
+
+                 Dibuat dengan SATU susunan DOM, bukan dua (versi HP + versi
+                 desktop yang saling disembunyikan). Dua susunan berarti dua
+                 set <input> dengan wire:model yang sama untuk satu siswa —
+                 input yang disembunyikan CSS tetap ada dan tetap terikat,
+                 dan itu sumber bug yang jauh lebih sulit dilacak daripada
+                 tata letak yang salah.
+                 ================================================================ --}}
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[760px] table-auto">
-                    <thead>
+                <table class="w-full table-auto max-md:block md:min-w-[760px]">
+                    <thead class="max-md:hidden">
                         <tr class="bg-gray-50 text-left dark:bg-gray-800">
                             <th class="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-brand-ink dark:text-white">No</th>
                             <th class="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-brand-ink dark:text-white">NIS</th>
@@ -176,17 +202,33 @@
                             <th class="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-brand-ink dark:text-white">Status Kehadiran</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="max-md:block">
                         @forelse ($this->daftarSiswa as $i => $siswa)
-                            <tr wire:key="siswa-{{ $siswa->id }}">
-                                <td class="border-b border-gray-200 px-4 py-4 text-sm text-brand-muted dark:border-gray-800 dark:text-brand-faint">
+                            <tr wire:key="siswa-{{ $siswa->id }}"
+                                class="max-md:block max-md:border-b max-md:border-gray-200 max-md:px-4 max-md:py-4 max-md:dark:border-gray-800">
+
+                                {{-- Nomor urut: berguna di tabel, jadi kebisingan
+                                     di kartu HP. Namanya sudah cukup menandai baris. --}}
+                                <td class="border-b border-gray-200 px-4 py-4 text-sm text-brand-muted max-md:hidden dark:border-gray-800 dark:text-brand-faint">
                                     {{ $i + 1 }}
                                 </td>
-                                <td class="border-b border-gray-200 px-4 py-4 font-mono text-sm text-brand-muted dark:border-gray-800 dark:text-brand-faint">
+
+                                {{-- Di HP, NIS ikut turun ke bawah nama (lihat
+                                     max-md:order-* pada baris) — di sini cukup
+                                     disembunyikan karena sudah ditampilkan lagi
+                                     di dalam sel nama. --}}
+                                <td class="border-b border-gray-200 px-4 py-4 font-mono text-sm text-brand-muted max-md:hidden dark:border-gray-800 dark:text-brand-faint">
                                     {{ $siswa->nis }}
                                 </td>
-                                <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+
+                                <td class="border-b border-gray-200 px-4 py-4 max-md:block max-md:border-0 max-md:p-0 dark:border-gray-800">
                                     <p class="font-medium text-brand-ink dark:text-white">{{ $siswa->nama }}</p>
+
+                                    {{-- NIS hanya muncul di sini saat layar kecil,
+                                         menggantikan kolomnya yang disembunyikan. --}}
+                                    <p class="hidden font-mono text-xs text-brand-muted max-md:block dark:text-brand-faint">
+                                        {{ $siswa->nis }}
+                                    </p>
 
                                     {{-- Penanda ini yang membuat "bolos" masuk akal
                                          bagi guru: ia bisa melihat siapa yang tadi
@@ -198,8 +240,11 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
-                                    <div class="flex flex-wrap gap-2">
+                                <td class="border-b border-gray-200 px-4 py-4 max-md:block max-md:border-0 max-md:px-0 max-md:pb-0 max-md:pt-3 dark:border-gray-800">
+                                    {{-- grid 2 kolom di HP: empat tombol status muat
+                                         dalam dua baris tanpa satu pun terpotong, dan
+                                         luas sentuhnya tetap lebar. --}}
+                                    <div class="flex flex-wrap gap-2 max-md:grid max-md:grid-cols-2">
                                         @foreach ($this->pilihanStatus as $pilihan)
                                             @php $dipilih = ($status[$siswa->id] ?? 'hadir') === $pilihan->value; @endphp
 
@@ -254,8 +299,8 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="4" class="px-4 py-12 text-center">
+                            <tr class="max-md:block">
+                                <td colspan="4" class="px-4 py-12 text-center max-md:block">
                                     <p class="text-sm font-semibold text-brand-ink dark:text-white">Kelas ini belum punya siswa</p>
                                     <p class="mt-1 text-sm text-brand-muted dark:text-brand-faint">
                                         Hubungi Admin TU untuk memasukkan data siswanya lebih dulu.

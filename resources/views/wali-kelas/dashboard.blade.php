@@ -80,24 +80,47 @@
             <form method="POST" action="{{ route($panelPrefix . '.absensi.simpan') }}">
                 @csrf
 
+                {{-- ================================================================
+                     TABEL DI LAYAR BESAR, DAFTAR BERTUMPUK DI HP
+
+                     Sama persis dengan perbaikan di Jurnal & Absen Kelas.
+                     Terukur di layar 360px: tabelnya 640px di dalam wadah
+                     326px, dan kolom "Status Kehadiran" mulai pada x=488 —
+                     128px di luar layar. Wali kelas harus menggeser tabel ke
+                     samping dulu untuk menemukan tombol yang harus ia tekan,
+                     dan sesudah digeser tombolnya masih terpotong di tepi.
+
+                     Di bawah md: elemen tabelnya dijadikan block (max-md:*)
+                     sehingga tiap siswa jadi satu kartu bertumpuk. SATU
+                     susunan DOM, bukan dua yang saling disembunyikan — dua
+                     susunan berarti dua <input type="radio"> dengan name yang
+                     sama untuk satu siswa, dan radio yang disembunyikan CSS
+                     tetap ikut terkirim saat form disubmit.
+                     ================================================================ --}}
                 <div class="overflow-x-auto rounded-2xl border border-brand-border bg-brand-surface shadow-soft">
-                    <table class="w-full min-w-[640px] text-left text-sm">
-                        <thead>
+                    <table class="w-full text-left text-sm max-md:block md:min-w-[640px]">
+                        <thead class="max-md:hidden">
                             <tr class="border-b border-brand-border bg-brand-surface-muted text-xs uppercase tracking-wide text-brand-muted">
                                 <th class="px-4 py-3 font-medium">NIS</th>
                                 <th class="px-4 py-3 font-medium">Nama</th>
                                 <th class="px-4 py-3 font-medium">Status Kehadiran</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-brand-border">
+                        <tbody class="divide-y divide-brand-border max-md:block">
                             @forelse ($kelas->siswa as $siswa)
                                 @php
                                     $absensiHariIni = $siswa->absensi->first();
                                 @endphp
-                                <tr class="hover:bg-brand-surface-muted/60">
-                                    <td class="whitespace-nowrap px-4 py-3 font-mono text-brand-muted">{{ $siswa->nis }}</td>
-                                    <td class="px-4 py-3 font-medium">{{ $siswa->nama }}</td>
-                                    <td class="px-4 py-3">
+                                <tr class="hover:bg-brand-surface-muted/60 max-md:block max-md:px-4 max-md:py-4">
+                                    {{-- Di HP kolom NIS disembunyikan dan ditampilkan
+                                         ulang di bawah nama, supaya barisnya tidak
+                                         menyisakan sel kosong yang aneh. --}}
+                                    <td class="whitespace-nowrap px-4 py-3 font-mono text-brand-muted max-md:hidden">{{ $siswa->nis }}</td>
+                                    <td class="px-4 py-3 font-medium max-md:block max-md:p-0">
+                                        {{ $siswa->nama }}
+                                        <span class="hidden font-mono text-xs font-normal text-brand-muted max-md:block">{{ $siswa->nis }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 max-md:block max-md:px-0 max-md:pb-0 max-md:pt-3">
                                         <div class="flex flex-wrap gap-1.5">
                                             @foreach ($statusOptions as $opsi)
                                                 @php
@@ -131,8 +154,8 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="3" class="px-4 py-8 text-center text-brand-muted">
+                                <tr class="max-md:block">
+                                    <td colspan="3" class="px-4 py-8 text-center text-brand-muted max-md:block">
                                         Belum ada siswa terdaftar di kelas ini.
                                     </td>
                                 </tr>
