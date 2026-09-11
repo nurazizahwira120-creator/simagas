@@ -61,7 +61,21 @@ class ValidasiRaporController extends Controller
          | sekolah saat semua wali kelas mengajukan rapor bersamaan.
          */
         $kelas = Kelas::query()
-            ->with('waliKelas:id,nama')
+            /*
+             | 'name', BUKAN 'nama'.
+             |
+             | Kelas::waliKelas() menunjuk ke User (bukan Pegawai), dan tabel
+             | `users` memakai kolom `name`. Salah menyebut kolom di sini
+             | TIDAK terlihat saat diuji dengan SQLite: pengenal yang dikutip
+             | ganda dan tidak cocok dengan kolom mana pun diperlakukan SQLite
+             | sebagai teks biasa, sehingga query-nya "berhasil" dan relasinya
+             | cuma jadi null. MySQL menolaknya terang-terangan:
+             |
+             |   SQLSTATE[42S22]: Unknown column 'nama' in 'SELECT'
+             |
+             | Akibatnya halaman ini 500 di server padahal mulus di pengujian.
+             */
+            ->with('waliKelas:id,name')
             ->withCount('siswa')
             ->orderBy('nama_kelas')
             ->get();

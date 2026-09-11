@@ -75,7 +75,7 @@
                                 </td>
 
                                 <td class="px-4 py-4 text-sm text-brand-muted max-md:block max-md:p-0 max-md:pt-1 dark:text-brand-faint">
-                                    {{ $kelas->waliKelas?->nama ?? '— belum ditetapkan —' }}
+                                    {{ $kelas->waliKelas?->name ?? '— belum ditetapkan —' }}
                                 </td>
 
                                 <td class="px-4 py-4 text-center max-md:block max-md:p-0 max-md:pt-2 max-md:text-left">
