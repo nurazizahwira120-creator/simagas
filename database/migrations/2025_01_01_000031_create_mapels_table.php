@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Mapel;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -57,25 +58,34 @@ return new class extends Migration
             return;
         }
 
-        $nama = DB::table('jadwal_pelajaran')
+        $mentah = DB::table('jadwal_pelajaran')
             ->select('mata_pelajaran')
             ->distinct()
-            ->pluck('mata_pelajaran')
-            ->map(fn ($n) => trim((string) $n))
-            ->filter()
-            ->unique()
-            ->values();
+            ->pluck('mata_pelajaran');
 
-        if ($nama->isEmpty()) {
+        /*
+         | Perapian namanya SENGAJA dipisah ke Mapel::rapikanNama() — di situ
+         | ada penjelasan lengkapnya. Ringkasnya: kolom `nama` unik, dan MySQL
+         | menilai keunikan TANPA membedakan besar-kecil huruf. Menyaring
+         | dengan unique() biasa meloloskan "Matematika" dan "matematika"
+         | sekaligus, lalu MySQL menolak baris kedua — migrasinya berhenti di
+         | tengah jalan dan tiga tabel sesudahnya tidak pernah dibuat.
+         */
+        $nama = Mapel::rapikanNama($mentah);
+
+        if ($nama === []) {
             return;
         }
 
-        DB::table('mapels')->insert(
-            $nama->map(fn ($n) => [
+        // insertOrIgnore, bukan insert: kalau migrasi ini sempat gagal separuh
+        // jalan lalu dijalankan lagi, baris yang sudah ada dilewati begitu
+        // saja alih-alih menggagalkan seluruh deploy untuk kedua kalinya.
+        DB::table('mapels')->insertOrIgnore(
+            array_map(fn (string $n) => [
                 'nama' => $n,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ])->all()
+            ], $nama)
         );
     }
 
