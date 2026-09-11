@@ -4,8 +4,10 @@ use App\Http\Controllers\DeployController;
 use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\LaporanBulananController;
 use App\Http\Controllers\RekapKbmController;
+use App\Http\Controllers\ValidasiRaporController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Guru\NilaiController;
 use App\Http\Controllers\Guru\WaliKelasController;
 use App\Http\Controllers\Kepsek\KelasController;
 use App\Http\Controllers\Kepsek\KepsekController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\Kepsek\SiswaController;
 use App\Http\Controllers\Kepsek\SiswaQrController;
 use App\Http\Controllers\Kepsek\UserController;
 use App\Http\Controllers\Ortu\OrtuController;
+use App\Http\Controllers\Ortu\RaporWaliMuridController;
 use App\Http\Controllers\Pegawai\PegawaiDashboardController;
 use App\Http\Controllers\Piket\ScannerController;
 use App\Http\Controllers\SuperAdmin\AbsensiPegawaiLaporanController;
@@ -360,6 +363,39 @@ Route::middleware('auth')->group(function () {
 
     /*
     |----------------------------------------------------------------------
+    | SIAKAD — Input Nilai (guru & wali kelas)
+    |----------------------------------------------------------------------
+    | Dipakai dua grup peran yang sama-sama mengajar. Ditulis sebagai closure
+    | yang dipanggil di keduanya, bukan disalin — dua salinan rute berarti
+    | perbaikan di satu tempat diam-diam tidak ikut di tempat lain.
+    */
+    $daftarkanInputNilai = function () {
+        Route::get('/nilai', [NilaiController::class, 'index'])->name('nilai');
+        Route::post('/nilai', [NilaiController::class, 'simpan'])->name('nilai.simpan');
+    };
+
+    /*
+    |----------------------------------------------------------------------
+    | SIAKAD — Validasi & Persetujuan Rapor
+    |----------------------------------------------------------------------
+    | Halaman yang SAMA dibuka empat peran, dengan kewenangan berbeda:
+    |   wali kelas & admin TU -> boleh Mengajukan
+    |   kepala sekolah        -> boleh Menyetujui / Mengembalikan
+    |   super admin           -> keduanya
+    |
+    | Pembedanya BUKAN rute, melainkan pemeriksaan peran di dalam
+    | ValidasiRaporController. Membuat empat rute berbeda berarti empat tempat
+    | yang harus ingat aturan yang sama.
+    */
+    $daftarkanValidasiRapor = function () {
+        Route::get('/rapor/validasi', [ValidasiRaporController::class, 'index'])->name('rapor.validasi');
+        Route::post('/rapor/{kelas}/ajukan', [ValidasiRaporController::class, 'ajukan'])->name('rapor.ajukan');
+        Route::post('/rapor/{kelas}/setujui', [ValidasiRaporController::class, 'setujuiRapor'])->name('rapor.setujui');
+        Route::post('/rapor/{kelas}/kembalikan', [ValidasiRaporController::class, 'kembalikan'])->name('rapor.kembalikan');
+    };
+
+    /*
+    |----------------------------------------------------------------------
     | Laporan Bulanan (Executive View)
     |----------------------------------------------------------------------
     | Dipakai DUA grup: kepsek dan super_admin. Ditulis sebagai closure yang
@@ -403,8 +439,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor) {
             $daftarkanRppPengawas();
+            $daftarkanValidasiRapor();
             $daftarkanLaporanBulanan();
             $daftarkanPanelAdminKesiswaan();
             $daftarkanPengumuman();
@@ -425,8 +462,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor) {
             $daftarkanRppPengawas();
+            $daftarkanValidasiRapor();
             $daftarkanLaporanBulanan();
             $daftarkanPanelAdminKesiswaan();
             $daftarkanPengumuman();
@@ -500,9 +538,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:wali_kelas')
         ->prefix('wali-kelas')
         ->name('wali-kelas.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanScannerSiswa, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanScannerSiswa, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
+            $daftarkanInputNilai();
+            $daftarkanValidasiRapor();
             Route::get('/dashboard', [WaliKelasController::class, 'index'])->name('dashboard');
 
             Route::post('/absensi', [WaliKelasController::class, 'simpanAbsensi'])->name('absensi.simpan');
@@ -528,6 +568,10 @@ Route::middleware('auth')->group(function () {
             // Riwayat scan gerbang — isi yang DULU ada di dashboard.
             Route::get('/absensi-kedatangan', [OrtuController::class, 'index'])->name('absensi-kedatangan');
 
+            // Rapor anak — hanya menampilkan nilai yang rapornya SUDAH
+            // disetujui kepala sekolah (lihat RaporWaliMuridController).
+            Route::get('/rapor', [RaporWaliMuridController::class, 'index'])->name('rapor');
+
             $daftarkanPantauanAnak();
             $daftarkanProfil();
 
@@ -544,9 +588,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru')
         ->prefix('guru')
         ->name('guru.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanScannerSiswa, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanScannerSiswa, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
+            $daftarkanInputNilai();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
@@ -584,8 +629,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin_tu')
         ->prefix('admin-tu')
         ->name('admin-tu.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanEkskul) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanEkskul, $daftarkanValidasiRapor) {
             $daftarkanEkskul();
+            $daftarkanValidasiRapor();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();

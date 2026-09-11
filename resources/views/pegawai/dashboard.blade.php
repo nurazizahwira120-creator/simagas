@@ -4,6 +4,17 @@
 
 @section('content')
 
+    {{-- ============ BANNER APRESIASI EMAS ============
+         Paling atas, sebelum judul: kabar baik tidak seharusnya perlu
+         di-scroll. Komponennya tidak menggambar apa pun kalau tidak ada
+         penghargaan, jadi tidak perlu dibungkus @if.
+
+         Halaman ini dipakai bersama oleh guru, staff, dan admin TU. Variabel
+         $penghargaan selalu dikirim controller (null kalau tidak ada), tapi
+         "?? null" tetap dipasang supaya halaman tidak pecah kalau suatu saat
+         ada pemanggil lain yang lupa mengirimnya. --}}
+    <x-banner-apresiasi :penghargaan="$penghargaan ?? null" />
+
     <div class="mb-6 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Dashboard</h1>

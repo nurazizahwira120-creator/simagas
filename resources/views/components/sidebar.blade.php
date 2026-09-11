@@ -52,6 +52,7 @@
             ['label' => 'Jadwal Pelajaran',   'icon' => 'calendar',         'route' => '.jadwal.index',     'match' => '.jadwal.*'],
             ['label' => 'Jadwal Ekskul',      'icon' => 'clock',            'route' => '.ekskul',           'match' => '.ekskul*'],
             ['label' => 'Pantauan RPP Guru',  'icon' => 'document-report',  'route' => '.rpp.index',        'match' => '.rpp.*'],
+            ['label' => 'Persetujuan Rapor',  'icon' => 'clipboard-check',  'route' => '.rapor.validasi',   'match' => '.rapor.*'],
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
@@ -143,6 +144,15 @@
     $butirRppGuru = ['label' => 'RPP Saya', 'icon' => 'document-report', 'route' => '.rpp.index', 'match' => '.rpp.*'];
     $butirRppPengawas = ['label' => 'Pantauan RPP Guru', 'icon' => 'document-report', 'route' => '.rpp.index', 'match' => '.rpp.*'];
 
+    /*
+     | SIAKAD. Keduanya didaftarkan di beberapa menu sekaligus dan dibiarkan
+     | disaring $saring() di bawah: butir yang rutenya tidak terdaftar untuk
+     | peran itu otomatis tidak muncul. Guru mendapat "Input Nilai" tanpa
+     | "Persetujuan Rapor"; wali kelas mendapat keduanya.
+     */
+    $butirInputNilai = ['label' => 'Input Nilai', 'icon' => 'pencil', 'route' => '.nilai', 'match' => '.nilai*'];
+    $butirValidasiRapor = ['label' => 'Persetujuan Rapor', 'icon' => 'clipboard-check', 'route' => '.rapor.validasi', 'match' => '.rapor.*'];
+
     // Guru, Wali Kelas, Staff & Admin TU — urutan sesuai brief, dengan
     // "Scan Siswa" ditambahkan sebagai butir ke-6 (fiturnya tetap dipakai).
     $menuPegawai = [
@@ -152,6 +162,8 @@
         $butirIzin,
         $butirAbsenAjar,
         $butirJurnal,
+        $butirInputNilai,
+        $butirValidasiRapor,
         $butirJadwalMengajar,
         $butirEkskul,
         $butirRppGuru,
@@ -173,6 +185,10 @@
         ['label' => 'Absensi Kedatangan',        'icon' => 'qr-code',         'route' => '.absensi-kedatangan', 'match' => '.absensi-kedatangan'],
         ['label' => 'Pantauan KBM Harian',       'icon' => 'eye',             'route' => '.pantauan-kbm',       'match' => '.pantauan-kbm'],
         ['label' => 'Rekap & Laporan Akademik',  'icon' => 'document-report', 'route' => '.rekap-akademik',     'match' => '.rekap-akademik'],
+        // Rapor resmi — hanya terisi setelah kepala sekolah menyetujuinya,
+        // berbeda dari "Rekap & Laporan Akademik" di atas yang menampilkan
+        // kehadiran harian dan berjalan tanpa menunggu persetujuan.
+        ['label' => 'Rapor Anak',                'icon' => 'academic-cap',    'route' => '.rapor',              'match' => '.rapor'],
         ['label' => 'Jadwal Pelajaran Anak',     'icon' => 'calendar',        'route' => '.jadwal-pelajaran',   'match' => '.jadwal-pelajaran'],
         $butirEkskul,
     ];
@@ -218,6 +234,10 @@
         // bersambung — "bagaimana bulan ini berjalan", lalu "berikan saya
         // berkasnya untuk rapat komite".
         ['label' => 'Laporan Bulanan (PDF)',        'icon' => 'download',        'route' => '.laporan-bulanan',   'match' => '.laporan-bulanan*'],
+
+        // Persetujuan rapor: tindakan, bukan laporan — karena itu berdiri
+        // sendiri dan tidak ikut masuk kelompok laporan di atas.
+        $butirValidasiRapor,
 
         ['label' => 'Kelola Pengumuman',             'icon' => 'bell',            'route' => '.pengumuman',        'match' => '.pengumuman'],
         ['label' => 'Jadwal Ekskul',                 'icon' => 'clock',           'route' => '.ekskul',            'match' => '.ekskul*'],

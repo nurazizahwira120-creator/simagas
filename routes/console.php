@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\BuatLaporanBulanan;
+use App\Console\Commands\KalkulasiPenghargaanGuru;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -102,5 +103,50 @@ Schedule::call(function () {
 })
     ->name('simagas-laporan-bulanan')
     ->monthlyOn(1, '01:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(30);
+
+/*
+|--------------------------------------------------------------------------
+| Guru Teladan & Tertib Administrasi — tanggal 1 pukul 00:01 WIB
+|--------------------------------------------------------------------------
+|
+| Dijalankan 59 menit SEBELUM laporan bulanan (01:00), dan itu disengaja:
+| keduanya membaca tabel absensi bulan yang sama, dan menjalankannya di menit
+| yang sama pada hosting bersama berarti dua proses berat berebut database di
+| saat tidak ada seorang pun yang mengawasi.
+|
+| ============ TETAP Schedule::call(), BUKAN Schedule::command() ============
+| Alasannya sama persis dengan laporan bulanan di atas: hosting ini mematikan
+| `proc_open`, sedangkan Schedule::command() menjalankan perintahnya sebagai
+| PROSES BARU lewat Symfony Process yang bergantung pada fungsi itu.
+|
+| Kalau dipaksakan, gejalanya paling buruk yang mungkin: cron menyala, tugasnya
+| jatuh tempo, lalu gagal — sekali sebulan, jam 12 malam lewat semenit, tanpa
+| ada yang melihat layarnya. Yang tampak keesokan harinya hanya: tidak ada
+| Guru Teladan bulan ini.
+| ==========================================================================
+|
+| ->name() WAJIB ada karena withoutOverlapping() memerlukannya untuk kunci
+| mutex. timezone() juga WAJIB: server hosting berjalan di UTC, dan tanpa baris
+| itu "00:01" berarti 07:01 WIB — tepat saat guru mulai berdatangan.
+*/
+Schedule::call(function () {
+    $kode = Artisan::call(KalkulasiPenghargaanGuru::class);
+
+    if ($kode !== 0) {
+        Log::error('Kalkulasi Guru Teladan GAGAL.', [
+            'kode_keluar' => $kode,
+            'keluaran' => Artisan::output(),
+        ]);
+
+        // return false -> exitCode 1 -> terbaca gagal oleh penjadwal.
+        return false;
+    }
+
+    Log::info('Kalkulasi Guru Teladan selesai.', ['keluaran' => Artisan::output()]);
+})
+    ->name('simagas-penghargaan-guru')
+    ->monthlyOn(1, '00:01')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping(30);
