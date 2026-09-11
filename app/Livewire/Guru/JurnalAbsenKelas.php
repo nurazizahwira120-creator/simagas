@@ -560,7 +560,12 @@ class JurnalAbsenKelas extends Component
                 throw new \RuntimeException('Storage menolak menyimpan berkas.');
             }
 
-            $sesi->forceFill(['foto_bukti' => $jalur])->save();
+            // bukti_dihapus_pada dikosongkan lagi: berkas yang BARU diunggah
+            // jelas belum pernah dibuang pembersih bulanan. Tanpa baris ini,
+            // sesi yang pernah dibersihkan lalu diisi ulang tetap dianggap
+            // "fotonya sudah dibuang", sehingga gambarnya tidak muncul padahal
+            // berkasnya ada — lihat AbsensiMengajar::urlBukti().
+            $sesi->forceFill(['foto_bukti' => $jalur, 'bukti_dihapus_pada' => null])->save();
         } catch (\Throwable $e) {
             Log::error('Gagal menyimpan foto bukti mengajar.', [
                 'absensi_mengajar_id' => $sesi->id,

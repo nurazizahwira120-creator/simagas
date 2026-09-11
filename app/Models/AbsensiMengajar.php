@@ -39,6 +39,7 @@ class AbsensiMengajar extends Model
         'foto_bukti',
         'waktu_mulai',
         'waktu_selesai',
+        'bukti_dihapus_pada',
     ];
 
     protected function casts(): array
@@ -46,6 +47,7 @@ class AbsensiMengajar extends Model
         return [
             'waktu_mulai' => 'datetime',
             'waktu_selesai' => 'datetime',
+            'bukti_dihapus_pada' => 'datetime',
         ];
     }
 
@@ -54,10 +56,24 @@ class AbsensiMengajar extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /** Sudah ada foto bukti mengajar yang tersimpan? */
+    /**
+     * Sesi ini pernah dilengkapi foto bukti?
+     *
+     * SENGAJA tetap true walau berkas fotonya sudah dihapus pembersih bulanan.
+     * Yang ditanyakan method ini adalah "apakah gurunya dulu menuntaskan
+     * administrasinya" — dan jawaban itu tidak berubah hanya karena berkasnya
+     * sudah tidak disimpan lagi. Laporan bulanan dan penilaian Guru Teladan
+     * bergantung pada arti ini; lihat App\Console\Commands\BersihkanBuktiMengajar.
+     */
     public function adaBukti(): bool
     {
         return filled($this->foto_bukti);
+    }
+
+    /** Berkas fotonya sudah dibuang pembersih bulanan? */
+    public function buktiSudahDihapus(): bool
+    {
+        return $this->bukti_dihapus_pada !== null;
     }
 
     /** Sesi ini sudah diakhiri guru? */
@@ -93,6 +109,13 @@ class AbsensiMengajar extends Model
     public function urlBukti(): ?string
     {
         if (! $this->foto_bukti) {
+            return null;
+        }
+
+        // Berkasnya sudah dibuang pembersih bulanan -> jangan kembalikan URL
+        // yang pasti berujung 404. Pemanggilnya memperlakukan null sebagai
+        // "tidak ada yang bisa ditampilkan", dan itu memang keadaannya.
+        if ($this->buktiSudahDihapus()) {
             return null;
         }
 

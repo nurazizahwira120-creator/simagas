@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\BersihkanBuktiMengajar;
 use App\Console\Commands\BuatLaporanBulanan;
 use App\Console\Commands\KalkulasiPenghargaanGuru;
 use Illuminate\Foundation\Inspiring;
@@ -148,5 +149,59 @@ Schedule::call(function () {
 })
     ->name('simagas-penghargaan-guru')
     ->monthlyOn(1, '00:01')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(30);
+
+/*
+|--------------------------------------------------------------------------
+| Pembersihan foto bukti mengajar — tanggal 1 pukul 02:00 WIB
+|--------------------------------------------------------------------------
+|
+| ============ KENAPA 02:00, BUKAN JAM LAIN ============
+| Urutannya disengaja dan TIDAK BOLEH ditukar:
+|
+|   00:01  Guru Teladan     -> membaca absensi_mengajar bulan lalu
+|   01:00  Laporan Bulanan  -> membaca absensi_mengajar bulan lalu
+|   02:00  Pembersihan ini  -> membuang berkas foto bulan lalu
+|
+| Keduanya di atas menghitung "sesi KBM tervalidasi" dari kolom `foto_bukti`.
+| Pembersih ini memang tidak mengosongkan kolom itu (lihat penjelasan panjang
+| di BersihkanBuktiMengajar), jadi secara angka urutannya tidak berpengaruh.
+| Yang dijaga di sini adalah hal lain: ketiganya menyentuh tabel yang sama di
+| hosting bersama. Menumpuknya pada menit yang sama berarti tiga proses berat
+| berebut database pada jam yang tidak ada seorang pun mengawasinya.
+|
+| Jarak satu jam juga memberi ruang kalau laporan bulanan kebetulan lambat
+| (sekolah dengan data setahun penuh), sehingga pembersihannya tidak pernah
+| mulai saat laporannya masih membaca.
+|
+| ============ TETAP Schedule::call(), BUKAN Schedule::command() ============
+| Alasannya sama persis dengan dua jadwal di atas: hosting ini mematikan
+| `proc_open`, sedangkan Schedule::command() menjalankan perintahnya sebagai
+| proses baru lewat Symfony Process yang bergantung pada fungsi itu.
+| ==========================================================================
+|
+| Masa simpannya TIDAK ditulis di sini melainkan dibiarkan memakai nilai
+| bawaan perintahnya (--bulan=1). Kalau suatu saat sekolah ingin menyimpan
+| tiga bulan, yang diubah cukup satu tempat: default option di
+| BersihkanBuktiMengajar — bukan berburu angka yang tercecer di dua berkas.
+*/
+Schedule::call(function () {
+    $kode = Artisan::call(BersihkanBuktiMengajar::class);
+
+    if ($kode !== 0) {
+        Log::error('Pembersihan foto bukti mengajar GAGAL.', [
+            'kode_keluar' => $kode,
+            'keluaran' => Artisan::output(),
+        ]);
+
+        // return false -> exitCode 1 -> terbaca gagal oleh penjadwal.
+        return false;
+    }
+
+    Log::info('Pembersihan foto bukti mengajar selesai.', ['keluaran' => Artisan::output()]);
+})
+    ->name('simagas-bersihkan-bukti')
+    ->monthlyOn(1, '02:00')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping(30);
