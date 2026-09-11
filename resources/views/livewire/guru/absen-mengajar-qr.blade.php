@@ -117,12 +117,18 @@
 
                     this.menyalakan = true;
 
+                    // Nada pertama hanya terdengar kalau AudioContext-nya lahir
+                    // dari sebuah sentuhan. Tombol ini satu-satunya sentuhan
+                    // yang pasti ada sebelum scan pertama — lihat
+                    // partials/scan-kamera.
+                    window.umpanBalikScan?.siapkan();
+
                     try {
                         this.pemindai = new Html5Qrcode('reader-mengajar');
 
                         await this.pemindai.start(
                             { facingMode: 'environment' },
-                            { fps: 10, qrbox: { width: 240, height: 240 } },
+                            { fps: 10, qrbox: window.kotakBidikScan },
                             (teks) => this.tangkap(teks),
                             () => { /* tidak ada kode di frame ini — normal */ }
                         );
@@ -165,7 +171,19 @@
                     this.kodeTerakhir = kode;
                     this.waktuTerakhir = sekarang;
 
-                    this.bunyi();
+                    // PANTANGAN: JANGAN pakai tanda kutip ganda di komentar
+                    // ini. Seluruh blok x-data tinggal di dalam atribut HTML
+                    // yang dibatasi kutip ganda, jadi satu saja di sini akan
+                    // MEMUTUS atributnya di tengah jalan. Gejalanya
+                    // menyesatkan: Alpine melempar 'Unexpected token )' lalu
+                    // setiap properti dilaporkan 'is not defined'.
+                    //
+                    // Nada 'mulai' berarti stikernya terbaca dan sedang
+                    // dikirim — BUKAN berhasil. Nada hasilnya menyusul dari
+                    // server lewat peristiwa hasil-scan, karena hanya server
+                    // yang tahu sesinya tercatat, ruangannya salah, atau
+                    // jadwalnya tidak cocok.
+                    window.umpanBalikScan?.('mulai');
                     this.$wire.prosesAbsenMengajar(kode);
                 },
 
@@ -174,29 +192,15 @@
                     if (! kode) return;
 
                     this.kodeManual = '';
-                    this.$wire.prosesAbsenMengajar(kode);
-                },
 
-                bunyi() {
-                    try {
-                        const Ctx = window.AudioContext || window.webkitAudioContext;
-                        const ctx = new Ctx();
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.type = 'sine';
-                        osc.frequency.value = 880;
-                        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-                        osc.start();
-                        osc.stop(ctx.currentTime + 0.12);
-                        osc.onended = () => ctx.close();
-                    } catch (err) {
-                        // Web Audio tidak tersedia di perangkat ini.
-                    }
+                    // Jalur manual diberi penanda yang sama dengan jalur
+                    // kamera, supaya kedua cara mengirim terdengar sama.
+                    window.umpanBalikScan?.('mulai');
+                    this.$wire.prosesAbsenMengajar(kode);
                 }
             }"
             x-on:beforeunload.window="matikan()"
+            x-on:hasil-scan.window="window.umpanBalikScan?.($event.detail.tipe)"
             class="rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
 
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
@@ -217,9 +221,9 @@
                      berhasil di-scan) DOM-nya disamakan lagi dengan hasil render
                      server — elemen videonya ikut terhapus dan kamera mati
                      sendiri sesudah scan pertama. --}}
-                <div wire:ignore class="overflow-hidden rounded-sm border border-gray-200 bg-black dark:border-gray-800">
-                    <div id="reader-mengajar" class="min-h-[220px] w-full"></div>
-                </div>
+                <x-bingkai-bidik id="reader-mengajar" wire:ignore
+                    petunjuk="Arahkan stiker QR ruangan ke dalam bingkai"
+                    class="rounded-sm border border-gray-200 dark:border-gray-800" />
 
                 {{-- Tombol kamera --}}
                 <div class="mt-4 flex gap-3">

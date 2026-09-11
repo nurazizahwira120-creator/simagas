@@ -177,6 +177,12 @@
 
 @include('partials.sweetalert')
 
+{{-- Perkakas bersama untuk layar scan kamera: nada & pola getar per hasil
+     scan, kilatan layar, dan penghitung ukuran kotak bidik. Ditaruh di sini
+     (skrip KLASIK di <head>) karena Scanner Piket memanggilnya dari skrip
+     biasa di akhir body — alasan lengkapnya ada di dalam partial-nya. --}}
+@include('partials.scan-kamera')
+
 {{-- ====================================================================
      MEMUAT CSS & JS — dengan cadangan, SENGAJA tidak langsung @vite.
 

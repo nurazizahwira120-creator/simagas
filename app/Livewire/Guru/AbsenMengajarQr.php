@@ -219,9 +219,20 @@ class AbsenMengajarQr extends Component
         return $kelas ? 'kelas ' . $kelas->nama_kelas : '"' . $kode . '"';
     }
 
+    /**
+     * Umumkan hasil scan ke layar sekaligus ke telinga.
+     *
+     * dispatch() dikirim dari SERVER, bukan dipanggil JavaScript sesudah
+     * $wire selesai: hanya server yang tahu sebuah scan berakhir tercatat,
+     * ditolak, atau sudah ada sebelumnya — jadi hanya server yang bisa
+     * menentukan nada mana yang benar. Ditangkap x-on:hasil-scan.window
+     * pada view-nya.
+     */
     private function pesan(string $tipe, string $judul, string $pesan): void
     {
         $this->notif = ['tipe' => $tipe, 'judul' => $judul, 'pesan' => $pesan];
+
+        $this->dispatch('hasil-scan', tipe: $tipe);
     }
 
     public function render()

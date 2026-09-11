@@ -78,7 +78,7 @@ class ScannerKameraSiswa extends Component
                 ? "{$siswa->nama} sudah tercatat hadir hari ini" . ($jam ? " pukul {$jam}." : '.')
                 : "{$siswa->nama} sudah punya catatan hari ini: {$absensiHariIni->status->label()}.";
 
-            $this->notif = ['tipe' => 'warn', 'judul' => 'Sudah absen', 'pesan' => $pesan];
+            $this->pesan('warn', 'Sudah absen', $pesan);
             $this->catat('warn', $siswa->nama, $siswa->kelas?->nama_kelas ?? $siswa->nis, $jam);
 
             return;
@@ -95,7 +95,7 @@ class ScannerKameraSiswa extends Component
             // 23000 = pelanggaran constraint; di sini hampir pasti
             // unique(siswa_id, tanggal) karena dua scan nyaris bersamaan.
             if ((string) $e->getCode() === '23000') {
-                $this->notif = ['tipe' => 'warn', 'judul' => 'Sudah absen', 'pesan' => "{$siswa->nama} sudah tercatat hadir hari ini."];
+                $this->pesan('warn', 'Sudah absen', "{$siswa->nama} sudah tercatat hadir hari ini.");
                 $this->catat('warn', $siswa->nama, $siswa->kelas?->nama_kelas ?? $siswa->nis, null);
 
                 return;
@@ -135,12 +135,12 @@ class ScannerKameraSiswa extends Component
         $jam = $absensi->jam_masuk->format('H:i');
         $this->jumlahBerhasil++;
 
-        $this->notif = [
-            'tipe' => 'ok',
-            'judul' => $siswa->nama,
-            'pesan' => 'Tercatat hadir pukul ' . $jam
+        $this->pesan(
+            'ok',
+            $siswa->nama,
+            'Tercatat hadir pukul ' . $jam
                 . ($siswa->kelas ? ' — kelas ' . $siswa->kelas->nama_kelas : '') . '.',
-        ];
+        );
 
         $this->catat('ok', $siswa->nama, $siswa->kelas?->nama_kelas ?? $siswa->nis, $jam);
     }
@@ -185,8 +185,32 @@ class ScannerKameraSiswa extends Component
 
     private function tolak(string $judul, string $pesan, string $kode): void
     {
-        $this->notif = ['tipe' => 'error', 'judul' => $judul, 'pesan' => $pesan];
+        $this->pesan('error', $judul, $pesan);
         $this->catat('error', $kode, $pesan, null);
+    }
+
+    /**
+     * Satu-satunya tempat hasil scan diumumkan — ke layar DAN ke telinga.
+     *
+     * ============ KENAPA DIPUSATKAN DI SINI ============
+     * Sebelumnya $this->notif diisi di empat tempat berbeda. Selama isinya
+     * hanya teks di layar, itu tidak apa-apa. Begitu setiap hasil juga harus
+     * membunyikan nada dan pola getar yang berbeda, menyebar pengumumannya
+     * ke empat tempat berarti cepat atau lambat ada satu cabang yang lupa
+     * dibunyikan — dan cabang yang paling mungkin terlupakan justru yang
+     * paling jarang terjadi, yaitu kegagalan.
+     *
+     * dispatch() dikirim ke browser, BUKAN dipanggil dari JavaScript setelah
+     * $wire selesai. Bedanya penting: hanya server yang tahu hasil sebuah
+     * scan (tercatat / sudah ada / ditolak), jadi hanya server yang bisa
+     * menentukan nada mana yang benar. JavaScript di sini sengaja tidak tahu
+     * apa-apa selain "bunyikan yang ini".
+     */
+    private function pesan(string $tipe, string $judul, string $pesan): void
+    {
+        $this->notif = ['tipe' => $tipe, 'judul' => $judul, 'pesan' => $pesan];
+
+        $this->dispatch('hasil-scan', tipe: $tipe);
     }
 
     /**

@@ -41,9 +41,9 @@
             Scanner ini otomatis mengenali NIS siswa maupun NIP pegawai — tidak perlu pilih mode.
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-brand-border bg-black shadow-soft">
-            <div id="reader" class="w-full"></div>
-        </div>
+        <x-bingkai-bidik id="reader"
+            petunjuk="Arahkan QR/barcode NIS atau NIP ke dalam bingkai"
+            class="rounded-2xl border border-brand-border shadow-soft" />
 
         <div class="flex gap-2">
             <button id="start-btn" type="button"
@@ -171,22 +171,14 @@
                 }
             }
 
-            function beep() {
-                try {
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    const ctx = new AudioCtx();
-                    const oscillator = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    oscillator.connect(gain);
-                    gain.connect(ctx.destination);
-                    oscillator.type = 'sine';
-                    oscillator.frequency.value = 880;
-                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                    oscillator.start();
-                    oscillator.stop(ctx.currentTime + 0.15);
-                    oscillator.onended = () => ctx.close();
-                } catch (error) {
-                    // Web Audio tidak tersedia di device ini — abaikan, tidak fatal.
+            // Nada, getar, dan kilatan layar tinggal di partials/scan-kamera
+            // supaya ketiga layar scan berbunyi persis sama. Dipanggil lewat
+            // pembungkus kecil ini agar halaman tetap hidup kalau partial-nya
+            // gagal dimuat — scanner yang bisu masih jauh lebih baik daripada
+            // scanner yang mati karena ReferenceError.
+            function umpanBalik(tipe) {
+                if (typeof window.umpanBalikScan === 'function') {
+                    window.umpanBalikScan(tipe);
                 }
             }
 
@@ -205,7 +197,10 @@
                 lastCode = kode;
                 lastCodeAt = now;
 
-                beep();
+                // 'mulai' = "kodenya terbaca, sedang dikirim" — bukan
+                // "berhasil". Hasil sebenarnya baru diketahui setelah server
+                // menjawab, dan nada hasilnya dibunyikan di bawah.
+                umpanBalik('mulai');
                 setFeedback('busy', `Memproses kode ${kode}…`);
 
                 try {
@@ -225,16 +220,20 @@
                     const subEntitas = labelEntitas ? `${labelEntitas}${result.data?.keterangan ? ' • ' + result.data.keterangan : ''}` : null;
 
                     if (response.ok && result.success) {
+                        umpanBalik('ok');
                         setFeedback('ok', result.message);
                         addLogEntry('ok', result.data?.nama ?? kode, `${subEntitas ?? 'Hadir'}${subJamMasuk}`);
                     } else if (response.status === 409) {
+                        umpanBalik('warn');
                         setFeedback('warn', result.message);
                         addLogEntry('warn', result.data?.nama ?? kode, result.message);
                     } else {
+                        umpanBalik('error');
                         setFeedback('error', result.message ?? 'Gagal memproses scan.');
                         addLogEntry('error', kode, result.message ?? 'Gagal diproses');
                     }
                 } catch (error) {
+                    umpanBalik('error');
                     setFeedback('error', 'Tidak bisa menghubungi server. Periksa koneksi lalu coba lagi.');
                     addLogEntry('error', kode, 'Koneksi gagal');
                 } finally {
@@ -261,7 +260,7 @@
                 try {
                     await html5QrCode.start(
                         { facingMode: 'environment' },
-                        { fps: 10, qrbox: { width: 240, height: 240 } },
+                        { fps: 10, qrbox: window.kotakBidikScan },
                         onScanSuccess,
                         () => { /* tidak ada QR di frame saat ini — normal, diabaikan */ }
                     );
@@ -294,7 +293,13 @@
                 setFeedback('idle', 'Kamera dimatikan.');
             }
 
-            startBtn.addEventListener('click', startScanner);
+            startBtn.addEventListener('click', function () {
+                // AudioContext yang lahir di luar sentuhan pengguna langsung
+                // ditidurkan browser mobile, dan nada scan pertama hilang
+                // tanpa jejak. Tombol ini sentuhannya.
+                window.umpanBalikScan?.siapkan();
+                startScanner();
+            });
             stopBtn.addEventListener('click', stopScanner);
 
             manualForm.addEventListener('submit', function (event) {

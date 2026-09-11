@@ -1218,3 +1218,214 @@ pre[class*="language-"] {
 .swal2-popup.simagas-swal.swal2-toast .swal2-title {
   font-size: 0.875rem;
 }
+
+/* ======================================================================
+   BINGKAI BIDIK SCANNER KAMERA
+   ======================================================================
+   Dipakai komponen resources/views/components/bingkai-bidik.blade.php pada
+   tiga layar: Scanner Piket, Scanner Siswa, dan Scan QR Ruangan guru.
+
+   ============ SEMUANYA MENUMPANG PADA #qr-shaded-region ============
+   Elemen itu dibuat html5-qrcode sendiri. Bentuknya satu div dengan
+   position:absolute dan inset 0, yang KEEMPAT BORDER-nya tebal — dan tebal
+   border itulah yang menghasilkan area gelap di sekeliling kotak pindai.
+   Sisa di tengahnya (content box) persis sama dengan area yang benar-benar
+   dibaca kamera.
+
+   Karena ::before dan ::after sebuah elemen ber-position:absolute memakai
+   PADDING BOX-nya sebagai acuan, keduanya otomatis pas di area pindai tanpa
+   satu pun angka yang perlu ditebak. Itu sebabnya siku dan garis sapunya
+   digambar di sini, bukan sebagai elemen terpisah.
+
+   Kalau suatu saat html5-qrcode mengganti nama id itu, seluruh blok ini
+   berhenti berlaku dan tampilannya kembali ke bawaan library — jelek, tapi
+   tetap berfungsi penuh. Kegagalannya sengaja dibuat tidak berbahaya.
+   ====================================================================== */
+
+.bingkai-bidik {
+  --bidik-warna: #2dd4bf;
+  --bidik-siku: 30px;
+  --bidik-tebal: 3px;
+
+  /* Ruang dipesan lebih dulu supaya halaman tidak meloncat saat video
+     kamera muncul. min-height (bukan height): kalau video kameranya
+     ternyata lebih tinggi, kotaknya ikut memanjang — tidak ada yang
+     terpotong. 75vw ≈ rasio 4:3 pada kolom selebar layar HP. */
+  min-height: min(75vw, 320px);
+}
+
+/* KEADAAN DIAM — kamera belum dinyalakan.
+   Ruang setinggi ~300px yang hitam polos terbaca seperti gambar yang gagal
+   dimuat, bukan seperti tempat kamera akan muncul. Satu bingkai putus-putus
+   di tengahnya sudah cukup menjelaskan maksudnya tanpa menambah satu elemen
+   pun ke HTML.
+
+   :has() dipakai dengan sengaja: begitu html5-qrcode menyisipkan elemen
+   video, aturan ini berhenti berlaku dengan sendirinya. Di browser yang
+   belum mendukung :has(), seluruh aturan diabaikan dan tampilannya kembali
+   seperti sebelumnya — kotak hitam polos, tetap berfungsi penuh. */
+.bingkai-bidik:not(:has(video))::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46%;
+  aspect-ratio: 4 / 3;
+  transform: translate(-50%, -62%);
+  border: 2px dashed rgb(255 255 255 / 0.2);
+  border-radius: 0.75rem;
+}
+
+/* Area gelap di sekeliling kotak pindai. Bawaannya rgba(0,0,0,0.48);
+   dipekatkan supaya kotak terangnya benar-benar menonjol di bawah matahari
+   pagi — keadaan kerja yang sebenarnya di gerbang sekolah.
+
+   !important TERPAKSA dipakai: nilai bawaannya ditulis library sebagai
+   inline style, dan aturan biasa tidak akan pernah menang melawannya. */
+.bingkai-bidik #qr-shaded-region {
+  border-color: rgba(0, 0, 0, 0.62) !important;
+
+  /* Mengurung garis sapu di bawah supaya tidak melewati area pindai. */
+  overflow: hidden;
+}
+
+/* Delapan bilah siku putih bawaan library disembunyikan — siku versi
+   sendiri digambar di ::before, lebih tebal dan sewarna merek. */
+.bingkai-bidik #qr-shaded-region > div {
+  display: none !important;
+}
+
+/* EMPAT SIKU, satu elemen, tanpa gambar.
+   Delapan lapis linear-gradient: dua lapis per sudut (satu mendatar, satu
+   tegak). Cara ini dipilih karena pseudo-element tidak bisa punya anak,
+   sementara menambah delapan div sungguhan berarti menyentuh DOM milik
+   library — yang akan hilang setiap kali kamera dinyalakan ulang. */
+.bingkai-bidik #qr-shaded-region::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna)),
+    linear-gradient(var(--bidik-warna), var(--bidik-warna));
+  background-repeat: no-repeat;
+  background-size:
+    var(--bidik-siku) var(--bidik-tebal),
+    var(--bidik-tebal) var(--bidik-siku),
+    var(--bidik-siku) var(--bidik-tebal),
+    var(--bidik-tebal) var(--bidik-siku),
+    var(--bidik-siku) var(--bidik-tebal),
+    var(--bidik-tebal) var(--bidik-siku),
+    var(--bidik-siku) var(--bidik-tebal),
+    var(--bidik-tebal) var(--bidik-siku);
+  background-position:
+    left top, left top,
+    right top, right top,
+    left bottom, left bottom,
+    right bottom, right bottom;
+}
+
+/* GARIS SAPU.
+   Kotaknya setinggi penuh area pindai, dengan garis terang di tepi atasnya
+   dan ekor cahaya yang memudar ke bawah. Yang dianimasikan hanya transform
+   — properti yang dikerjakan compositor, bukan thread utama — jadi ia tetap
+   mulus di HP kelas bawah walau kamera sedang mendekode 10 frame per detik.
+
+   translateY(100%) berarti "sejauh tinggi kotaknya sendiri", yaitu tepat
+   satu kali sapuan penuh dari atas ke bawah. Tidak ada angka piksel yang
+   perlu dicocokkan dengan tinggi area pindai yang berbeda tiap HP. */
+.bingkai-bidik #qr-shaded-region::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--bidik-warna) 90%, transparent) 0 2px,
+    color-mix(in srgb, var(--bidik-warna) 22%, transparent) 2px 28px,
+    transparent 28px
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bingkai-bidik #qr-shaded-region::after {
+    animation: sapu-bidik 2.6s ease-in-out infinite alternate;
+  }
+}
+
+/* Tanpa preferensi gerak, garisnya tidak ditampilkan sama sekali — garis
+   diam di tepi atas hanya terlihat seperti cacat tampilan. Siku bingkainya
+   tetap ada, dan itu yang sebenarnya mengarahkan pengguna. */
+@media (prefers-reduced-motion: reduce) {
+  .bingkai-bidik #qr-shaded-region::after {
+    display: none;
+  }
+}
+
+@keyframes sapu-bidik {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* ======================================================================
+   KILATAN HASIL SCAN
+   ======================================================================
+   Lapisan warna satu layar penuh yang dinyalakan window.umpanBalikScan().
+   Perannya CADANGAN, bukan penanda utama: nada dan getar yang dipakai
+   petugas piket, karena matanya ada pada kartu. Kilatan ini untuk keadaan
+   ketika gerbang terlalu bising dan HP dipegang dalam mode senyap.
+
+   Warnanya ditaruh di TEPI layar, bukan menutup seluruhnya — menutup layar
+   dengan warna pekat akan menyembunyikan nama siswa yang baru saja tercatat,
+   yaitu satu-satunya hal yang ingin dilihat petugas saat ia sempat melihat.
+   ====================================================================== */
+
+.kilat-scan {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kilat-scan.kilat-ok,
+  .kilat-scan.kilat-warn,
+  .kilat-scan.kilat-error {
+    animation: kilat-scan 0.45s ease-out;
+  }
+}
+
+.kilat-scan.kilat-ok {
+  box-shadow: inset 0 0 70px 12px rgba(16, 185, 129, 0.85);
+}
+
+.kilat-scan.kilat-warn {
+  box-shadow: inset 0 0 70px 12px rgba(245, 158, 11, 0.85);
+}
+
+.kilat-scan.kilat-error {
+  box-shadow: inset 0 0 70px 12px rgba(239, 68, 68, 0.9);
+}
+
+@keyframes kilat-scan {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

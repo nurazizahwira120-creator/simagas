@@ -44,12 +44,17 @@
 
             this.menyalakan = true;
 
+            // Nada pertama hanya terdengar kalau AudioContext-nya lahir dari
+            // sebuah sentuhan. Tombol ini satu-satunya sentuhan yang pasti
+            // ada sebelum scan pertama — lihat partials/scan-kamera.
+            window.umpanBalikScan?.siapkan();
+
             try {
                 this.pemindai = new Html5Qrcode('reader-siswa');
 
                 await this.pemindai.start(
                     { facingMode: 'environment' },
-                    { fps: 10, qrbox: { width: 240, height: 240 } },
+                    { fps: 10, qrbox: window.kotakBidikScan },
                     (teks) => this.tangkap(teks),
                     () => { /* tidak ada kode di frame ini — normal, diabaikan */ }
                 );
@@ -91,7 +96,18 @@
             this.kodeTerakhir = kode;
             this.waktuTerakhir = sekarang;
 
-            this.bunyi();
+            // PANTANGAN: JANGAN pakai tanda kutip ganda di komentar ini.
+            // Seluruh blok x-data ini tinggal di dalam atribut HTML yang
+            // dibatasi kutip ganda, jadi satu saja di sini akan MEMUTUS
+            // atributnya di tengah jalan. Gejalanya menyesatkan: Alpine
+            // melempar 'Unexpected token )' lalu setiap properti dilaporkan
+            // 'is not defined', seolah komponennya yang salah tulis.
+            //
+            // Nada 'mulai' berarti kodenya terbaca dan sedang dikirim — BUKAN
+            // berhasil. Nada hasilnya menyusul dari server lewat peristiwa
+            // hasil-scan, karena hanya server yang tahu siswanya tercatat,
+            // sudah absen, atau tidak dikenal sama sekali.
+            window.umpanBalikScan?.('mulai');
             this.$wire.prosesAbsen(kode);
         },
 
@@ -100,29 +116,15 @@
             if (! kode) return;
 
             this.kodeManual = '';
-            this.$wire.prosesAbsen(kode);
-        },
 
-        bunyi() {
-            try {
-                const Ctx = window.AudioContext || window.webkitAudioContext;
-                const ctx = new Ctx();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'sine';
-                osc.frequency.value = 880;
-                gain.gain.setValueAtTime(0.12, ctx.currentTime);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.12);
-                osc.onended = () => ctx.close();
-            } catch (err) {
-                // Web Audio tidak tersedia di perangkat ini — abaikan.
-            }
+            // Jalur manual diberi penanda yang sama dengan jalur kamera,
+            // supaya kedua cara mengirim kode terdengar persis sama.
+            window.umpanBalikScan?.('mulai');
+            this.$wire.prosesAbsen(kode);
         }
     }"
-    x-on:beforeunload.window="matikan()">
+    x-on:beforeunload.window="matikan()"
+    x-on:hasil-scan.window="window.umpanBalikScan?.($event.detail.tipe)">
 
     {{-- Area kamera.
 
@@ -131,9 +133,9 @@
          memperbarui komponen (yaitu setiap kali satu kode berhasil di-scan)
          DOM-nya akan disamakan lagi dengan hasil render server — video-nya
          ikut terhapus dan kamera mati sendiri setelah scan pertama. --}}
-    <div wire:ignore class="overflow-hidden rounded-2xl border border-brand-border bg-black shadow-soft">
-        <div id="reader-siswa" class="w-full min-h-[220px]"></div>
-    </div>
+    <x-bingkai-bidik id="reader-siswa" wire:ignore
+        petunjuk="Arahkan QR/barcode NIS ke dalam bingkai"
+        class="rounded-2xl border border-brand-border shadow-soft" />
 
     {{-- Tombol kamera --}}
     <div class="mt-3 flex gap-2">
