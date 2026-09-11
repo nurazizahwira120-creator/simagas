@@ -31,23 +31,27 @@
         </div>
     @endif
 
-    {{-- 3 kartu statistik --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div class="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-soft">
+    {{-- 3 kartu statistik.
+
+         tampil-berurutan: ketiganya masuk menyusul dengan jarak 60ms —
+         mata dituntun dari kiri ke kanan mengikuti urutan membaca, bukan
+         disodori tiga kartu sekaligus. Gayanya ada di app.css. --}}
+    <div class="tampil-berurutan grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="kartu-angkat rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-soft">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-surface-muted text-brand-ink">
                 <x-icon name="users" class="h-5 w-5" />
             </span>
             <p class="mt-3 text-xs font-medium uppercase tracking-wide text-brand-muted">Total Siswa</p>
-            <p class="mt-1 text-3xl font-bold tabular-nums text-brand-ink">{{ number_format($totalSiswa, 0, ',', '.') }}</p>
+            <x-angka-naik :nilai="$totalSiswa" class="mt-1 block text-3xl font-bold text-brand-ink" />
             <p class="mt-1 text-xs text-brand-muted">terdaftar di seluruh kelas</p>
         </div>
 
-        <div class="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-soft">
+        <div class="kartu-angkat rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-soft">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-accent-soft text-brand-accent-text">
                 <x-icon name="check-circle" class="h-5 w-5" />
             </span>
             <p class="mt-3 text-xs font-medium uppercase tracking-wide text-brand-muted">Hadir Hari Ini</p>
-            <p class="mt-1 text-3xl font-bold tabular-nums text-brand-accent-text">{{ number_format($totalHadirHariIni, 0, ',', '.') }}</p>
+            <x-angka-naik :nilai="$totalHadirHariIni" class="mt-1 block text-3xl font-bold text-brand-accent-text" />
             <p class="mt-1 text-xs text-brand-muted">
                 @if ($totalSiswa === 0)
                     Belum ada siswa terdaftar
@@ -79,23 +83,41 @@
                 $persentaseKehadiran >= 75 => 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
                 default => 'bg-brand-danger-soft text-brand-danger-text',
             };
+
+            /*
+             | Denyut riak dipasang HANYA saat kehadiran benar-benar jatuh di
+             | bawah 75%. Gerak yang muncul di setiap keadaan berhenti berarti
+             | apa-apa — justru karena ikon ini diam pada hari-hari biasa,
+             | denyutnya terbaca sebagai "hari ini ada yang perlu dilihat".
+             |
+             | Lihat .denyut di app.css: berdenyut tiga kali lalu berhenti,
+             | bukan tanpa henti.
+             */
+            $denyutPersen = (! $belumAdaData && $persentaseKehadiran < 75) ? 'denyut' : '';
         @endphp
-        <div class="rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-soft">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $chipPersen }}">
+        <div class="kartu-angkat rounded-2xl border border-brand-border bg-brand-surface p-5 shadow-soft">
+            <span class="{{ $denyutPersen }} flex h-10 w-10 items-center justify-center rounded-xl {{ $chipPersen }}">
                 <x-icon name="chart-bar" class="h-5 w-5" />
             </span>
             <p class="mt-3 text-xs font-medium uppercase tracking-wide text-brand-muted">Persentase Kehadiran</p>
-            <p class="mt-1 text-3xl font-bold tabular-nums {{ $warnaPersen }}">
-                {{ $belumAdaData ? '—' : number_format($persentaseKehadiran, 1) . '%' }}
-            </p>
+            <x-angka-naik
+                :nilai="$belumAdaData ? null : $persentaseKehadiran"
+                :desimal="1"
+                akhiran="%"
+                class="mt-1 block text-3xl font-bold {{ $warnaPersen }}" />
+
+            {{-- Bilahnya TUMBUH dari nol lewat scaleX, bukan lewat width.
+                 Alasannya ada di app.css: width memaksa perhitungan tata
+                 letak tiap frame, scaleX dikerjakan compositor. --}}
             <div class="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-brand-surface-muted">
-                <div class="h-full rounded-full bg-current {{ $warnaPersen }}" style="width: {{ min(100, max(0, $persentaseKehadiran)) }}%"></div>
+                <div class="bilah-isi h-full w-full rounded-full bg-current {{ $warnaPersen }}"
+                    style="--isi: {{ round(min(100, max(0, $persentaseKehadiran)) / 100, 4) }}"></div>
             </div>
         </div>
     </div>
 
     {{-- 3 kelas terendah --}}
-    <div class="mt-8">
+    <div class="muncul mt-8" style="animation-delay: 220ms">
         <h2 class="mb-3 flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-brand-muted">
             <x-icon name="exclamation-triangle" class="h-4 w-4" />
             3 Kelas dengan Kehadiran Terendah Hari Ini
@@ -137,8 +159,8 @@
                                     <div class="flex items-center gap-2">
                                         <span class="w-12 tabular-nums font-semibold">{{ number_format($kelas->persentase_hadir, 1) }}%</span>
                                         <div class="h-1.5 w-24 overflow-hidden rounded-full bg-brand-surface-muted">
-                                            <div class="h-full rounded-full {{ $kelas->persentase_hadir < 75 ? 'bg-brand-danger' : ($kelas->persentase_hadir < 90 ? 'bg-amber-500' : 'bg-brand-accent') }}"
-                                                style="width: {{ min(100, max(0, $kelas->persentase_hadir)) }}%"></div>
+                                            <div class="bilah-isi h-full w-full rounded-full {{ $kelas->persentase_hadir < 75 ? 'bg-brand-danger' : ($kelas->persentase_hadir < 90 ? 'bg-amber-500' : 'bg-brand-accent') }}"
+                                                style="--isi: {{ round(min(100, max(0, $kelas->persentase_hadir)) / 100, 4) }}"></div>
                                         </div>
                                     </div>
                                 </td>

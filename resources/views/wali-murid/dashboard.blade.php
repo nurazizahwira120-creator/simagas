@@ -34,8 +34,15 @@
 
         @else
 
-            {{-- ============ STATUS HARI INI ============ --}}
-            <div class="rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm">
+            {{-- ============ STATUS HARI INI ============
+                 SENGAJA tanpa kelas .kilau. Sapuan cahayanya berwarna putih,
+                 sedangkan kartu ini berlatar putih — efeknya tidak akan
+                 terlihat sama sekali dan hanya menyisakan satu elemen semu
+                 yang dianimasikan percuma di HP orang tua.
+
+                 Kartu berwarna seperti status kehadiran guru adalah tempat
+                 yang tepat untuk .kilau; kartu ini cukup dengan .muncul. --}}
+            <div class="muncul rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm">
                 <div class="flex flex-wrap items-center gap-5 px-6 py-5">
                     @php
                         $gaya = match (true) {
@@ -46,7 +53,11 @@
                         };
                     @endphp
 
-                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full {{ $gaya['latar'] }} {{ $gaya['teks'] }}">
+                    {{-- Denyut riak HANYA saat belum ada catatan kedatangan —
+                         satu-satunya keadaan di kartu ini yang membuat orang tua
+                         perlu bertindak. Gerak yang muncul di setiap keadaan
+                         berhenti menyampaikan apa pun. --}}
+                    <span class="{{ $statusHariIni === null ? 'denyut' : '' }} flex h-12 w-12 shrink-0 items-center justify-center rounded-full {{ $gaya['latar'] }} {{ $gaya['teks'] }}">
                         <x-icon name="{{ $gaya['ikon'] }}" class="h-6 w-6" />
                     </span>
 
@@ -75,7 +86,7 @@
                  Dashboard ini sengaja hanya ringkasan; isinya yang panjang ada
                  di tiga halaman berikut, supaya tidak ada tabel yang sama
                  ditampilkan di dua tempat. --}}
-            <div class="mt-5 grid gap-4 sm:grid-cols-3">
+            <div class="tampil-berurutan mt-5 grid gap-4 sm:grid-cols-3">
                 @php
                     $pintasan = [
                         ['rute' => '.absensi-kedatangan', 'judul' => 'Absensi Kedatangan', 'ket' => 'Riwayat scan gerbang bulan ini', 'ikon' => 'qr-code'],
@@ -87,7 +98,7 @@
                 @foreach ($pintasan as $p)
                     @if (Route::has($panelPrefix . $p['rute']))
                         <a href="{{ route($panelPrefix . $p['rute']) }}"
-                            class="rounded-sm border border-gray-200 bg-brand-surface px-5 py-5 shadow-theme-sm transition hover:border-brand-500">
+                            class="kartu-angkat rounded-sm border border-gray-200 bg-brand-surface px-5 py-5 shadow-theme-sm hover:border-brand-500">
                             <span class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500/10 text-brand-500">
                                 <x-icon name="{{ $p['ikon'] }}" class="h-5 w-5" />
                             </span>

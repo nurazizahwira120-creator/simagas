@@ -1429,3 +1429,253 @@ pre[class*="language-"] {
     opacity: 0;
   }
 }
+
+/* ======================================================================
+   LAPISAN GERAK — dipakai dashboard seluruh peran
+   ======================================================================
+   Seluruhnya CSS murni. Tidak ada library, tidak ada berkas tambahan yang
+   diunduh, dan tidak ada satu pun permintaan tambahan ke server: animasi
+   berjalan di HP pengguna, bukan di hosting.
+
+   ============ DUA ATURAN YANG MENGIKAT SELURUH BLOK INI ============
+
+   1. HANYA transform dan opacity yang dianimasikan.
+      Menganimasikan width, height, top, atau margin memaksa browser
+      menghitung ulang tata letak SETIAP FRAME. Itulah sumber gerak
+      patah-patah yang sebenarnya — bukan jumlah animasinya. transform dan
+      opacity dikerjakan compositor, di luar thread utama, sehingga tetap
+      mulus di HP kelas bawah milik guru.
+
+      Karena itu bilah persentase di bawah memakai scaleX(), bukan width.
+
+   2. KEADAAN AKHIR adalah keadaan BAWAAN; animasi hanya tambahan.
+      Setiap kelas di sini sudah terlihat benar tanpa animasi apa pun, dan
+      animasinya baru dipasang di dalam blok prefers-reduced-motion:
+      no-preference. Arahnya sengaja dibalik dari kebiasaan umum.
+
+      Kalau ditulis sebaliknya — animasi sebagai bawaan, lalu dimatikan di
+      blok reduce — maka elemen ber-opacity 0 pada keyframe awal akan
+      TETAP tidak terlihat bagi pengguna yang mematikan animasi. Halaman
+      yang kosong sama sekali adalah harga yang terlalu mahal untuk sebuah
+      efek masuk.
+   ====================================================================== */
+
+/* ---------- 1. MUNCUL BERURUTAN ----------
+   Kartu-kartu tidak muncul serentak melainkan menyusul satu per satu
+   dengan jarak 60 ms. Jaraknya dipilih pendek dengan sengaja: di atas
+   ~90 ms mata mulai membaca setiap kartu satu-satu dan halaman terasa
+   lambat, di bawah ~40 ms urutannya tidak terbaca sama sekali. */
+@media (prefers-reduced-motion: no-preference) {
+  .tampil-berurutan > * {
+    animation: naik-masuk 0.38s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  .tampil-berurutan > *:nth-child(1) { animation-delay: 0ms; }
+  .tampil-berurutan > *:nth-child(2) { animation-delay: 60ms; }
+  .tampil-berurutan > *:nth-child(3) { animation-delay: 120ms; }
+  .tampil-berurutan > *:nth-child(4) { animation-delay: 180ms; }
+  .tampil-berurutan > *:nth-child(5) { animation-delay: 240ms; }
+  .tampil-berurutan > *:nth-child(6) { animation-delay: 300ms; }
+
+  /* Mulai baris ketujuh jedanya tidak ditambah lagi. Daftar riwayat bisa
+     berisi 20 baris, dan 20 x 60 ms berarti baris terakhir baru muncul
+     1,2 detik sesudah halaman siap — pengguna sudah menganggapnya rusak. */
+  .tampil-berurutan > *:nth-child(n + 7) { animation-delay: 360ms; }
+
+  .muncul {
+    animation: naik-masuk 0.38s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+}
+
+@keyframes naik-masuk {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 2. KARTU YANG BISA DITEKAN ----------
+   Naik 2px saat disentuh tetikus, turun sedikit saat ditekan. Gerakannya
+   kecil dengan sengaja — ini kartu data, bukan tombol ajakan.
+
+   transition dipasang di luar media query karena ia hanya berlaku saat
+   ada interaksi; blok reduce di bagian akhir berkas yang memangkasnya
+   untuk pengguna yang meminta. */
+.kartu-angkat {
+  transition:
+    transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1),
+    box-shadow 0.18s ease-out,
+    border-color 0.18s ease-out;
+}
+
+@media (hover: hover) {
+  .kartu-angkat:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px rgba(15, 23, 42, 0.05),
+      0 18px 40px -16px rgba(15, 23, 42, 0.22);
+  }
+}
+
+.kartu-angkat:active {
+  transform: translateY(0);
+}
+
+/* ---------- 3. BILAH PERSENTASE ----------
+   --isi diisi PECAHAN (0 sampai 1), bukan persen, karena nilainya dipakai
+   langsung oleh scaleX().
+
+   scaleX dipilih menggantikan width dengan alasan yang sama seperti di
+   kepala berkas ini: width memicu perhitungan tata letak tiap frame,
+   scaleX tidak. Bedanya tidak terasa pada satu bilah, tapi tabel kelas
+   bisa berisi belasan sekaligus. */
+.bilah-isi {
+  transform: scaleX(var(--isi, 1));
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bilah-isi {
+    animation: bilah-tumbuh 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) 0.25s both;
+  }
+}
+
+@keyframes bilah-tumbuh {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--isi, 1));
+  }
+}
+
+/* ---------- 4. KILAU SEKALI LEWAT ----------
+   Satu sapuan cahaya melintasi kartu utama, 0,55 detik sesudah halaman
+   siap — saat mata sudah selesai mencari dan siap membaca.
+
+   SEKALI, bukan berulang. Kilau yang mengulang terus adalah salah satu
+   cara tercepat membuat antarmuka kerja terasa murahan, dan pada halaman
+   yang dibuka berkali-kali sehari ia berubah menjadi gangguan. */
+.kilau {
+  /* Sapuan cahayanya PUTIH, jadi kelas ini hanya berarti di atas permukaan
+     BERWARNA atau GELAP. Di atas kartu putih ia tidak terlihat sama sekali —
+     bukan rusak, hanya sia-sia. Untuk permukaan terang, timpa variabel ini
+     dengan warna gelap beropasitas rendah. */
+  --kilau-warna: rgb(255 255 255 / 0.2);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.kilau::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    var(--kilau-warna) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kilau::after {
+    animation: kilau-lewat 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.55s 1 both;
+  }
+}
+
+@keyframes kilau-lewat {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- 5. DENYUT PENANDA TINDAKAN ----------
+   Lingkaran yang mengembang lalu memudar, seperti riak radar.
+
+   Dipasang HANYA pada keadaan yang benar-benar menuntut tindakan —
+   belum absen, kelas yang kehadirannya jatuh. Gerak yang dipakai di mana
+   mana berhenti berarti apa-apa; justru karena hanya muncul di sini, ia
+   berhasil menarik mata ke tempat yang benar.
+
+   Berdenyut 3 kali lalu BERHENTI. Animasi tak berujung di halaman yang
+   dibiarkan terbuka seharian menguras baterai tanpa menyampaikan apa pun
+   yang belum tersampaikan pada denyut pertama. */
+.denyut {
+  position: relative;
+}
+
+.denyut::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .denyut::before {
+    animation: denyut-riak 2.2s cubic-bezier(0, 0, 0.2, 1) 0.6s 3 both;
+  }
+}
+
+@keyframes denyut-riak {
+  0% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+
+/* ---------- 6. ANGKA MENGHITUNG NAIK ----------
+   Angkanya diubah JavaScript (lihat partials/gerak.blade.php), jadi yang
+   diurus di sini hanya satu hal: lebar digit dikunci.
+
+   Tanpa tabular-nums, angka 1 jauh lebih sempit daripada 8 pada font
+   proporsional. Selama hitungan berjalan lebarnya berubah tiap frame,
+   dan seluruh isi kartu ikut bergeser kiri-kanan — persis gejala yang
+   membuat dashboard terasa goyah. */
+.angka-naik {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 7. HORMATI PERMINTAAN HEMAT GERAK ----------
+   Jaring pengaman terakhir, dan sengaja ditaruh paling bawah supaya
+   memenangkan setiap aturan di atasnya.
+
+   Ada pengguna yang mematikan animasi bukan karena selera, melainkan
+   karena gerak memicu pusing atau mual (vestibular disorder). Untuk
+   mereka aturan ini bukan kenyamanan, melainkan syarat agar halaman ini
+   bisa dipakai sama sekali.
+
+   Nilainya 0,01ms dan bukan 0: beberapa browser tidak pernah memicu
+   peristiwa animationend kalau durasinya benar-benar nol, dan kode yang
+   menunggu peristiwa itu akan menggantung selamanya. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

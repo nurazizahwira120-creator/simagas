@@ -22,7 +22,23 @@
         </div>
     </div>
 
-    <div class="mx-auto flex w-full max-w-md flex-col gap-4">
+    {{-- ============ SUSUNAN DUA KOLOM MULAI DARI LAYAR BESAR ============
+         Sebelumnya seluruh isi halaman ini dikurung max-w-md — satu kolom
+         selebar 448px di tengah layar. Di HP itu tepat; di laptop 1280px
+         hasilnya satu pita sempit dengan ruang kosong 800px di kanannya,
+         sementara daftar riwayat di bawahnya harus di-scroll.
+
+         Mulai lg: kolom kiri memuat yang perlu DITINDAK (kartu absensi,
+         status hari ini, pintasan jadwal), kolom kanan memuat yang perlu
+         DIBACA (riwayat). Pembagiannya mengikuti tugas, bukan sekadar
+         memenuhi ruang — kolom kiri lebih sempit karena isinya ringkas,
+         kolom kanan lebih lebar karena berisi daftar tanggal panjang.
+
+         Di bawah lg keduanya kembali menumpuk persis seperti semula. --}}
+    <div class="mx-auto grid w-full gap-4 lg:items-start lg:gap-6 {{ $pegawai ? 'max-w-md lg:max-w-5xl lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]' : 'max-w-md' }}">
+
+        {{-- ---------- KOLOM KIRI: yang perlu ditindak ---------- --}}
+        <div class="tampil-berurutan flex flex-col gap-4">
         {{-- Absensi mandiri --}}
         @include('partials.kartu-kehadiran-hari-ini')
 
@@ -35,7 +51,7 @@
              punya menu ini berubah nanti. --}}
         @if (Route::has($panelPrefix . '.jadwal-pelajaran'))
             <a href="{{ route($panelPrefix . '.jadwal-pelajaran') }}"
-                class="flex items-center justify-between gap-3 rounded-2xl border border-brand-border bg-brand-surface px-5 py-4 shadow-soft transition-colors active:bg-brand-surface-muted">
+                class="kartu-angkat flex items-center justify-between gap-3 rounded-2xl border border-brand-border bg-brand-surface px-5 py-4 shadow-soft active:bg-brand-surface-muted">
                 <span class="flex min-w-0 items-center gap-3">
                     <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-brand-accent-text">
                         <x-icon name="calendar" class="h-6 w-6" />
@@ -100,20 +116,39 @@
                 };
             @endphp
 
-            <div class="rounded-3xl {{ $kartu['bg'] }} p-6 text-white shadow-soft">
+            @php
+                // Denyut riak HANYA saat kehadiran hari ini belum tercatat —
+                // satu-satunya keadaan di kartu ini yang menuntut tindakan.
+                // Kalau dipasang juga pada status 'Hadir', gerakannya berhenti
+                // berarti apa-apa dan tinggal menjadi hiasan yang berkedip.
+                $perluTindakan = $status === null;
+            @endphp
+
+            {{-- kilau: satu sapuan cahaya melintas 0,55 detik setelah halaman
+                 siap. Sekali saja — lihat alasannya di .kilau pada app.css. --}}
+            <div class="kilau rounded-3xl {{ $kartu['bg'] }} p-6 text-white shadow-soft">
                 <div class="flex items-start justify-between">
                     <div>
                         <p class="text-sm font-medium text-white/80">{{ $pegawai->nama }} &middot; {{ $pegawai->jabatan }}</p>
                         <p class="mt-1 text-xs text-white/70">{{ now()->translatedFormat('l, d F Y') }}</p>
                     </div>
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                    <span class="{{ $perluTindakan ? 'denyut' : '' }} flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15">
                         <x-icon name="{{ $kartu['icon'] }}" class="h-6 w-6" />
                     </span>
                 </div>
                 <p class="mt-5 text-4xl font-bold">{{ $kartu['label'] }}</p>
                 <p class="mt-1 text-sm text-white/85">{{ $kartu['sub'] }}</p>
             </div>
+        @endif
+        </div>
 
+        {{-- ---------- KOLOM KANAN: yang perlu dibaca ----------
+             Hanya dirender kalau akunnya tertaut ke data pegawai. Tanpa
+             tautan itu tidak ada riwayat kehadiran yang bisa ditampilkan,
+             dan kolom kosong di sebelah pemberitahuan hanya membuat
+             halamannya terlihat rusak. --}}
+        @if ($pegawai)
+        <div class="muncul" style="animation-delay: 160ms">
             <section>
                 <h2 class="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-brand-muted">
                     <x-icon name="clock" class="h-3.5 w-3.5" />
@@ -153,10 +188,9 @@
                     </ul>
                 @endif
             </section>
-
+        </div>
         @endif
 
-    
     </div>
 
 @endsection

@@ -183,6 +183,11 @@
      biasa di akhir body — alasan lengkapnya ada di dalam partial-nya. --}}
 @include('partials.scan-kamera')
 
+{{-- Angka statistik yang menghitung naik di dashboard. Skrip klasik di
+     <head> karena atribut x-init milik Alpine memanggilnya lebih dulu
+     daripada app.js sempat dijalankan. --}}
+@include('partials.gerak')
+
 {{-- ====================================================================
      MEMUAT CSS & JS — dengan cadangan, SENGAJA tidak langsung @vite.
 

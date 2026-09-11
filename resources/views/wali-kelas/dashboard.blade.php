@@ -13,13 +13,14 @@
 
     <div class="mx-auto w-full max-w-4xl">
         {{-- Absensi mandiri --}}
-        <div class="mb-5">
+        <div class="muncul mb-5">
             @include('partials.kartu-kehadiran-hari-ini')
         </div>
 
         {{-- Pintasan ke jadwal pelajaran --}}
         <a href="{{ route($panelPrefix . '.jadwal-pelajaran') }}"
-            class="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-brand-border bg-brand-surface px-5 py-4 shadow-soft transition-colors hover:bg-brand-surface-muted">
+            style="animation-delay: 60ms"
+            class="kartu-angkat muncul mb-5 flex items-center justify-between gap-3 rounded-2xl border border-brand-border bg-brand-surface px-5 py-4 shadow-soft hover:bg-brand-surface-muted">
             <span class="flex min-w-0 items-center gap-3">
                 <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-accent-soft text-brand-accent-text">
                     <x-icon name="calendar" class="h-6 w-6" />
@@ -42,7 +43,7 @@
                 </p>
             </div>
         @else
-            <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div class="muncul mb-5 flex flex-wrap items-end justify-between gap-3" style="animation-delay: 120ms">
                 <div>
                     <h1 class="text-xl font-bold">{{ $kelas->nama_kelas }}</h1>
                     <p class="mt-0.5 flex items-center gap-1.5 text-sm text-brand-muted">
@@ -97,7 +98,16 @@
                      sama untuk satu siswa, dan radio yang disembunyikan CSS
                      tetap ikut terkirim saat form disubmit.
                      ================================================================ --}}
-                <div class="overflow-x-auto rounded-2xl border border-brand-border bg-brand-surface shadow-soft">
+                {{-- Yang beranimasi adalah WADAH tabelnya, bukan tiap baris.
+
+                     Menganimasikan setiap <tr> memang terlihat lebih hidup,
+                     tapi transform pada elemen table-row menciptakan
+                     containing block baru — dan tombol Simpan di bawah tabel
+                     ini position:sticky, yang akan ikut terpengaruh. Satu
+                     kelas bisa berisi 30 siswa; 30 baris beranimasi juga
+                     berarti 30 lapisan compositor sekaligus di HP guru. --}}
+                <div class="muncul overflow-x-auto rounded-2xl border border-brand-border bg-brand-surface shadow-soft"
+                    style="animation-delay: 180ms">
                     <table class="w-full text-left text-sm max-md:block md:min-w-[640px]">
                         <thead class="max-md:hidden">
                             <tr class="border-b border-brand-border bg-brand-surface-muted text-xs uppercase tracking-wide text-brand-muted">
@@ -166,7 +176,7 @@
 
                 @if ($kelas->siswa->isNotEmpty())
                     <div class="sticky bottom-0 mt-4 flex justify-end border-t border-brand-border bg-brand-bg/90 py-3 backdrop-blur">
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-accent px-6 py-3 text-sm font-semibold text-white shadow-soft hover:bg-brand-accent-dark">
+                        <button type="submit" class="kartu-angkat inline-flex items-center gap-2 rounded-xl bg-brand-accent px-6 py-3 text-sm font-semibold text-white shadow-soft hover:bg-brand-accent-dark">
                             <x-icon name="check-circle" class="h-5 w-5" />
                             Simpan Absensi
                         </button>
