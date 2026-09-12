@@ -38,7 +38,7 @@
     <div class="mx-auto grid w-full gap-4 lg:items-start lg:gap-6 {{ $pegawai ? 'max-w-md lg:max-w-5xl lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]' : 'max-w-md' }}">
 
         {{-- ---------- KOLOM KIRI: yang perlu ditindak ---------- --}}
-        <div class="tampil-berurutan flex flex-col gap-4">
+        <div class="tampil-berurutan flex min-w-0 flex-col gap-4">
         {{-- Absensi mandiri --}}
         @include('partials.kartu-kehadiran-hari-ini')
 
@@ -147,8 +147,28 @@
              tautan itu tidak ada riwayat kehadiran yang bisa ditampilkan,
              dan kolom kosong di sebelah pemberitahuan hanya membuat
              halamannya terlihat rusak. --}}
+        {{-- ============ min-w-0 DI SINI YANG MENENTUKAN ============
+             Tanpa kelas ini, kartu status di kolom KIRI terpotong di HP —
+             dan itu sudah pernah terjadi ke pengguna.
+
+             Sebabnya tidak berada di tempat gejalanya muncul. Di bawah lg
+             kedua kolom berbagi SATU jalur grid, dan lebar jalur itu diambil
+             dari isi yang min-content-nya paling lebar. Baris riwayat di
+             kolom ini berbentuk "tanggal panjang di kiri, lencana status di
+             kanan" pada satu baris — min-content-nya 357px.
+
+             Item grid lahir dengan min-width: auto, artinya ia MENOLAK
+             menyempit di bawah min-content. Jadi di layar 360px jalurnya
+             tetap 357px padahal wadahnya 328px, dan SEMUA isi kedua kolom
+             ikut meluber 14px ke kanan. Karena ada ancestor yang meng-clip,
+             yang terlihat pengguna bukan halaman yang bisa digeser melainkan
+             kartu yang terpotong rapi di tepi layar.
+
+             min-w-0 mencabut lantai min-content itu. Dipasang di KEDUA kolom
+             karena keduanya berbagi jalur yang sama — memperbaiki satu saja
+             tidak cukup, dan itu terbukti saat perbaikannya diuji. --}}
         @if ($pegawai)
-        <div class="muncul" style="animation-delay: 160ms">
+        <div class="muncul min-w-0" style="animation-delay: 160ms">
             <section>
                 <h2 class="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-brand-muted">
                     <x-icon name="clock" class="h-3.5 w-3.5" />
