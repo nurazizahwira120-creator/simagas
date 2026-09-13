@@ -35,6 +35,14 @@
     $menuSuperAdmin = [
         ['label' => 'Dashboard System',       'icon' => 'chart-bar',        'route' => '.dashboard',   'match' => '.dashboard'],
 
+        // Dua butir ini ditulis apa adanya, bukan memakai $butirGerbang /
+        // $butirLiveMonitoring di bawah: PHP membaca berkas ini dari atas ke
+        // bawah, dan variabel-variabel itu baru lahir beberapa puluh baris
+        // setelah blok ini. Memakainya di sini menghasilkan array kosong
+        // tanpa error apa pun — butirnya hilang diam-diam dari menu.
+        ['label' => 'Live Monitoring KBM',    'icon' => 'eye',              'route' => '.live-monitoring', 'match' => '.live-monitoring'],
+        ['label' => 'Gerbang & Izin Siswa',   'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
+
         ['label' => 'Manajemen Pengguna',     'icon' => 'users',            'match' => '.users.*|.pengaturan', 'anak' => [
             ['label' => 'Daftar Akun',        'icon' => 'users',            'route' => '.users.index', 'match' => '.users.*'],
             ['label' => 'Approval Akun Baru', 'icon' => 'shield-check',     'route' => '.pengaturan',  'match' => '.pengaturan', 'query' => ['tab' => 'approval']],
@@ -150,6 +158,18 @@
      | peran itu otomatis tidak muncul. Guru mendapat "Input Nilai" tanpa
      | "Persetujuan Rapor"; wali kelas mendapat keduanya.
      */
+    /*
+     | Gerbang & Live Monitoring.
+     |
+     | Keduanya ditulis sebagai variabel, bukan array literal yang disalin ke
+     | tiap menu peran. $saring() di bawah yang menentukan butir mana benar-
+     | benar muncul: kalau rutenya tidak terdaftar untuk peran itu, butirnya
+     | hilang dengan sendirinya. Jadi menaruhnya di beberapa menu sekaligus
+     | AMAN dan tidak pernah menghasilkan tautan yang berujung 404.
+     */
+    $butirGerbang = ['label' => 'Gerbang & Izin Siswa', 'icon' => 'shield-check', 'route' => '.gerbang', 'match' => '.gerbang*'];
+    $butirLiveMonitoring = ['label' => 'Live Monitoring KBM', 'icon' => 'eye', 'route' => '.live-monitoring', 'match' => '.live-monitoring'];
+
     $butirInputNilai = ['label' => 'Input Nilai', 'icon' => 'pencil', 'route' => '.nilai', 'match' => '.nilai*'];
     $butirValidasiRapor = ['label' => 'Persetujuan Rapor', 'icon' => 'clipboard-check', 'route' => '.rapor.validasi', 'match' => '.rapor.*'];
 
@@ -157,6 +177,7 @@
     // "Scan Siswa" ditambahkan sebagai butir ke-6 (fiturnya tetap dipakai).
     $menuPegawai = [
         $butirDashboard,
+        $butirGerbang,
         $butirProfil,
         $butirAbsenHadir,
         $butirIzin,
@@ -214,6 +235,13 @@
      */
     $menuKepsek = [
         ['label' => 'Dashboard Eksekutif',          'icon' => 'chart-bar',       'route' => '.dashboard',         'match' => '.dashboard'],
+
+        // Ditaruh persis di bawah Dashboard, dan itu disengaja: isinya
+        // menjawab pertanyaan yang paling cepat basi ("jam ini ada kelas
+        // kosong?"). Menaruhnya di dasar daftar berarti ia baru dibuka
+        // setelah jam pelajarannya lewat.
+        $butirLiveMonitoring,
+
         $butirProfil,
         ['label' => 'Pantauan Kehadiran Pegawai',   'icon' => 'briefcase',       'route' => '.pantauan-pegawai',  'match' => '.pantauan-pegawai'],
 
@@ -266,6 +294,7 @@
         $butirJurnal,
         $butirScanSiswa,
         ['label' => 'Scanner QR',       'icon' => 'qr-code',         'route' => '.scanner',     'match' => '.scanner'],
+        $butirGerbang,
         $butirJadwalPelajaran,
         $butirEkskul,
         $butirRppGuru,

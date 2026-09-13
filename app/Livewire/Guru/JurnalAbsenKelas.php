@@ -253,6 +253,41 @@ class JurnalAbsenKelas extends Component
     }
 
     /**
+     * Izin/sakit yang dicatat petugas piket di GERBANG pagi ini.
+     *
+     * ============ INI UJUNG DARI "PENCATATAN IZIN SATU PINTU" ============
+     * Siswa di sekolah ini tidak membawa HP, jadi izin masuk lewat satu
+     * pintu: petugas piket mencatatnya di halaman Gerbang, yang menuliskan
+     * status hariannya ke `absensi_siswa` (lihat AbsensiGerbangController).
+     *
+     * Tanpa method ini, pencatatan itu berhenti di tabel dan tidak pernah
+     * sampai ke guru — siapkanStatusAwal() di bawah mengisi SEMUA siswa
+     * dengan 'hadir', sehingga anak yang sudah resmi diizinkan tetap muncul
+     * sebagai hadir di layar guru jam ketiga. Guru yang tidak curiga akan
+     * menyimpannya begitu saja, dan catatan izinnya jadi tidak berarti apa-apa.
+     *
+     * Yang diambil hanya izin & sakit. 'hadir' tidak perlu (itu sudah nilai
+     * bawaannya) dan 'alpha' sengaja TIDAK ikut: alpa di gerbang berarti
+     * anaknya tidak terdeteksi masuk, dan itu bukan alasan untuk memvonisnya
+     * absen di kelas sebelum gurunya melihat sendiri.
+     *
+     * @return Collection<int, string> siswa_id => nilai StatusKbm
+     */
+    #[Computed]
+    public function izinDariGerbang(): Collection
+    {
+        return AbsensiSiswa::whereIn('siswa_id', $this->daftarSiswa->pluck('id'))
+            ->whereDate('tanggal', today())
+            ->whereIn('status', [AbsensiStatus::Izin->value, AbsensiStatus::Sakit->value])
+            ->get(['siswa_id', 'status'])
+            ->mapWithKeys(fn (AbsensiSiswa $a) => [
+                $a->siswa_id => $a->status === AbsensiStatus::Sakit
+                    ? StatusKbm::Sakit->value
+                    : StatusKbm::Izin->value,
+            ]);
+    }
+
+    /**
      * Isi $status awal: 'hadir' untuk semua — guru hanya perlu mengubah yang
      * tidak masuk, sesuai brief. Kalau jurnal jam ini sudah pernah disimpan,
      * nilai tersimpannya yang dipakai, supaya membuka ulang halaman tidak
@@ -271,13 +306,27 @@ class JurnalAbsenKelas extends Component
             ->get()
             ->keyBy('siswa_id');
 
+        $izinGerbang = $this->izinDariGerbang();
+
         foreach ($this->daftarSiswa as $siswa) {
             $baris = $tersimpan->get($siswa->id);
 
-            // 'bolos' tidak ada di tombol radio; kalau baris tersimpan
-            // berstatus itu, radionya ditampilkan sebagai 'alpa' (asalnya),
-            // dan akan dihitung ulang jadi 'bolos' lagi saat disimpan.
-            $nilai = $baris?->status?->value ?? StatusKbm::Hadir->value;
+            /*
+             | Urutan pengambilan nilainya PENTING dan tidak boleh dibalik:
+             |
+             |   1. jurnal jam ini yang sudah tersimpan  -> selalu menang
+             |   2. izin/sakit dari gerbang hari ini
+             |   3. 'hadir' sebagai bawaan
+             |
+             | Nomor 1 di atas nomor 2 karena guru berada DI RUANGAN dan
+             | melihat sendiri siapa yang ada. Kalau seorang anak dicatat
+             | izin di gerbang tapi ternyata menyusul masuk, guru mengubahnya
+             | jadi Hadir dan menyimpannya — membuka ulang halaman tidak
+             | boleh diam-diam mengembalikannya ke Izin lagi.
+             */
+            $nilai = $baris?->status?->value
+                ?? $izinGerbang->get($siswa->id)
+                ?? StatusKbm::Hadir->value;
 
             $this->status[$siswa->id] = $nilai === StatusKbm::Bolos->value
                 ? StatusKbm::Alpa->value

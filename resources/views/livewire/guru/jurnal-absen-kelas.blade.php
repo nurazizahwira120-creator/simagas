@@ -238,6 +238,18 @@
                                             <x-icon name="qr-code" class="h-3 w-3" />
                                             Masuk gerbang pagi ini
                                         </span>
+                                    @elseif ($this->izinDariGerbang->has($siswa->id))
+                                        {{-- Penanda KENAPA status anak ini sudah terisi
+                                             sebelum guru menyentuh apa pun. Tanpa
+                                             kalimat ini, isian yang berubah sendiri
+                                             terlihat seperti kesalahan sistem — guru
+                                             akan mengembalikannya ke Hadir, dan izin
+                                             yang sudah resmi dicatat petugas piket
+                                             hilang begitu saja. --}}
+                                        <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-warning-500">
+                                            <x-icon name="clipboard-check" class="h-3 w-3" />
+                                            Sudah dicatat izin/sakit di gerbang
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="border-b border-gray-200 px-4 py-4 max-md:block max-md:border-0 max-md:px-0 max-md:pb-0 max-md:pt-3 dark:border-gray-800">

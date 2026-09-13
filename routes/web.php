@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AbsensiGerbangController;
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\LaporanBulananController;
+use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\RekapKbmController;
 use App\Http\Controllers\ValidasiRaporController;
 use App\Http\Controllers\RppController;
@@ -387,6 +389,54 @@ Route::middleware('auth')->group(function () {
     | ValidasiRaporController. Membuat empat rute berbeda berarti empat tempat
     | yang harus ingat aturan yang sama.
     */
+    /*
+    |----------------------------------------------------------------------
+    | Gerbang — Scan kehadiran + Pencatatan Izin Satu Pintu
+    |----------------------------------------------------------------------
+    | Siswa di sekolah ini tidak membawa HP, jadi tidak ada jalur pengajuan
+    | izin mandiri. Semua izin masuk lewat SATU pintu: petugas di gerbang.
+    |
+    | Dipakai TIGA grup peran — guru piket (yang berjaga), admin TU, dan
+    | super admin (yang menerima telepon orang tua di kantor). Ditulis sebagai
+    | closure yang dipanggil di ketiganya, bukan disalin: tiga salinan rute
+    | berarti perbaikan di satu tempat diam-diam tidak ikut di dua tempat lain.
+    |
+    | Endpoint scan-nya memakai ScannerController::store() yang SAMA dengan
+    | halaman Scanner Piket. Satu kejadian "siswa hadir" harus memberi hasil
+    | yang sama dari mana pun ia di-scan; dua endpoint berarti dua perilaku
+    | yang perlahan menyimpang.
+    */
+    $daftarkanGerbang = function () {
+        Route::get('/gerbang', [AbsensiGerbangController::class, 'index'])->name('gerbang');
+
+        Route::post('/gerbang/izin', [AbsensiGerbangController::class, 'storeIzin'])->name('gerbang.izin');
+
+        // Berkas surat dilayani lewat controller, BUKAN sebagai berkas statis
+        // di disk public. Isinya sering surat keterangan dokter milik anak di
+        // bawah umur — lihat AbsensiGerbangController::simpanSurat().
+        Route::get('/gerbang/surat/{izin}', [AbsensiGerbangController::class, 'suratIzin'])->name('gerbang.surat');
+
+        // throttle:60,1 — 60 scan per menit, jauh di atas kecepatan scan yang
+        // wajar, supaya endpoint ini tidak bisa dijadikan celah spam.
+        Route::post('/gerbang/scan', [ScannerController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('gerbang.scan');
+    };
+
+    /*
+    |----------------------------------------------------------------------
+    | Live Monitoring KBM — EKSKLUSIF kepsek & super admin
+    |----------------------------------------------------------------------
+    | Pembatasannya ditegakkan di sini, di level rute, bukan dengan
+    | menyembunyikan menunya di sidebar. Menu yang disembunyikan hanya
+    | menghilangkan tautannya; URL-nya tetap bisa diketik siapa saja yang
+    | sudah login. Closure ini HANYA dipanggil di dua grup di bawah, jadi
+    | peran lain mendapat 404 — bukan halaman yang kebetulan kosong.
+    */
+    $daftarkanLiveMonitoring = function () {
+        Route::get('/live-monitoring', [MonitoringController::class, 'index'])->name('live-monitoring');
+    };
+
     $daftarkanValidasiRapor = function () {
         Route::get('/rapor/validasi', [ValidasiRaporController::class, 'index'])->name('rapor.validasi');
         Route::post('/rapor/{kelas}/ajukan', [ValidasiRaporController::class, 'ajukan'])->name('rapor.ajukan');
@@ -439,7 +489,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring) {
+            $daftarkanLiveMonitoring();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();
             $daftarkanLaporanBulanan();
@@ -462,7 +513,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
+            $daftarkanLiveMonitoring();
+            $daftarkanGerbang();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();
             $daftarkanLaporanBulanan();
@@ -629,9 +682,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin_tu')
         ->prefix('admin-tu')
         ->name('admin-tu.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanEkskul, $daftarkanValidasiRapor) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanEkskul, $daftarkanValidasiRapor, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanValidasiRapor();
+            $daftarkanGerbang();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
@@ -645,8 +699,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru_piket')
         ->prefix('piket')
         ->name('piket.')
-        ->group(function () use ($daftarkanScannerSiswa, $daftarkanProfil, $daftarkanEkskul) {
+        ->group(function () use ($daftarkanScannerSiswa, $daftarkanProfil, $daftarkanEkskul, $daftarkanGerbang) {
             $daftarkanEkskul();
+            $daftarkanGerbang();
             Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
 
             // Versi Livewire dari scanner siswa, di dalam layout utama —
