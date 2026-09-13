@@ -9,11 +9,13 @@ use App\Http\Controllers\RekapKbmController;
 use App\Http\Controllers\ValidasiRaporController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Guru\IzinGuruController;
 use App\Http\Controllers\Guru\NilaiController;
 use App\Http\Controllers\Guru\WaliKelasController;
 use App\Http\Controllers\Kepsek\KelasController;
 use App\Http\Controllers\Kepsek\KepsekController;
 use App\Http\Controllers\Kepsek\LaporanController;
+use App\Http\Controllers\Kepsek\PersetujuanIzinGuruController;
 use App\Http\Controllers\Kepsek\SiswaController;
 use App\Http\Controllers\Kepsek\SiswaQrController;
 use App\Http\Controllers\Kepsek\UserController;
@@ -186,6 +188,51 @@ Route::middleware('auth')->group(function () {
     // berbagi closure.
     $daftarkanPengajuanIzin = function () {
         Route::view('/pengajuan-izin', 'pegawai.form-izin')->name('pengajuan-izin');
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pengajuan Izin Khusus Guru — ITT & IDT
+    |--------------------------------------------------------------------------
+    | MENGGANTIKAN $daftarkanPengajuanIzin untuk peran yang MENGAJAR (guru &
+    | wali kelas). Keduanya sengaja TIDAK didaftarkan bersamaan di satu peran:
+    | dua menu izin berdampingan yang menulis ke tempat berbeda — yang satu
+    | langsung berlaku, yang satu menunggu persetujuan — adalah cara tercepat
+    | membuat guru mengirim izin ke jalur yang salah tanpa pernah tahu.
+    |
+    | Staff, admin TU, dan kepala sekolah TETAP memakai form lama: ITT/IDT
+    | menjawab pertanyaan "kelasnya bagaimana", dan mereka tidak memegang
+    | kelas.
+    */
+    $daftarkanIzinGuru = function () {
+        Route::get('/izin-guru', [IzinGuruController::class, 'create'])->name('izin-guru.create');
+        Route::post('/izin-guru', [IzinGuruController::class, 'store'])->name('izin-guru.store');
+
+        // Lampiran dilayani lewat Laravel (bukan URL publik) karena berkasnya
+        // ada di disk privat — lihat IzinGuruController::lampiran().
+        Route::get('/izin-guru/{izin}/lampiran', [IzinGuruController::class, 'lampiran'])->name('izin-guru.lampiran');
+    };
+
+    /*
+    | Sisi penyetuju — kepala sekolah & super admin saja.
+    |
+    | Tanpa grup rute ini, pengajuan guru mengendap selamanya di status
+    | 'Pending' dan absensinya tidak pernah ditandai izin: guru yang izin
+    | akan terhitung ALPA di rekap akhir bulan. Jadi halaman ini bukan
+    | pelengkap, ia bagian yang membuat fitur izin guru berfungsi sama sekali.
+    */
+    $daftarkanPersetujuanIzinGuru = function () {
+        Route::get('/persetujuan-izin-guru', [PersetujuanIzinGuruController::class, 'index'])
+            ->name('persetujuan-izin-guru');
+
+        Route::post('/persetujuan-izin-guru/{izin}/setujui', [PersetujuanIzinGuruController::class, 'setujui'])
+            ->name('persetujuan-izin-guru.setujui');
+
+        Route::post('/persetujuan-izin-guru/{izin}/tolak', [PersetujuanIzinGuruController::class, 'tolak'])
+            ->name('persetujuan-izin-guru.tolak');
+
+        Route::get('/persetujuan-izin-guru/{izin}/lampiran', [PersetujuanIzinGuruController::class, 'lampiran'])
+            ->name('persetujuan-izin-guru.lampiran');
     };
 
     // Kelola Pengumuman — App\Livewire\Pengumuman\KelolaPengumuman.
@@ -498,8 +545,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
             $daftarkanLiveMonitoring();
+            $daftarkanPersetujuanIzinGuru();
             $daftarkanGerbang();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();
@@ -523,8 +571,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru) {
             $daftarkanLiveMonitoring();
+            $daftarkanPersetujuanIzinGuru();
             $daftarkanGerbang();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();
@@ -601,7 +650,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:wali_kelas')
         ->prefix('wali-kelas')
         ->name('wali-kelas.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
@@ -612,7 +661,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/absensi', [WaliKelasController::class, 'simpanAbsensi'])->name('absensi.simpan');
 
             $daftarkanAbsensiMandiri();
-            $daftarkanPengajuanIzin();
+            // Guru & wali kelas memakai jalur izin ITT/IDT, BUKAN form izin
+            // pegawai yang lama. Hanya satu yang didaftarkan per peran —
+            // lihat komentar pada $daftarkanIzinGuru di atas.
+            $daftarkanIzinGuru();
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
             $daftarkanProfil();
@@ -651,7 +703,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru')
         ->prefix('guru')
         ->name('guru.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
@@ -666,7 +718,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
-            $daftarkanPengajuanIzin();
+            // Guru & wali kelas memakai jalur izin ITT/IDT, BUKAN form izin
+            // pegawai yang lama. Hanya satu yang didaftarkan per peran —
+            // lihat komentar pada $daftarkanIzinGuru di atas.
+            $daftarkanIzinGuru();
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
             $daftarkanProfil();

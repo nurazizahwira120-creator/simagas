@@ -42,6 +42,7 @@
         // tanpa error apa pun — butirnya hilang diam-diam dari menu.
         ['label' => 'Live Monitoring KBM',    'icon' => 'eye',              'route' => '.live-monitoring', 'match' => '.live-monitoring'],
         ['label' => 'Piket Scan Gerbang',     'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
+        ['label' => 'Persetujuan Izin Guru',  'icon' => 'check-circle',     'route' => '.persetujuan-izin-guru', 'match' => '.persetujuan-izin-guru*'],
 
         ['label' => 'Manajemen Pengguna',     'icon' => 'users',            'match' => '.users.*|.pengaturan', 'anak' => [
             ['label' => 'Daftar Akun',        'icon' => 'users',            'route' => '.users.index', 'match' => '.users.*'],
@@ -122,6 +123,24 @@
     // keduanya menjawab pertanyaan yang sama dari sisi pegawai: "hari ini
     // saya bagaimana". Datang -> absen radius; tidak datang -> ajukan izin.
     $butirIzin = ['label' => 'Pengajuan Izin', 'icon' => 'document-report', 'route' => '.pengajuan-izin', 'match' => '.pengajuan-izin'];
+
+    /*
+     | Pengajuan Izin Guru (ITT/IDT) — HANYA muncul untuk peran yang mengajar.
+     |
+     | Butir ini dan $butirIzin di atas sengaja SAMA-SAMA dimasukkan ke
+     | $menuPegawai, dan itu bukan menu ganda: rutenya berbeda, dan tiap peran
+     | hanya punya SATU di antaranya terdaftar di routes/web.php (guru & wali
+     | kelas dapat .izin-guru, staff & admin TU dapat .pengajuan-izin).
+     | $saring() di bawah membuang yang rutenya tidak ada.
+     |
+     | Menaruh keduanya di sini justru yang membuat aturannya berada di SATU
+     | tempat — routes/web.php — bukan tersebar di dua berkas yang harus
+     | diingat untuk diubah bersamaan.
+     */
+    $butirIzinGuru = ['label' => 'Pengajuan Izin (ITT/IDT)', 'icon' => 'clipboard-check', 'route' => '.izin-guru.create', 'match' => '.izin-guru*'];
+
+    // Sisi penyetuju — kepala sekolah & super admin.
+    $butirPersetujuanIzinGuru = ['label' => 'Persetujuan Izin Guru', 'icon' => 'check-circle', 'route' => '.persetujuan-izin-guru', 'match' => '.persetujuan-izin-guru*'];
     $butirAbsenAjar  = ['label' => 'Absen Mengajar (QR)',      'icon' => 'qr-code', 'route' => '.absen-mengajar', 'match' => '.absen-mengajar'];
 
     // "Scan Siswa" TIDAK sama dengan "Absen Mengajar": yang ini mencatat
@@ -190,6 +209,7 @@
         $butirProfil,
         $butirAbsenHadir,
         $butirIzin,
+        $butirIzinGuru,
         $butirAbsenAjar,
         $butirJurnal,
         $butirInputNilai,
@@ -258,6 +278,13 @@
         // menjawab pertanyaan yang bersambung — siapa tidak hadir, lalu
         // apa alasan yang ia ajukan.
         ['label' => 'Daftar Izin Pegawai',          'icon' => 'clipboard-check', 'route' => '.daftar-izin-pegawai', 'match' => '.daftar-izin-pegawai'],
+
+        // Berbeda dari butir di atasnya: 'Daftar Izin Pegawai' hanya
+        // MENAMPILKAN izin yang sudah berlaku, sementara halaman ini adalah
+        // satu-satunya tempat izin guru bisa disetujui. Tanpa dibuka, setiap
+        // pengajuan guru mengendap di status Pending dan absensinya terhitung
+        // alpa di akhir bulan.
+        $butirPersetujuanIzinGuru,
         ['label' => 'Pantauan Kehadiran Siswa',     'icon' => 'academic-cap',    'route' => '.pantauan-siswa',    'match' => '.pantauan-siswa'],
         ['label' => 'Laporan & Rekapitulasi',       'icon' => 'document-report', 'route' => '.laporan',           'match' => '.laporan'],
 
@@ -299,6 +326,7 @@
         $butirDashboard,
         $butirAbsenHadir,
         $butirIzin,
+        $butirIzinGuru,
         $butirAbsenAjar,
         $butirJurnal,
         $butirGerbang,
