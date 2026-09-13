@@ -56,12 +56,23 @@ enum UserRole: string
      * AuthController (redirect setelah login) dan rute '/'.
      *
      * Semua role punya rute '{prefix}.dashboard' sendiri-sendiri, kecuali
-     * guru_piket yang landing page-nya adalah scanner, bukan dashboard biasa.
+     * guru_piket yang landing page-nya adalah halaman Gerbang — layar yang
+     * memang ia pakai sepanjang pagi, bukan dashboard yang harus diklik dulu.
+     *
+     * ============ DULU MENUNJUK '.scanner', DAN ITU PENTING ============
+     * Rute itu SUDAH DIHAPUS bersama halaman scanner lama yang tidak bisa
+     * mencatat izin. Kalau baris ini ikut tertinggal menunjuk ke sana, guru
+     * piket tidak sekadar melihat menu yang salah — ia TIDAK BISA LOGIN SAMA
+     * SEKALI: redirect sesudah autentikasi berujung RouteNotFoundException,
+     * dan gejalanya muncul sebagai error 500 tepat setelah password benar.
+     *
+     * Setiap kali rute landing sebuah peran dihapus, baris di bawah ini
+     * harus ikut diperiksa. tests/Feature/GerbangRealtimeTest menjaganya.
      */
     public function dashboardRouteName(): string
     {
         return match ($this) {
-            self::GuruPiket => $this->routePrefix() . '.scanner',
+            self::GuruPiket => $this->routePrefix() . '.gerbang',
             default => $this->routePrefix() . '.dashboard',
         };
     }

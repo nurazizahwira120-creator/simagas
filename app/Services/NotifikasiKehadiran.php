@@ -20,7 +20,7 @@ use Throwable;
  * yang sudah ada di aplikasi ini:
  *
  *   1. App\Http\Controllers\Piket\ScannerController  (layar gerbang, AJAX)
- *   2. App\Livewire\ScannerKameraSiswa               (scanner di dalam layout)
+ *   2. App\Livewire\Gerbang\FormIzin                  (izin di halaman Gerbang)
  *   3. App\Livewire\AbsenGuru                        (absen radius pegawai)
  *
  * Kalau isi pesannya dirangkai di masing-masing tempat, cepat atau lambat

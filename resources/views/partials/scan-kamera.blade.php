@@ -1,9 +1,8 @@
 {{-- ====================================================================
      PERKAKAS BERSAMA UNTUK SEMUA LAYAR SCAN KAMERA
 
-     Dipakai tiga halaman yang sama-sama memindai kartu/stiker:
-       - Scanner Piket (gerbang)            -> resources/views/piket/scanner.blade.php
-       - Scanner Siswa (Livewire)           -> livewire/scanner-kamera-siswa
+     Dipakai dua halaman yang sama-sama memindai kartu/stiker:
+       - Gerbang (scan + pencatatan izin)   -> resources/views/piket/scan-gerbang.blade.php
        - Scan QR Ruangan oleh guru          -> livewire/guru/absen-mengajar-qr
 
      ============ KENAPA SKRIP KLASIK DI <head>, BUKAN app.js ============

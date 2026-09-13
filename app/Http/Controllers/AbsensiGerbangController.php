@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\JenisIzin;
-use App\Models\AbsensiSiswa;
 use App\Models\PencatatanIzin;
 use App\Models\Siswa;
 use App\Services\PemampatFoto;
+use App\Services\PencatatIzin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -40,35 +39,15 @@ class AbsensiGerbangController extends Controller
     public function index(Request $request)
     {
         /*
-         | Daftar siswa untuk dropdown pencarian.
+         | Daftar siswa dan daftar izin TIDAK lagi dikirim dari sini.
          |
-         | select() dibatasi tiga kolom, bukan get() seluruh baris. Tabel
-         | `siswa` berisi biodata lengkap (alamat, nama orang tua, tempat
-         | lahir); menariknya semua untuk sebuah <select> berarti mengirim
-         | data pribadi ratusan anak ke browser setiap kali halaman dibuka —
-         | boros sekaligus tidak perlu.
-         |
-         | with('kelas') supaya nama kelas bisa ditampilkan di tiap opsi
-         | tanpa satu query per siswa (N+1). Relasi kelas() menunjuk tabel
-         | `kelas` yang memakai kolom `nama_kelas`.
+         | Keduanya kini milik komponen Livewire App\Livewire\Gerbang\FormIzin,
+         | yang mencarinya sendiri dengan kata kunci dan membatasi hasilnya.
+         | Mengirimkan ratusan siswa dari sini hanya akan membuat payload
+         | Livewire membawa seluruh daftar itu bolak-balik pada SETIAP
+         | interaksi berikutnya — bukan sekali saja saat halaman dibuka.
          */
-        $daftarSiswa = Siswa::query()
-            ->with('kelas:id,nama_kelas')
-            ->orderBy('nama')
-            ->get(['id', 'nis', 'nama', 'kelas_id']);
-
-        // Izin yang sudah tercatat hari ini — supaya petugas langsung tahu
-        // anak mana yang sudah diurus, dan tidak mencatat dua kali.
-        $izinHariIni = PencatatanIzin::query()
-            ->with(['siswa:id,nis,nama,kelas_id', 'siswa.kelas:id,nama_kelas', 'petugas:id,name'])
-            ->whereDate('tanggal', today())
-            ->latest('id')
-            ->get();
-
         return view('piket.scan-gerbang', [
-            'daftarSiswa' => $daftarSiswa,
-            'izinHariIni' => $izinHariIni,
-            'jenisIzin' => JenisIzin::semua(),
             'panelPrefix' => $request->user()->role->routePrefix(),
         ]);
     }
@@ -76,7 +55,7 @@ class AbsensiGerbangController extends Controller
     /**
      * Menyimpan satu pencatatan izin dari petugas.
      */
-    public function storeIzin(Request $request): RedirectResponse
+    public function storeIzin(Request $request, PencatatIzin $pencatat): RedirectResponse
     {
         $data = $request->validate([
             'siswa_id' => ['required', 'integer', 'exists:siswa,id'],
@@ -112,11 +91,7 @@ class AbsensiGerbangController extends Controller
         // jelas, supaya petugas tidak bertemu error constraint database yang
         // tidak berarti apa-apa baginya. Unique index di migrasi tetap ada
         // sebagai penjaga terakhir untuk dua petugas yang menyimpan bersamaan.
-        $sudahAda = PencatatanIzin::where('siswa_id', $siswa->id)
-            ->whereDate('tanggal', $tanggal)
-            ->exists();
-
-        if ($sudahAda) {
+        if ($pencatat->sudahAda($siswa, $tanggal)) {
             return back()
                 ->withInput()
                 ->with('gagal', "{$siswa->nama} sudah punya catatan izin hari ini. Hapus atau ubah catatan lamanya lebih dulu.");
@@ -153,29 +128,11 @@ class AbsensiGerbangController extends Controller
         }
 
         try {
-            /*
-             | ============ SATU TRANSAKSI UNTUK DUA TABEL ============
-             | Pencatatan izin dan status absensi harian HARUS jadi bersama
-             | atau tidak sama sekali.
-             |
-             | Kalau yang pertama tersimpan lalu yang kedua gagal, hasilnya
-             | keadaan yang paling menyesatkan: petugas melihat izinnya
-             | tercatat rapi di layar gerbang, sementara guru di jam ketiga
-             | melihat anak itu berstatus Alpa dan menghubungi orang tuanya
-             | menanyakan anak yang justru sudah diizinkan sekolah.
-             */
-            DB::transaction(function () use ($siswa, $jenis, $data, $jalurSurat, $tanggal, $request) {
-                PencatatanIzin::create([
-                    'siswa_id' => $siswa->id,
-                    'petugas_id' => $request->user()->id,
-                    'tanggal' => $tanggal,
-                    'status' => $jenis->value,
-                    'keterangan' => $data['keterangan'] ?? null,
-                    'foto_surat' => $jalurSurat,
-                ]);
-
-                $this->sisipkanKeAbsensiHarian($siswa, $jenis, $data['keterangan'] ?? null, $tanggal);
-            });
+            // Seluruh logika simpan ada di App\Services\PencatatIzin —
+            // dipakai bersama jalur Livewire. Dua salinan logika berarti
+            // izin yang dicatat lewat satu pintu sampai ke guru, lewat pintu
+            // lain tidak, tanpa error apa pun yang menjelaskan bedanya.
+            $pencatat->catat($siswa, $request->user(), $jenis, $data['keterangan'] ?? null, $jalurSurat, $tanggal);
         } catch (\Throwable $e) {
             // Transaksinya batal, jadi tidak ada baris yang tersimpan — tapi
             // berkas suratnya sudah terlanjur ditulis ke disk. Dibuang di sini
@@ -202,53 +159,6 @@ class AbsensiGerbangController extends Controller
             $siswa->nama,
             $jenis->statusAbsensi()->label(),
         ));
-    }
-
-    /**
-     * ============================================================
-     * INTEGRASI IZIN -> ABSENSI HARIAN
-     * ============================================================
-     * Inilah bagian yang membuat "satu pintu" benar-benar berarti. Tanpa
-     * method ini, pencatatan izin hanyalah catatan terpisah yang harus
-     * dibacakan ulang ke setiap guru secara lisan.
-     *
-     * ---- Kenapa updateOrCreate, bukan create ----
-     * Tabel `absensi_siswa` punya unique(siswa_id, tanggal) — satu siswa satu
-     * baris per hari. create() akan melempar QueryException begitu anaknya
-     * SUDAH sempat men-scan kartu di gerbang pagi tadi lalu siang harinya
-     * dijemput orang tua karena sakit. Kejadian itu bukan kasus langka; itu
-     * justru salah satu alasan utama fitur ini dibuat.
-     *
-     * ---- Kenapa jam_masuk TIDAK ikut ditulis ----
-     * Kalau anaknya sempat hadir pagi lalu pulang karena sakit, jam
-     * kedatangannya adalah fakta yang benar-benar terjadi dan tidak boleh
-     * dihapus hanya karena statusnya berubah. Dengan tidak menyertakan
-     * jam_masuk di daftar nilai yang ditulis:
-     *   - baris yang SUDAH ada  -> jam masuknya dipertahankan apa adanya
-     *   - baris BARU            -> jam masuknya null, dan itu memang benar
-     *                              (anaknya tidak pernah sampai di gerbang)
-     *
-     * ---- Kenapa statusnya DITIMPA ----
-     * Status yang berlaku adalah yang terakhir diketahui sekolah. Anak yang
-     * hadir lalu dipulangkan sakit, hari itu berstatus Sakit — dan guru di
-     * jam-jam berikutnya perlu melihat itu, bukan "Hadir" dari pagi tadi.
-     */
-    private function sisipkanKeAbsensiHarian(Siswa $siswa, JenisIzin $jenis, ?string $keterangan, $tanggal): void
-    {
-        AbsensiSiswa::updateOrCreate(
-            [
-                'siswa_id' => $siswa->id,
-                'tanggal' => $tanggal,
-            ],
-            [
-                'status' => $jenis->statusAbsensi(),
-
-                // Keterangan bawaan per jenis dipakai kalau petugas tidak
-                // mengetik apa pun, supaya baris absensinya tetap bisa
-                // dijelaskan saat dibaca kembali berbulan-bulan kemudian.
-                'keterangan' => $keterangan ?: $jenis->keterangan(),
-            ],
-        );
     }
 
     /**

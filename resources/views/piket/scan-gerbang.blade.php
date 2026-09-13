@@ -98,160 +98,18 @@
             </div>
         </section>
 
-        {{-- ================= KANAN: FORM IZIN ================= --}}
+        {{-- ================= KANAN: FORM IZIN (REAL-TIME) =================
+
+             Komponen Livewire, BUKAN form POST biasa — dan itu bukan soal
+             selera. Form biasa memuat ulang seluruh halaman setiap kali
+             Simpan ditekan, dan pemuatan ulang itu MEMATIKAN KAMERA SCANNER
+             di panel sebelah kiri. Di gerbang pagi hari, petugas harus
+             menyalakannya lagi sementara antrean anak tetap berjalan.
+
+             Dengan Livewire hanya panel ini yang digambar ulang; elemen
+             video di kiri tidak pernah tersentuh. --}}
         <section class="muncul min-w-0" style="animation-delay: 120ms">
-
-            <form method="POST" action="{{ route($panelPrefix . '.gerbang.izin') }}" enctype="multipart/form-data"
-                class="rounded-2xl border border-brand-border bg-brand-surface shadow-soft dark:border-gray-800 dark:bg-gray-900">
-                @csrf
-
-                <div class="border-b border-brand-border px-5 py-4 dark:border-gray-800">
-                    <h2 class="font-semibold text-brand-ink dark:text-white">Catat Izin Siswa</h2>
-                    <p class="mt-0.5 text-xs leading-relaxed text-brand-muted dark:text-brand-faint">
-                        Status hariannya otomatis tersimpan, dan langsung terlihat guru
-                        mata pelajaran di Jurnal &amp; Absen Kelas.
-                    </p>
-                </div>
-
-                <div class="space-y-4 p-5">
-
-                    {{-- ---- Siswa ---- --}}
-                    <div>
-                        <label for="siswa_id" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">
-                            Nama / NIS Siswa <span class="text-brand-danger-text">*</span>
-                        </label>
-                        <select id="siswa_id" name="siswa_id" required
-                            class="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2.5 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/30 dark:border-gray-800 dark:bg-gray-950 dark:text-white">
-                            <option value="">— pilih siswa —</option>
-                            @foreach ($daftarSiswa as $s)
-                                <option value="{{ $s->id }}" @selected(old('siswa_id') == $s->id)>
-                                    {{ $s->nama }} — {{ $s->nis }}{{ $s->kelas ? ' (' . $s->kelas->nama_kelas . ')' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('siswa_id')
-                            <p class="mt-1 text-xs font-medium text-brand-danger-text">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- ---- Status ----
-                         Radio, bukan dropdown. Tiga pilihan yang harus
-                         dibandingkan sebaiknya semuanya terlihat sekaligus;
-                         dropdown menyembunyikan dua di antaranya di balik
-                         satu ketukan tambahan, dan di gerbang yang sibuk
-                         ketukan itu berarti. --}}
-                    <fieldset>
-                        <legend class="mb-1.5 text-sm font-medium text-brand-ink dark:text-white">
-                            Status <span class="text-brand-danger-text">*</span>
-                        </legend>
-                        <div class="grid grid-cols-3 gap-2">
-                            @foreach ($jenisIzin as $jenis)
-                                @php $idRadio = 'izin-' . $jenis->value; @endphp
-                                <label for="{{ $idRadio }}" class="cursor-pointer select-none">
-                                    {{-- Radio asli disembunyikan (sr-only) tapi tetap ada demi
-                                         keyboard & pembaca layar; tampilannya diambil alih span
-                                         di sebelahnya lewat peer-checked. Memakai "peer"
-                                         (sibling) dan BUKAN has-[:checked] — :has() belum
-                                         didukung browser HP lawas. --}}
-                                    <input type="radio" id="{{ $idRadio }}" name="status" value="{{ $jenis->value }}"
-                                        class="peer sr-only" required
-                                        @checked(old('status') === $jenis->value)>
-                                    <span class="flex flex-col items-center gap-1 rounded-xl border border-brand-border px-2 py-3 text-center text-xs font-semibold text-brand-muted transition-colors peer-checked:border-brand-accent peer-checked:bg-brand-accent peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-accent/40 dark:border-gray-800">
-                                        <x-icon name="{{ $jenis->ikon() }}" class="h-5 w-5" />
-                                        {{ $jenis->label() }}
-                                    </span>
-                                </label>
-                            @endforeach
-                        </div>
-                        @error('status')
-                            <p class="mt-1 text-xs font-medium text-brand-danger-text">{{ $message }}</p>
-                        @enderror
-                    </fieldset>
-
-                    {{-- ---- Keterangan ---- --}}
-                    <div>
-                        <label for="keterangan" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">
-                            Keterangan Tambahan
-                        </label>
-                        <textarea id="keterangan" name="keterangan" rows="3" maxlength="500"
-                            placeholder="Mis. demam, kontrol ke puskesmas, lomba LKS tingkat kabupaten…"
-                            class="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2.5 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/30 dark:border-gray-800 dark:bg-gray-950 dark:text-white">{{ old('keterangan') }}</textarea>
-                        <p class="mt-1 text-xs text-brand-muted">Boleh dikosongkan — akan diisi keterangan bawaan sesuai status.</p>
-                        @error('keterangan')
-                            <p class="mt-1 text-xs font-medium text-brand-danger-text">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    {{-- ---- Bukti surat ---- --}}
-                    <div>
-                        <label for="foto_surat" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">
-                            Unggah Bukti Surat
-                        </label>
-                        <input id="foto_surat" type="file" name="foto_surat" accept="image/jpeg,image/png,image/webp"
-                            class="w-full rounded-lg border border-brand-border bg-brand-surface px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-brand-accent-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-brand-accent-text dark:border-gray-800 dark:bg-gray-950 dark:text-white">
-                        <p class="mt-1 text-xs leading-relaxed text-brand-muted">
-                            Foto surat dokter / surat orang tua. JPG, PNG, atau WEBP, maksimal 4 MB.
-                            Berkasnya disimpan tertutup — hanya bisa dibuka lewat aplikasi ini.
-                        </p>
-                        @error('foto_surat')
-                            <p class="mt-1 text-xs font-medium text-brand-danger-text">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <button type="submit"
-                        class="kartu-angkat flex w-full items-center justify-center gap-2 rounded-xl bg-brand-accent px-6 py-3 text-sm font-semibold text-white shadow-soft">
-                        <x-icon name="check-circle" class="h-5 w-5" />
-                        Simpan Data Izin
-                    </button>
-                </div>
-            </form>
-
-            {{-- ---- Izin yang sudah tercatat hari ini ---- --}}
-            <div class="mt-5 rounded-2xl border border-brand-border bg-brand-surface shadow-soft dark:border-gray-800 dark:bg-gray-900">
-                <h3 class="flex items-center justify-between gap-2 border-b border-brand-border px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-brand-muted dark:border-gray-800">
-                    <span class="flex items-center gap-1.5">
-                        <x-icon name="clipboard-check" class="h-3.5 w-3.5" />
-                        Izin hari ini
-                    </span>
-                    @if ($izinHariIni->isNotEmpty())
-                        <span class="rounded-full bg-brand-accent-soft px-2.5 py-0.5 text-[11px] font-bold normal-case tracking-normal text-brand-accent-text">
-                            {{ $izinHariIni->count() }} tercatat
-                        </span>
-                    @endif
-                </h3>
-
-                @if ($izinHariIni->isEmpty())
-                    <p class="px-5 py-8 text-center text-sm text-brand-muted">Belum ada izin yang dicatat hari ini.</p>
-                @else
-                    <ul class="divide-y divide-brand-border dark:divide-gray-800">
-                        @foreach ($izinHariIni as $izin)
-                            <li class="flex min-w-0 items-start gap-3 px-5 py-3">
-                                <span class="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $izin->status->kelasBadge() }}">
-                                    <x-icon name="{{ $izin->status->ikon() }}" class="h-3 w-3" />
-                                    {{ $izin->status->label() }}
-                                </span>
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-sm font-medium text-brand-ink dark:text-white">{{ $izin->siswa?->nama ?? '—' }}</p>
-                                    <p class="truncate text-xs text-brand-muted">
-                                        {{ $izin->siswa?->kelas?->nama_kelas ?? $izin->siswa?->nis }}
-                                        &middot; oleh {{ $izin->petugas?->name ?? '—' }}
-                                    </p>
-                                    @if ($izin->keterangan)
-                                        <p class="mt-0.5 text-xs leading-relaxed text-brand-muted">{{ $izin->keterangan }}</p>
-                                    @endif
-                                </div>
-                                @if ($izin->suratAda())
-                                    <a href="{{ route($panelPrefix . '.gerbang.surat', $izin) }}" target="_blank" rel="noopener"
-                                        class="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-lg border border-brand-border px-2.5 py-1 text-[11px] font-medium text-brand-muted hover:bg-brand-surface-muted dark:border-gray-800">
-                                        <x-icon name="eye" class="h-3 w-3" />
-                                        Surat
-                                    </a>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </div>
+            @livewire('gerbang.form-izin')
         </section>
     </div>
 

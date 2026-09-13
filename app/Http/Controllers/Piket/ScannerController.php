@@ -17,17 +17,16 @@ use Illuminate\Support\Facades\Log;
 
 class ScannerController extends Controller
 {
-    /**
-     * Halaman scanner untuk guru piket — satu kamera, satu endpoint AJAX
-     * yang otomatis mengenali apakah kode yang di-scan itu NIS siswa atau
-     * NIP pegawai (lihat store()). Guru piket tidak perlu memilih mode.
+    /*
+     | index() DIHAPUS bersama halaman scanner lama (resources/views/piket/
+     | scanner.blade.php). Halamannya digantikan Gerbang, yang melakukan hal
+     | yang sama PLUS pencatatan izin.
+     |
+     | store() di bawah TIDAK ikut dihapus — justru sebaliknya, ia kini
+     | melayani SELURUH layar scan lewat rute {peran}.gerbang.scan. Satu
+     | kejadian "siswa hadir" harus memberi hasil yang sama dari mana pun ia
+     | di-scan; dua endpoint berarti dua perilaku yang perlahan menyimpang.
      */
-    public function index(Request $request)
-    {
-        return view('piket.scanner', [
-            'user' => $request->user(),
-        ]);
-    }
 
     /**
      * Endpoint AJAX TUNGGAL yang dipanggil frontend setiap kali sebuah kode

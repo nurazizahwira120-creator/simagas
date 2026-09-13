@@ -41,7 +41,7 @@
         // setelah blok ini. Memakainya di sini menghasilkan array kosong
         // tanpa error apa pun — butirnya hilang diam-diam dari menu.
         ['label' => 'Live Monitoring KBM',    'icon' => 'eye',              'route' => '.live-monitoring', 'match' => '.live-monitoring'],
-        ['label' => 'Gerbang & Izin Siswa',   'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
+        ['label' => 'Piket Scan Gerbang',     'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
 
         ['label' => 'Manajemen Pengguna',     'icon' => 'users',            'match' => '.users.*|.pengaturan', 'anak' => [
             ['label' => 'Daftar Akun',        'icon' => 'users',            'route' => '.users.index', 'match' => '.users.*'],
@@ -126,7 +126,16 @@
 
     // "Scan Siswa" TIDAK sama dengan "Absen Mengajar": yang ini mencatat
     // kehadiran SISWA di kelas, yang itu mencatat kehadiran GURU-nya.
-    $butirScanSiswa = ['label' => 'Scan Siswa', 'icon' => 'camera', 'route' => '.scanner-siswa', 'match' => '.scanner-siswa'];
+    /*
+     | DIHAPUS: butir "Scan Siswa" (.scanner-siswa) dan "Scanner QR"
+     | (.scanner).
+     |
+     | Keduanya membuka kamera dan mencatat kehadiran, persis seperti
+     | "Piket Scan Gerbang" — bedanya keduanya TIDAK bisa mencatat izin.
+     | Guru piket sebelumnya melihat KETIGANYA sekaligus tanpa satu pun
+     | petunjuk di layar yang menjelaskan bedanya, dan yang membuka menu
+     | yang salah akan mencari form izin yang memang tidak ada di sana.
+     */
 
     // Jurnal & Absen Kelas — daftar hadir siswa per jam pelajaran. Hanya bisa
     // dibuka kalau guru sudah scan Absen Mengajar untuk jadwal yang sedang
@@ -167,7 +176,7 @@
      | hilang dengan sendirinya. Jadi menaruhnya di beberapa menu sekaligus
      | AMAN dan tidak pernah menghasilkan tautan yang berujung 404.
      */
-    $butirGerbang = ['label' => 'Gerbang & Izin Siswa', 'icon' => 'shield-check', 'route' => '.gerbang', 'match' => '.gerbang*'];
+    $butirGerbang = ['label' => 'Piket Scan Gerbang', 'icon' => 'shield-check', 'route' => '.gerbang', 'match' => '.gerbang*'];
     $butirLiveMonitoring = ['label' => 'Live Monitoring KBM', 'icon' => 'eye', 'route' => '.live-monitoring', 'match' => '.live-monitoring'];
 
     $butirInputNilai = ['label' => 'Input Nilai', 'icon' => 'pencil', 'route' => '.nilai', 'match' => '.nilai*'];
@@ -188,7 +197,6 @@
         $butirJadwalMengajar,
         $butirEkskul,
         $butirRppGuru,
-        $butirScanSiswa,
     ];
 
     /*
@@ -241,6 +249,7 @@
         // kosong?"). Menaruhnya di dasar daftar berarti ia baru dibuka
         // setelah jam pelajarannya lewat.
         $butirLiveMonitoring,
+        $butirGerbang,
 
         $butirProfil,
         ['label' => 'Pantauan Kehadiran Pegawai',   'icon' => 'briefcase',       'route' => '.pantauan-pegawai',  'match' => '.pantauan-pegawai'],
@@ -292,8 +301,6 @@
         $butirIzin,
         $butirAbsenAjar,
         $butirJurnal,
-        $butirScanSiswa,
-        ['label' => 'Scanner QR',       'icon' => 'qr-code',         'route' => '.scanner',     'match' => '.scanner'],
         $butirGerbang,
         $butirJadwalPelajaran,
         $butirEkskul,

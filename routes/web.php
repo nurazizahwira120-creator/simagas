@@ -273,15 +273,24 @@ Route::middleware('auth')->group(function () {
         Route::view('/absen-mengajar', 'absen-mengajar')->name('absen-mengajar');
     };
 
-    // Scanner kamera siswa versi Livewire (App\Livewire\ScannerKameraSiswa).
-    // Berbeda dengan halaman Piket di /piket/scanner yang berdiri sendiri
-    // sebagai layar gerbang, halaman ini tampil di dalam layout utama dan
-    // ditujukan untuk guru/wali kelas yang men-scan siswa di dalam kelas.
-    // Tidak didaftarkan untuk staff & admin_tu (tidak memegang kelas) maupun
-    // Super Admin (tidak punya fitur absensi).
-    $daftarkanScannerSiswa = function () {
-        Route::view('/scanner-siswa', 'pegawai.scanner-siswa')->name('scanner-siswa');
-    };
+    /*
+    |----------------------------------------------------------------------
+    | DIHAPUS: Scanner Siswa (.scanner-siswa) dan Scanner Piket (.scanner)
+    |----------------------------------------------------------------------
+    | Keduanya digantikan SEPENUHNYA oleh halaman Gerbang (.gerbang), yang
+    | melakukan hal yang sama PLUS pencatatan izin.
+    |
+    | Alasan dihapus, bukan dibiarkan berdampingan: guru piket sebelumnya
+    | melihat TIGA menu yang semuanya membuka kamera — "Scanner QR",
+    | "Scan Siswa", dan "Piket Scan Gerbang". Tidak ada satu pun petunjuk di
+    | layar yang menjelaskan bedanya, dan dua di antaranya TIDAK bisa
+    | mencatat izin. Petugas yang membuka menu yang salah akan menemukan
+    | kameranya bekerja dengan baik, lalu kebingungan mencari form izin yang
+    | memang tidak ada di sana.
+    |
+    | Menu yang berlebih bukan sekadar berantakan — ia menyalurkan orang ke
+    | jalan buntu yang tidak terlihat seperti jalan buntu.
+    */
 
     // Jurnal & Absen Kelas — komponen App\Livewire\Guru\JurnalAbsenKelas.
     // Hanya untuk yang benar-benar mengajar (guru & wali kelas); staff dan
@@ -489,8 +498,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
             $daftarkanLiveMonitoring();
+            $daftarkanGerbang();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();
             $daftarkanLaporanBulanan();
@@ -591,11 +601,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:wali_kelas')
         ->prefix('wali-kelas')
         ->name('wali-kelas.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanScannerSiswa, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
             $daftarkanValidasiRapor();
+            $daftarkanGerbang();
             Route::get('/dashboard', [WaliKelasController::class, 'index'])->name('dashboard');
 
             Route::post('/absensi', [WaliKelasController::class, 'simpanAbsensi'])->name('absensi.simpan');
@@ -604,7 +615,6 @@ Route::middleware('auth')->group(function () {
             $daftarkanPengajuanIzin();
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
-            $daftarkanScannerSiswa();
             $daftarkanProfil();
             $daftarkanJadwalPelajaran();
         });
@@ -641,17 +651,24 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru')
         ->prefix('guru')
         ->name('guru.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanScannerSiswa, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
+
+            // Guru ikut mendapat halaman Gerbang: di sekolah ini piket pagi
+            // dijalankan bergiliran oleh guru mata pelajaran, bukan hanya
+            // oleh pemegang akun ber-role guru_piket. Menutupnya berarti guru
+            // yang kebagian jaga harus meminjam akun orang lain — dan jejak
+            // "siapa yang mencatat izin ini" ikut hilang bersamanya.
+            $daftarkanGerbang();
+
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
             $daftarkanPengajuanIzin();
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
-            $daftarkanScannerSiswa();
             $daftarkanProfil();
             $daftarkanJadwalPelajaran();
         });
@@ -659,8 +676,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:staff')
         ->prefix('staff')
         ->name('staff.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanProfil, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanGerbang) {
             $daftarkanEkskul();
+            $daftarkanGerbang();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
@@ -699,23 +717,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru_piket')
         ->prefix('piket')
         ->name('piket.')
-        ->group(function () use ($daftarkanScannerSiswa, $daftarkanProfil, $daftarkanEkskul, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanProfil, $daftarkanEkskul, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanGerbang();
-            Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
 
-            // Versi Livewire dari scanner siswa, di dalam layout utama —
-            // berguna kalau guru piket ingin men-scan sambil melihat menu
-            // lain, bukan di layar gerbang yang berdiri sendiri.
-            $daftarkanScannerSiswa();
-
-            // Dipanggil lewat AJAX oleh halaman scanner setiap kali sebuah
-            // kode berhasil ditangkap. throttle:60,1 — batasi 60 scan/menit
-            // (jauh di atas kecepatan scan wajar) supaya tidak dijadikan
-            // celah spam.
-            Route::post('/scan', [ScannerController::class, 'store'])
-                ->middleware('throttle:60,1')
-                ->name('scan');
 
             $daftarkanProfil();
         });
