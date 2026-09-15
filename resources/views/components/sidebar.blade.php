@@ -44,6 +44,10 @@
         ['label' => 'Piket Scan Gerbang',     'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
         ['label' => 'Persetujuan Izin Guru',  'icon' => 'check-circle',     'route' => '.persetujuan-izin-guru', 'match' => '.persetujuan-izin-guru*'],
 
+        // Ditulis apa adanya, bukan $butirPanduan — variabel itu baru lahir
+        // beberapa puluh baris di bawah blok ini (lihat catatan di atas).
+        ['label' => 'Bantuan & Panduan',      'icon' => 'inbox',            'route' => '.panduan',     'match' => '.panduan', 'grup' => 'Lainnya'],
+
         ['label' => 'Manajemen Pengguna',     'icon' => 'users',            'match' => '.users.*|.pengaturan', 'anak' => [
             ['label' => 'Daftar Akun',        'icon' => 'users',            'route' => '.users.index', 'match' => '.users.*'],
             ['label' => 'Approval Akun Baru', 'icon' => 'shield-check',     'route' => '.pengaturan',  'match' => '.pengaturan', 'query' => ['tab' => 'approval']],
@@ -111,6 +115,17 @@
     // (gaya TailAdmin: "MENU" lalu "LAINNYA"). Butir tanpa 'grup' otomatis
     // masuk "Menu", jadi menambah butir baru tidak wajib memikirkannya.
     $butirProfil    = ['label' => 'Profil Pribadi', 'icon' => 'identification', 'route' => '.profil',    'match' => '.profil', 'grup' => 'Lainnya'];
+
+    /*
+     | Bantuan & Panduan — satu-satunya butir yang muncul untuk SEMUA peran
+     | tanpa kecuali, termasuk wali murid dan guru piket.
+     |
+     | Ditaruh di grup "Lainnya" bersama Profil, dan sengaja di URUTAN
+     | TERAKHIR: orang membuka panduan saat tersesat, dan tempat yang paling
+     | mudah ditemukan saat tersesat adalah dasar daftar — bukan di tengah
+     | menu kerja yang justru sedang membingungkannya.
+     */
+    $butirPanduan = ['label' => 'Bantuan & Panduan', 'icon' => 'inbox', 'route' => '.panduan', 'match' => '.panduan', 'grup' => 'Lainnya'];
 
     // Dua pintu absensi yang tersisa. "Absensi biasa" (tombol Absen Masuk
     // sekali klik tanpa verifikasi apa pun) SUDAH DIHAPUS dari seluruh sistem
@@ -217,6 +232,7 @@
         $butirJadwalMengajar,
         $butirEkskul,
         $butirRppGuru,
+        $butirPanduan,
     ];
 
     /*
@@ -240,6 +256,7 @@
         ['label' => 'Rapor Anak',                'icon' => 'academic-cap',    'route' => '.rapor',              'match' => '.rapor'],
         ['label' => 'Jadwal Pelajaran Anak',     'icon' => 'calendar',        'route' => '.jadwal-pelajaran',   'match' => '.jadwal-pelajaran'],
         $butirEkskul,
+        $butirPanduan,
     ];
 
     /*
@@ -318,6 +335,7 @@
             ['label' => 'Kelas',    'icon' => 'academic-cap',   'route' => '.kelas.index', 'match' => '.kelas.*'],
             ['label' => 'Siswa',    'icon' => 'identification', 'route' => '.siswa.index', 'match' => '.siswa.*'],
         ]],
+        $butirPanduan,
     ];
 
     // Guru Piket & peran lain: daftar lengkap, $saring() yang menentukan
@@ -338,6 +356,7 @@
         ['label' => 'Kelas',            'icon' => 'academic-cap',    'route' => '.kelas.index', 'match' => '.kelas.*'],
         ['label' => 'Siswa',            'icon' => 'identification',  'route' => '.siswa.index', 'match' => '.siswa.*'],
         $butirProfil,
+        $butirPanduan,
     ];
 
     $menuPeran = match ($pengguna?->role) {
