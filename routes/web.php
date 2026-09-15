@@ -177,6 +177,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/panduan', [PanduanController::class, 'index'])->name('panduan');
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Kalender Pendidikan — App\Livewire\KalenderPendidikan
+    |--------------------------------------------------------------------------
+    | Didaftarkan untuk SEMUA peran, sama seperti Panduan. Alasannya sederhana:
+    | pertanyaan "besok masuk tidak?" ditanyakan semua orang di sekolah, bukan
+    | hanya pengelolanya — dan wali murid yang tidak bisa melihatnya akan
+    | menanyakannya lewat WhatsApp ke wali kelas satu per satu.
+    |
+    | Hak MENGUBAH kalender tetap terbatas Super Admin & Kepala Sekolah, dan
+    | itu ditegakkan di dalam komponennya (KalenderPendidikan::bolehKelola),
+    | bukan lewat pendaftaran rute — karena rutenya sama untuk semua.
+    */
+    $daftarkanKalender = function () {
+        Route::view('/kalender-pendidikan', 'kalender-pendidikan')->name('kalender-pendidikan');
+    };
+
     // Absen Kehadiran (Radius) — halaman yang memuat komponen Livewire
     // App\Livewire\AbsenGuru: pegawai menekan tombol, browser mengambil
     // koordinat GPS, server menghitung jaraknya ke sekolah.
@@ -564,7 +581,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
             $daftarkanLiveMonitoring();
             $daftarkanPersetujuanIzinGuru();
             $daftarkanGerbang();
@@ -576,6 +593,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanEkskul();
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
             $daftarkanPantauanKepsek();
 
             // Kepsek TETAP punya tombol absen mandiri — ia pegawai sekolah
@@ -591,7 +609,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru) {
             $daftarkanLiveMonitoring();
             $daftarkanPersetujuanIzinGuru();
             $daftarkanGerbang();
@@ -603,6 +621,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanEkskul();
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
 
             // CATATAN: $daftarkanAbsensiMandiri() SENGAJA tidak dipanggil di
             // sini. Super Admin memegang kendali penuh sistem tapi tidak
@@ -671,7 +690,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:wali_kelas')
         ->prefix('wali-kelas')
         ->name('wali-kelas.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
@@ -690,6 +709,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanJurnalKelas();
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
             $daftarkanJadwalPelajaran();
         });
 
@@ -697,7 +717,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:wali_murid')
         ->prefix('wali-murid')
         ->name('wali-murid.')
-        ->group(function () use ($daftarkanProfil, $daftarkanPanduan, $daftarkanJadwalPelajaran, $daftarkanPantauanAnak, $daftarkanEkskul) {
+        ->group(function () use ($daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanPantauanAnak, $daftarkanEkskul) {
             $daftarkanEkskul();
             // Dashboard = ringkasan singkat + pintasan.
             Route::get('/dashboard', [OrtuController::class, 'dashboard'])->name('dashboard');
@@ -712,6 +732,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanPantauanAnak();
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
 
             // Wali murid melihat jadwal KELAS ANAKNYA — berguna untuk
             // menyiapkan buku dan mengetahui jam pulang.
@@ -726,7 +747,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru')
         ->prefix('guru')
         ->name('guru.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
@@ -749,13 +770,14 @@ Route::middleware('auth')->group(function () {
             $daftarkanJurnalKelas();
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
             $daftarkanJadwalPelajaran();
         });
 
     Route::middleware('role:staff')
         ->prefix('staff')
         ->name('staff.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanProfil, $daftarkanPanduan, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanGerbang();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
@@ -770,6 +792,7 @@ Route::middleware('auth')->group(function () {
 
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
 
             // Staff tidak mengajar, tapi ia yang ditanya "kelas XI RPL 1
             // sekarang di ruang mana" — jadi baginya halaman ini menampilkan
@@ -780,7 +803,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin_tu')
         ->prefix('admin-tu')
         ->name('admin-tu.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanPanduan, $daftarkanEkskul, $daftarkanValidasiRapor, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanEkskul, $daftarkanValidasiRapor, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanValidasiRapor();
             $daftarkanGerbang();
@@ -790,6 +813,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanPengajuanIzin();
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
         });
 
     // role:guru_piket — halaman scanner dengan SATU endpoint AJAX hybrid
@@ -798,12 +822,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru_piket')
         ->prefix('piket')
         ->name('piket.')
-        ->group(function () use ($daftarkanProfil, $daftarkanPanduan, $daftarkanEkskul, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanEkskul, $daftarkanGerbang) {
             $daftarkanEkskul();
             $daftarkanGerbang();
 
 
             $daftarkanProfil();
             $daftarkanPanduan();
+            $daftarkanKalender();
         });
 });

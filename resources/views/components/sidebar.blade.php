@@ -46,6 +46,7 @@
 
         // Ditulis apa adanya, bukan $butirPanduan — variabel itu baru lahir
         // beberapa puluh baris di bawah blok ini (lihat catatan di atas).
+        ['label' => 'Kalender Pendidikan',    'icon' => 'calendar',         'route' => '.kalender-pendidikan', 'match' => '.kalender-pendidikan', 'grup' => 'Lainnya'],
         ['label' => 'Bantuan & Panduan',      'icon' => 'inbox',            'route' => '.panduan',     'match' => '.panduan', 'grup' => 'Lainnya'],
 
         ['label' => 'Manajemen Pengguna',     'icon' => 'users',            'match' => '.users.*|.pengaturan', 'anak' => [
@@ -125,6 +126,10 @@
      | mudah ditemukan saat tersesat adalah dasar daftar — bukan di tengah
      | menu kerja yang justru sedang membingungkannya.
      */
+    // Kalender Pendidikan — dilihat semua peran, diubah hanya Super Admin &
+    // Kepala Sekolah (ditegakkan di dalam komponennya, bukan di sini).
+    $butirKalender = ['label' => 'Kalender Pendidikan', 'icon' => 'calendar', 'route' => '.kalender-pendidikan', 'match' => '.kalender-pendidikan', 'grup' => 'Lainnya'];
+
     $butirPanduan = ['label' => 'Bantuan & Panduan', 'icon' => 'inbox', 'route' => '.panduan', 'match' => '.panduan', 'grup' => 'Lainnya'];
 
     // Dua pintu absensi yang tersisa. "Absensi biasa" (tombol Absen Masuk
@@ -232,6 +237,7 @@
         $butirJadwalMengajar,
         $butirEkskul,
         $butirRppGuru,
+        $butirKalender,
         $butirPanduan,
     ];
 
@@ -256,6 +262,7 @@
         ['label' => 'Rapor Anak',                'icon' => 'academic-cap',    'route' => '.rapor',              'match' => '.rapor'],
         ['label' => 'Jadwal Pelajaran Anak',     'icon' => 'calendar',        'route' => '.jadwal-pelajaran',   'match' => '.jadwal-pelajaran'],
         $butirEkskul,
+        $butirKalender,
         $butirPanduan,
     ];
 
@@ -335,6 +342,7 @@
             ['label' => 'Kelas',    'icon' => 'academic-cap',   'route' => '.kelas.index', 'match' => '.kelas.*'],
             ['label' => 'Siswa',    'icon' => 'identification', 'route' => '.siswa.index', 'match' => '.siswa.*'],
         ]],
+        $butirKalender,
         $butirPanduan,
     ];
 
@@ -356,6 +364,7 @@
         ['label' => 'Kelas',            'icon' => 'academic-cap',    'route' => '.kelas.index', 'match' => '.kelas.*'],
         ['label' => 'Siswa',            'icon' => 'identification',  'route' => '.siswa.index', 'match' => '.siswa.*'],
         $butirProfil,
+        $butirKalender,
         $butirPanduan,
     ];
 

@@ -57,6 +57,30 @@
                     ],
                 ],
                 [
+                    'judul' => 'Kalender Pendidikan & Hari Libur',
+                    'isi' => 'Kalender ini yang menentukan hari mana yang dihitung sebagai hari sekolah. Ia bukan tampilan saja — angka di seluruh laporan ikut berubah mengikutinya.',
+                    'langkah' => [
+                        'Buka <strong>Kalender Pendidikan</strong>. Kotak merah berarti libur, kotak putih berarti hari KBM.',
+                        'Libur nasional dan libur semester sudah terisi dari <strong>Kalender Dinas Provinsi Lampung</strong> dan tidak bisa diubah dari layar ini.',
+                        'Untuk libur khusus sekolah (haul, banjir, kegiatan pesantren), klik tanggalnya lalu tekan <strong>Tambah Agenda / Libur</strong>.',
+                        'Pilih jenis <strong>Libur</strong> kalau hari itu memang tidak ada KBM. <strong>Kegiatan</strong> dan <strong>Ujian</strong> tetap hari masuk — siswa tetap wajib hadir.',
+                        'Hari libur <em>mingguan</em> (di sekolah ini: Jumat) diatur terpisah di Pengaturan Sistem, bukan di kalender.',
+                    ],
+                    'catatan' => 'Menandai satu hari sebagai Libur berarti hari itu berhenti menandai alpa DAN berhenti dihitung sebagai penyebut persentase kehadiran. Jangan memakai jenis Libur untuk hari yang sebenarnya masuk.',
+                ],
+                [
+                    'judul' => 'Pantauan Kehadiran Siswa',
+                    'isi' => 'Layar harian kehadiran gerbang, dibaca dari atas ke bawah: status hari dulu, lalu angka seluruh sekolah, baru rincian per kelas.',
+                    'langkah' => [
+                        'Baris paling atas menyebut <strong>hari KBM atau libur</strong>. Pada hari libur, wajar bila tidak ada kehadiran yang tercatat.',
+                        '<strong>Alpa</strong> berarti sudah lewat jam pulang dan anak tidak pernah tercatat — ini yang perlu ditindak.',
+                        '<strong>Belum Tercatat</strong> sebelum jam pulang berarti mungkin masih di perjalanan; sesudah jam pulang, sistem mengubahnya jadi Alpa otomatis.',
+                        '<strong>Izin</strong> dan <strong>Sakit</strong> sudah diurus petugas piket — tidak perlu ditelepon lagi.',
+                        'Tabel per kelas menjawab "kelas mana yang bermasalah hari ini" tanpa perlu membuka kelas satu per satu.',
+                    ],
+                    'catatan' => 'Kalau muncul peringatan merah "Penandaan alpa otomatis BELUM berjalan", berarti cron di cPanel belum aktif. Selama itu, kolom Alpa akan terus nol walau ada siswa yang tidak masuk.',
+                ],
+                [
                     'judul' => 'Master Data Sekolah',
                     'isi' => 'Data induk: pegawai, siswa, kelas, jadwal pelajaran, dan kenaikan kelas.',
                     'langkah' => [
@@ -182,6 +206,16 @@
                         'Buka <strong>Pantauan KBM Harian</strong> untuk melihat status per mata pelajaran.',
                         'Status <strong>Bolos</strong> berarti anak masuk gerbang pagi itu tetapi tidak ada di kelas pada jam tersebut.',
                         'Status <strong>Izin</strong> atau <strong>Sakit</strong> berarti sudah tercatat resmi oleh petugas di gerbang.',
+                    ],
+                ],
+                [
+                    'judul' => 'Kalau anak tidak scan di gerbang',
+                    'isi' => 'Sistem menandai sendiri anak yang tidak tercatat hadir sampai jam pulang sekolah.',
+                    'langkah' => [
+                        'Sesudah jam pulang, anak yang belum tercatat hadir dan belum punya surat izin akan <strong>ditandai Alpa otomatis</strong>.',
+                        'Penandaan ini <strong>hanya berjalan pada hari KBM</strong> — tidak pada hari Jumat maupun hari libur di Kalender Pendidikan.',
+                        'Kalau anak sebenarnya masuk tetapi lupa scan, hubungi wali kelas untuk dikoreksi. Catatan yang sudah ada tidak pernah ditimpa sistem.',
+                        'Buka menu <strong>Kalender Pendidikan</strong> untuk melihat hari mana yang libur.',
                     ],
                 ],
                 [

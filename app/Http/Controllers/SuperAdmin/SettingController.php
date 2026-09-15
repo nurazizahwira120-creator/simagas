@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Enums\StatusAkun;
+use App\Enums\Hari;
 use App\Http\Controllers\Controller;
 use App\Models\Pengaturan;
 use App\Models\TahunAjaran;
@@ -11,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * Pengaturan Sistem: aturan waktu absensi, titik koordinat & radius GPS,
@@ -22,6 +24,17 @@ class SettingController extends Controller
     private const KUNCI_WAKTU = [
         'jam_masuk_siswa' => '07:00',
         'batas_terlambat_siswa' => '07:15',
+
+        /*
+         | Jam pulang sekolah — dipakai penanda alpa otomatis
+         | (App\Console\Commands\TandaiAlpaSiswa) sebagai batas "sudah tidak
+         | mungkin datang lagi hari ini".
+         |
+         | Nilainya sengaja dibaca lewat KalenderAkademik::jamPulangTeks()
+         | oleh pemakainya, BUKAN dibaca langsung dari tabel di banyak tempat
+         | — supaya nilai bawaannya hanya ada di satu tempat.
+         */
+        'jam_pulang_siswa' => \App\Services\KalenderAkademik::JAM_PULANG_BAWAAN,
         'jam_masuk_pegawai' => '06:45',
         'batas_terlambat_pegawai' => '07:00',
     ];
@@ -82,6 +95,10 @@ class SettingController extends Controller
         return view('super-admin.pengaturan', [
             'tabAktif' => $tab,
             'waktu' => Pengaturan::ambilBanyak(self::KUNCI_WAKTU),
+            'hariKbmTerpilih' => array_map(
+                fn (Hari $h) => $h->value,
+                app(\App\Services\KalenderAkademik::class)->hariKbm(),
+            ),
             'lokasi' => $this->lokasiSekolah(),
 
             'akunPending' => User::query()
@@ -117,18 +134,60 @@ class SettingController extends Controller
         $validated = $request->validate([
             'jam_masuk_siswa' => ['required', 'date_format:H:i'],
             'batas_terlambat_siswa' => ['required', 'date_format:H:i', 'after_or_equal:jam_masuk_siswa'],
+
+            // after:batas_terlambat_siswa, bukan after_or_equal. Jam pulang
+            // yang SAMA dengan batas terlambat berarti hari sekolahnya nol
+            // menit — dan penanda alpa otomatis akan menyapu tepat pada detik
+            // batas terlambat, memvonis anak yang baru saja masuk gerbang.
+            'jam_pulang_siswa' => ['required', 'date_format:H:i', 'after:batas_terlambat_siswa'],
+
+            /*
+             | Hari KBM mingguan.
+             |
+             | min:1 BUKAN sekadar formalitas. Daftar kosong berarti "tidak
+             | ada hari sekolah sama sekali": penanda alpa otomatis berhenti
+             | bekerja tanpa error, dan penyebut persentase kehadiran jadi nol
+             | sehingga seluruh laporan bulanan berisi tanda strip. Tidak ada
+             | satu pun pesan yang menjelaskan kenapa, karena secara teknis
+             | tidak ada yang gagal.
+             */
+            'hari_kbm' => ['required', 'array', 'min:1'],
+            'hari_kbm.*' => ['required', 'string', Rule::in(array_column(Hari::cases(), 'value'))],
             'jam_masuk_pegawai' => ['required', 'date_format:H:i'],
             'batas_terlambat_pegawai' => ['required', 'date_format:H:i', 'after_or_equal:jam_masuk_pegawai'],
         ], [
             'batas_terlambat_siswa.after_or_equal' => 'Batas terlambat siswa tidak boleh lebih awal daripada jam masuknya.',
             'batas_terlambat_pegawai.after_or_equal' => 'Batas terlambat guru/staff tidak boleh lebih awal daripada jam masuknya.',
+            'jam_pulang_siswa.after' => 'Jam pulang harus lebih lambat daripada batas terlambat siswa. Sistem memakai jam ini sebagai batas penandaan alpa otomatis.',
+            'hari_kbm.required' => 'Pilih minimal satu hari KBM. Tanpa itu sistem menganggap sekolah tidak pernah masuk, dan seluruh rekap kehadiran jadi kosong.',
+            'hari_kbm.min' => 'Pilih minimal satu hari KBM.',
         ]);
+
+        /*
+         | hari_kbm dikeluarkan dari perulangan di bawah karena bentuknya
+         | ARRAY, sedangkan Pengaturan::simpan() menyimpan string. Menyerahkan
+         | array ke sana akan tersimpan sebagai teks "Array" — sah menurut
+         | database, dan membuat seluruh hari terbaca bukan hari KBM.
+         */
+        $hariKbm = $validated['hari_kbm'];
+        unset($validated['hari_kbm']);
 
         foreach ($validated as $kunci => $nilai) {
             Pengaturan::simpan($kunci, $nilai);
         }
 
-        return $this->kembali('waktu', 'Aturan waktu absensi berhasil disimpan.');
+        // Diurutkan Senin -> Minggu sebelum disimpan. Urutan simpanan tidak
+        // memengaruhi perhitungan, tapi sangat memengaruhi orang yang suatu
+        // hari membaca barisnya langsung di database.
+        $urut = collect(Hari::cases())
+            ->filter(fn (Hari $h) => in_array($h->value, $hariKbm, true))
+            ->sortBy(fn (Hari $h) => $h->urutan())
+            ->map(fn (Hari $h) => $h->value)
+            ->implode(',');
+
+        Pengaturan::simpan('hari_kbm', $urut);
+
+        return $this->kembali('waktu', 'Aturan hari & waktu sekolah berhasil disimpan.');
     }
 
     /**

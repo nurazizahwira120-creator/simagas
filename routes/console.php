@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\TandaiAlpaSiswa;
 use App\Console\Commands\BersihkanBuktiMengajar;
 use App\Console\Commands\BuatLaporanBulanan;
 use App\Console\Commands\KalkulasiPenghargaanGuru;
@@ -205,3 +206,58 @@ Schedule::call(function () {
     ->monthlyOn(1, '02:00')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping(30);
+
+
+/*
+|--------------------------------------------------------------------------
+| Penandaan alpa siswa — setiap jam, hanya bertindak sesudah jam pulang
+|--------------------------------------------------------------------------
+| ============ KENAPA SETIAP JAM, BUKAN SEKALI DI JAM 11:30 ============
+| Jam pulang sekolah adalah PENGATURAN yang bisa diubah Super Admin dari
+| layar Pengaturan Sistem. Kalau jadwalnya dipatok di sini sebagai
+| ->dailyAt('11:30'), mengubah jam pulang di layar tidak akan mengubah apa
+| pun — penyapunya tetap berjalan di jam lama, dan tidak ada satu pun pesan
+| yang menjelaskan kenapa.
+|
+| Karena itu penjadwalnya sengaja "bodoh" (setiap jam) dan perintahnya yang
+| pintar: TandaiAlpaSiswa sendiri yang memeriksa apakah jam pulang hari itu
+| sudah lewat, dan berhenti tanpa menulis apa pun kalau belum.
+|
+| Perintahnya idempoten — ia hanya membuat baris untuk siswa yang BELUM
+| punya baris hari itu — jadi dijalankan 24 kali sehari sama amannya dengan
+| sekali. Yang kedua dan seterusnya selesai dalam satu query tanpa menulis.
+|
+| Efek sampingnya justru menguntungkan: kalau satu jalannya cron terlewat
+| (hosting sibuk, server sempat mati), jam berikutnya menyapunya sendiri.
+| ======================================================================
+|
+| TETAP Schedule::call(), BUKAN Schedule::command() — alasannya sama persis
+| dengan tiga jadwal di atas: hosting ini mematikan proc_open.
+*/
+Schedule::call(function () {
+    $kode = Artisan::call(TandaiAlpaSiswa::class);
+
+    if ($kode !== 0) {
+        Log::error('Penandaan alpa siswa GAGAL.', [
+            'kode_keluar' => $kode,
+            'keluaran' => Artisan::output(),
+        ]);
+
+        return false;
+    }
+
+    /*
+     | Sengaja TIDAK memakai Log::info di sini.
+     |
+     | Perintah ini berjalan 24 kali sehari dan 23 di antaranya tidak
+     | melakukan apa-apa. Mencatat semuanya berarti ~700 baris log kosong
+     | per bulan yang menenggelamkan pesan yang benar-benar penting —
+     | termasuk pesan gagal di atas. Yang berhasil dan benar-benar menulis
+     | sudah dicatat sendiri oleh perintahnya.
+     */
+    return null;
+})
+    ->name('simagas-tandai-alpa')
+    ->hourly()
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(10);

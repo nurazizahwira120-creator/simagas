@@ -77,6 +77,17 @@
                                 value="{{ old('batas_terlambat_siswa', $waktu['batas_terlambat_siswa']) }}"
                                 class="w-full rounded-xl border-0 bg-brand-surface px-3.5 py-2.5 text-sm text-brand-ink ring-1 ring-brand-border focus:outline-none focus:ring-2 focus:ring-brand-500">
                         </div>
+
+                        <div>
+                            <label for="jam_pulang_siswa" class="mb-1.5 block text-xs font-semibold text-brand-muted">Jam Pulang</label>
+                            <input id="jam_pulang_siswa" name="jam_pulang_siswa" type="time" required
+                                value="{{ old('jam_pulang_siswa', $waktu['jam_pulang_siswa']) }}"
+                                class="w-full rounded-xl border-0 bg-brand-surface px-3.5 py-2.5 text-sm text-brand-ink ring-1 ring-brand-border focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <p class="mt-1.5 text-xs leading-relaxed text-brand-muted">
+                                Sesudah jam ini, siswa yang belum tercatat hadir atau izin akan
+                                <strong>ditandai alpa secara otomatis</strong> — hanya pada hari KBM.
+                            </p>
+                        </div>
                     </div>
                 </fieldset>
 
@@ -98,6 +109,54 @@
                     </div>
                 </fieldset>
             </div>
+
+            {{-- ================= HARI KBM MINGGUAN ================= --}}
+            <fieldset class="mt-6 rounded-2xl bg-brand-surface-muted p-4">
+                <legend class="px-1 text-xs font-bold uppercase tracking-wide text-brand-faint">Hari KBM</legend>
+
+                <p class="mt-2 text-xs leading-relaxed text-brand-muted">
+                    Centang hari yang ada kegiatan belajar. Hari yang <strong>tidak</strong> dicentang
+                    dianggap libur setiap minggu — tidak ada penandaan alpa, dan hari itu tidak ikut
+                    dihitung sebagai penyebut persentase kehadiran di laporan.
+                </p>
+
+                {{-- Libur di luar pola mingguan (libur nasional, libur semester,
+                     libur khusus sekolah) TIDAK diatur di sini melainkan di
+                     halaman Kalender Pendidikan. Dipisah karena bentuknya
+                     berbeda: yang ini pola berulang, yang itu agenda bertanggal. --}}
+                <p class="mt-2 flex items-start gap-2 rounded-xl border border-sky-300 bg-sky-500/5 px-3 py-2 text-xs leading-relaxed text-sky-800 dark:border-sky-500/30 dark:text-sky-300">
+                    <x-icon name="calendar" class="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                        Libur nasional, libur semester, dan libur khusus sekolah diatur terpisah di
+                        menu <strong>Kalender Pendidikan</strong> — bukan di sini.
+                    </span>
+                </p>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach (\App\Enums\Hari::cases() as $hari)
+                        @php
+                            $terpilih = collect(old('hari_kbm', $hariKbmTerpilih))->contains($hari->value);
+                            $idHari = 'hari-kbm-' . $hari->value;
+                        @endphp
+
+                        <label for="{{ $idHari }}" class="cursor-pointer select-none">
+                            {{-- Checkbox asli disembunyikan (sr-only) tapi tetap ada demi
+                                 keyboard & pembaca layar; tampilannya diambil alih span di
+                                 sebelahnya lewat peer-checked.
+
+                                 Sengaja memakai "peer" (selector sibling) dan BUKAN
+                                 has-[:checked] — :has() belum didukung browser HP lawas,
+                                 yang membuat pilihan tampak tidak ter-highlight sama sekali. --}}
+                            <input type="checkbox" id="{{ $idHari }}" name="hari_kbm[]" value="{{ $hari->value }}"
+                                class="peer sr-only" @checked($terpilih)>
+
+                            <span class="flex items-center gap-1.5 rounded-xl border-2 border-brand-border px-3.5 py-2 text-sm font-medium text-brand-muted transition-colors peer-checked:border-brand-accent peer-checked:bg-brand-accent-soft peer-checked:text-brand-accent-text peer-focus-visible:ring-2 peer-focus-visible:ring-brand-accent/40 dark:border-gray-800">
+                                {{ $hari->label() }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
 
             <button type="submit"
                 class="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand-500/25 transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 motion-reduce:transition-none">

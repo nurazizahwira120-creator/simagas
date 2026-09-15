@@ -383,24 +383,32 @@ class LaporanBulananService
     }
 
     /**
-     * Jumlah hari Senin–Sabtu dalam bulan tersebut.
+     * Jumlah hari KBM dalam bulan tersebut — penyebut persentase kehadiran.
      *
-     * Minggu dikecualikan; hari libur nasional TIDAK (lihat catatan di
-     * kepala kelas ini).
+     * ============ DULU: "semua hari kecuali Minggu" ============
+     * Rumus lama menghitung Senin–Sabtu dan mengecualikan Minggu, tanpa
+     * memedulikan hari libur sama sekali. Di sekolah ini rumus itu salah
+     * DUA KALI sekaligus:
+     *
+     *   - Minggu justru HARI MASUK di sini, jadi setiap Minggu hilang dari
+     *     penyebut padahal kehadirannya tercatat.
+     *   - Jumat justru LIBUR, jadi setiap Jumat ikut jadi penyebut padahal
+     *     tidak seorang pun bisa hadir.
+     *
+     * Keduanya bergerak ke arah yang sama: persentase kehadiran semua orang
+     * tampak lebih rendah daripada yang sebenarnya. Dan karena angkanya
+     * tetap "masuk akal" (80-an persen, bukan 300%), tidak ada yang curiga.
+     *
+     * Sekarang jawabannya diambil dari KalenderAkademik — satu-satunya
+     * tempat yang tahu pola hari KBM mingguan DAN kalender pendidikan.
+     * ==========================================================
      */
     public function hitungHariKerja(CarbonImmutable $bulan): int
     {
-        $awal = $bulan->startOfMonth();
-        $akhir = $bulan->endOfMonth();
-        $jumlah = 0;
-
-        for ($h = $awal; $h->lessThanOrEqualTo($akhir); $h = $h->addDay()) {
-            if (! $h->isSunday()) {
-                $jumlah++;
-            }
-        }
-
-        return $jumlah;
+        return app(\App\Services\KalenderAkademik::class)->jumlahHariKbm(
+            $bulan->startOfMonth(),
+            $bulan->endOfMonth(),
+        );
     }
 
     /**

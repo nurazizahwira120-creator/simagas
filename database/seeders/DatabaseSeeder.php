@@ -50,6 +50,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(PengaturanSistemSeeder::class);
 
+        /*
+         | Kalender Pendidikan Dinas Provinsi Lampung T.A. 2026/2027.
+         |
+         | Aman dijalankan berulang: seeder-nya hanya menimpa baris ber-sumber
+         | 'kaldik', dan TIDAK menyentuh libur khusus yang diisi sendiri oleh
+         | sekolah. Tanpa ini, sistem tidak tahu satu pun hari libur nasional
+         | dan akan menandai seluruh siswa alpa pada hari Natal.
+         */
+        $this->call(KalenderPendidikanSeeder::class);
+
         $this->seedAturanWaktu();
         $this->seedTahunAjaranAktif();
         $this->seedSuperAdmin();
