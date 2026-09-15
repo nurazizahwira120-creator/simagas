@@ -581,7 +581,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanJadwalPelajaran) {
             $daftarkanLiveMonitoring();
             $daftarkanPersetujuanIzinGuru();
             $daftarkanGerbang();
@@ -590,7 +590,31 @@ Route::middleware('auth')->group(function () {
             $daftarkanLaporanBulanan();
             $daftarkanPanelAdminKesiswaan();
             $daftarkanPengumuman();
-            $daftarkanEkskul();
+            /*
+             | DIHAPUS untuk kepsek: $daftarkanEkskul().
+             |
+             | Jadwal ekskul adalah pekerjaan pembina ekskul dan staff
+             | kesiswaan, bukan kepala sekolah. Rutenya ikut dicabut, bukan
+             | hanya butir menunya disembunyikan — rute yang hidup tanpa
+             | satu pun tautan menuju ke sana adalah jalan yang cuma bisa
+             | ditemukan dengan mengetik URL, dan tidak ada yang merawatnya.
+             */
+
+            /*
+             | BARU untuk kepsek: kepala sekolah di sini IKUT MENGAJAR.
+             |
+             | Ketiganya didaftarkan bersama dan itu disengaja — ketiganya
+             | satu rangkaian pekerjaan yang sama: melihat jadwal, scan QR
+             | ruangan, lalu mengisi daftar hadir siswa.
+             |
+             | $daftarkanAbsensiMandiri() di bawah WAJIB tetap ada untuk
+             | peran ini. AbsenMengajarQr MENOLAK siapa pun yang belum absen
+             | kehadiran pagi itu, jadi memberi Absen Mengajar tanpa Absen
+             | Kehadiran menghasilkan menu yang selalu menolak penggunanya.
+             */
+            $daftarkanJadwalPelajaran();
+            $daftarkanAbsenMengajar();
+            $daftarkanJurnalKelas();
             $daftarkanProfil();
             $daftarkanPanduan();
             $daftarkanKalender();

@@ -295,54 +295,110 @@
         $butirLiveMonitoring,
         $butirGerbang,
 
-        $butirProfil,
-        ['label' => 'Pantauan Kehadiran Pegawai',   'icon' => 'briefcase',       'route' => '.pantauan-pegawai',  'match' => '.pantauan-pegawai'],
+        /*
+         |------------------------------------------------------------------
+         | KEGIATAN MENGAJAR — kepala sekolah di sini ikut memegang kelas
+         |------------------------------------------------------------------
+         | Urutannya SENGAJA mengikuti urutan pekerjaannya di lapangan, bukan
+         | abjad: lihat jadwal -> absen kehadiran pagi -> scan QR ruangan ->
+         | isi daftar hadir siswa.
+         |
+         | "Absen Kehadiran (Radius)" WAJIB ada di kelompok ini dan tidak
+         | boleh dianggap pelengkap. AbsenMengajarQr menolak siapa pun yang
+         | belum absen kehadiran pagi itu — tanpa butir ini, kepala sekolah
+         | menekan Absen Mengajar, ditolak, dan tidak punya satu pun menu
+         | untuk memenuhi syaratnya.
+         */
+        ['label' => 'Kegiatan Mengajar', 'icon' => 'academic-cap', 'match' => '.jadwal-pelajaran|.absen-lokasi|.absen-mengajar|.jurnal-kelas', 'anak' => [
+            $butirJadwalPelajaran,
+            $butirAbsenHadir,
+            $butirAbsenAjar,
+            $butirJurnal,
+        ]],
 
-        // Ditaruh tepat di bawah Pantauan Kehadiran Pegawai: keduanya
-        // menjawab pertanyaan yang bersambung — siapa tidak hadir, lalu
-        // apa alasan yang ia ajukan.
-        ['label' => 'Daftar Izin Pegawai',          'icon' => 'clipboard-check', 'route' => '.daftar-izin-pegawai', 'match' => '.daftar-izin-pegawai'],
+        /*
+         |------------------------------------------------------------------
+         | PANTAU KEHADIRAN — "siapa yang tidak ada HARI INI"
+         |------------------------------------------------------------------
+         | Dipisahkan dari Rekap Absensi di bawah, dan pemisahan itu bukan
+         | soal kerapian. Keduanya menjawab pertanyaan dengan JANGKA WAKTU
+         | yang berbeda: yang ini keadaan hari ini yang masih bisa ditindak
+         | sekarang juga, yang itu rekap periode yang sudah lewat.
+         */
+        ['label' => 'Pantau Kehadiran', 'icon' => 'eye', 'match' => '.pantauan-siswa|.pantauan-pegawai', 'anak' => [
+            ['label' => 'Kehadiran Siswa',   'icon' => 'academic-cap', 'route' => '.pantauan-siswa',   'match' => '.pantauan-siswa'],
+            ['label' => 'Kehadiran Pegawai', 'icon' => 'briefcase',    'route' => '.pantauan-pegawai', 'match' => '.pantauan-pegawai'],
+        ]],
 
-        // Berbeda dari butir di atasnya: 'Daftar Izin Pegawai' hanya
-        // MENAMPILKAN izin yang sudah berlaku, sementara halaman ini adalah
-        // satu-satunya tempat izin guru bisa disetujui. Tanpa dibuka, setiap
-        // pengajuan guru mengendap di status Pending dan absensinya terhitung
-        // alpa di akhir bulan.
-        $butirPersetujuanIzinGuru,
-        ['label' => 'Pantauan Kehadiran Siswa',     'icon' => 'academic-cap',    'route' => '.pantauan-siswa',    'match' => '.pantauan-siswa'],
-        ['label' => 'Laporan & Rekapitulasi',       'icon' => 'document-report', 'route' => '.laporan',           'match' => '.laporan'],
+        /*
+         |------------------------------------------------------------------
+         | PERIZINAN
+         |------------------------------------------------------------------
+         | Kedua butirnya tampak mirip tapi berbeda tajam, dan bedanya
+         | ditulis di label supaya tidak perlu ditebak:
+         |
+         |   Daftar Izin Pegawai  -> HANYA MENAMPILKAN izin yang sudah
+         |                           berlaku. Tidak ada tombol apa pun.
+         |   Persetujuan Izin Guru -> satu-satunya tempat izin guru bisa
+         |                           disetujui. Tanpa dibuka, setiap
+         |                           pengajuan mengendap Pending dan absensi
+         |                           gurunya terhitung ALPA di akhir bulan.
+         */
+        ['label' => 'Perizinan', 'icon' => 'clipboard-check', 'match' => '.daftar-izin-pegawai|.persetujuan-izin-guru*', 'anak' => [
+            $butirPersetujuanIzinGuru,
+            ['label' => 'Daftar Izin Pegawai', 'icon' => 'document-report', 'route' => '.daftar-izin-pegawai', 'match' => '.daftar-izin-pegawai'],
+        ]],
 
-        // Pasangan dari butir di atas. 'Laporan & Rekapitulasi' menghitung
-        // kehadiran di GERBANG per siswa; yang ini menghitung kehadiran di
-        // KELAS per jadwal pelajaran. Selisih keduanya persis yang dicari
-        // kepala sekolah: anak yang masuk pagi lalu hilang di jam ketiga.
-        ['label' => 'Rekap KBM per Jadwal',         'icon' => 'calendar',        'route' => '.rekap-kbm',         'match' => '.rekap-kbm*'],
-
-        // Ditaruh tepat di bawahnya: keduanya menjawab pertanyaan yang
-        // bersambung — "bagaimana bulan ini berjalan", lalu "berikan saya
-        // berkasnya untuk rapat komite".
-        ['label' => 'Laporan Bulanan (PDF)',        'icon' => 'download',        'route' => '.laporan-bulanan',   'match' => '.laporan-bulanan*'],
-
-        // Persetujuan rapor: tindakan, bukan laporan — karena itu berdiri
-        // sendiri dan tidak ikut masuk kelompok laporan di atas.
-        $butirValidasiRapor,
-
-        ['label' => 'Kelola Pengumuman',             'icon' => 'bell',            'route' => '.pengumuman',        'match' => '.pengumuman'],
-        ['label' => 'Jadwal Ekskul',                 'icon' => 'clock',           'route' => '.ekskul',            'match' => '.ekskul*'],
-        $butirRppPengawas,
-
-        // Kepsek juga pegawai yang kehadirannya dicatat, jadi ia punya
-        // halaman pengajuan izin untuk dirinya sendiri — ditaruh di grup
-        // "Lainnya" bersama Profil supaya tidak tercampur dengan menu
-        // pengawasan di atas.
-        array_merge($butirIzin, ['grup' => 'Lainnya']),
+        /*
+         |------------------------------------------------------------------
+         | REKAP ABSENSI — periode yang sudah lewat
+         |------------------------------------------------------------------
+         | Tiga butir yang urutannya menjawab pertanyaan bersambung:
+         |   1. Laporan & Rekapitulasi  -> kehadiran di GERBANG per siswa
+         |   2. Rekap KBM per Jadwal    -> kehadiran di KELAS per jam
+         |   3. Laporan Bulanan (PDF)   -> berkasnya untuk rapat komite
+         |
+         | Selisih antara nomor 1 dan 2 persis yang dicari kepala sekolah:
+         | anak yang masuk gerbang pagi lalu hilang di jam ketiga.
+         */
+        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.rekap-kbm*|.laporan-bulanan*', 'anak' => [
+            ['label' => 'Laporan & Rekapitulasi', 'icon' => 'document-report', 'route' => '.laporan',         'match' => '.laporan'],
+            ['label' => 'Rekap KBM per Jadwal',   'icon' => 'calendar',        'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
+            ['label' => 'Laporan Bulanan (PDF)',  'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
+        ]],
 
         ['label' => 'Manajemen Data Sekolah',       'icon' => 'users',           'match' => '.users.*|.kelas.*|.siswa.*', 'anak' => [
             ['label' => 'Pengguna', 'icon' => 'users',          'route' => '.users.index', 'match' => '.users.*'],
             ['label' => 'Kelas',    'icon' => 'academic-cap',   'route' => '.kelas.index', 'match' => '.kelas.*'],
             ['label' => 'Siswa',    'icon' => 'identification', 'route' => '.siswa.index', 'match' => '.siswa.*'],
         ]],
+
+        /*
+         | Tiga butir di bawah SENGAJA berdiri sendiri, tidak dikelompokkan.
+         | Ketiganya TINDAKAN yang dikerjakan kepala sekolah, bukan laporan
+         | yang dibaca — dan tindakan yang disembunyikan di dalam submenu
+         | cenderung tidak dikerjakan. Persetujuan Rapor khususnya: selama
+         | belum ditekan, seluruh wali murid melihat halaman rapor kosong.
+         */
+        $butirValidasiRapor,
+        $butirRppPengawas,
+        ['label' => 'Kelola Pengumuman',            'icon' => 'bell',            'route' => '.pengumuman',        'match' => '.pengumuman'],
+
+        /*
+         | DIHAPUS: 'Jadwal Ekskul' (.ekskul).
+         |
+         | Jadwal ekskul adalah pekerjaan pembina ekskul dan staff kesiswaan.
+         | Rutenya ikut dicabut di routes/web.php — bukan hanya butirnya
+         | disembunyikan di sini.
+         */
+
         $butirKalender,
+
+        // Kepsek juga pegawai yang kehadirannya dicatat, jadi ia punya
+        // halaman pengajuan izin untuk dirinya sendiri — ditaruh di grup
+        // "Lainnya" bersama Profil supaya tidak tercampur dengan menu
+        // pengawasan di atas.
+        array_merge($butirIzin, ['grup' => 'Lainnya']),
         $butirPanduan,
     ];
 
