@@ -39,6 +39,21 @@
         </div>
     @endif
 
+    {{-- Peringatan symlink storage. Ditampilkan HANYA kalau memang belum ada,
+         supaya tidak jadi peringatan hiasan yang lama-lama diabaikan. --}}
+    @if (! $this->symlinkStorageSiap)
+        <div class="mb-6 flex items-start gap-2.5 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-500/10 px-4 py-3.5 text-sm text-amber-800 dark:text-amber-400">
+            <x-icon name="exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+                <p class="font-semibold">Foto akan tersimpan, tapi belum bisa ditampilkan.</p>
+                <p class="mt-1">
+                    Tautan folder penyimpanan belum dibuat. Jalankan sekali saja di folder project:
+                    <code class="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-[13px]">php artisan storage:link</code>
+                    lalu muat ulang halaman ini.
+                </p>
+            </div>
+        </div>
+    @endif
 
     <form wire:submit.prevent="simpanProfil" class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 

@@ -68,6 +68,28 @@
                         <x-icon name="clock" class="h-3.5 w-3.5" />
                         Jam pulang lewat — {{ $sapu['jumlah'] }} siswa sudah ditandai alpa otomatis
                     </span>
+                @elseif ($sapu['status'] === 'galat_skema')
+                    {{-- Struktur database server belum diperbarui.
+
+                         Halaman ini SENGAJA tetap terbuka: daftar siswa dan rekap
+                         sekolah di bawah sama sekali tidak bergantung pada lencana
+                         ini. Menutup seluruh halaman hanya karena satu lencana gagal
+                         membuat kepala sekolah kehilangan data yang sebenarnya masih
+                         utuh — dan yang ia lihat cuma "500 Server Error" tanpa satu
+                         pun petunjuk.
+
+                         Perintah perbaikannya ditulis apa adanya supaya bisa
+                         diteruskan ke pengelola server tanpa perlu menebak. --}}
+                    <span class="inline-flex items-start gap-1.5 rounded-xl border border-red-300 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-brand-danger-text">
+                        <x-icon name="exclamation-triangle" class="mt-px h-3.5 w-3.5 shrink-0" />
+                        <span class="min-w-0">
+                            Status penandaan alpa otomatis tidak bisa dibaca — struktur database
+                            server belum diperbarui. Data kehadiran di bawah tetap benar.
+                            Perbaikan: jalankan
+                            <code class="rounded bg-red-500/10 px-1 font-mono">php artisan migrate --force</code>
+                            di server.
+                        </span>
+                    </span>
                 @elseif ($sapu['status'] === 'belum_jalan')
                     {{-- ============ PERINGATAN YANG PALING PENTING DI HALAMAN INI ============
                          Jam pulang sudah lewat, masih ada yang belum tercatat, tapi TIDAK

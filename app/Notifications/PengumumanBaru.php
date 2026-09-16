@@ -66,7 +66,7 @@ class PengumumanBaru extends Notification
         return [
             'judul' => $this->judul,
             'pesan' => 'Pengumuman dari ' . $this->pengirim,
-            'cuplikan' => Str::limit($this->isi, 2000),
+            'cuplikan' => Str::limit($this->isi, 120),
             'ikon' => 'bell',
             'warna' => 'info',
             'pengumuman_id' => $this->pengumumanId,
