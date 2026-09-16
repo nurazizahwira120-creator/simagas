@@ -8,6 +8,7 @@ use App\Enums\StatusKbm;
 use App\Jobs\SendWhatsAppNotification;
 use App\Models\AbsensiKbmSiswa;
 use App\Models\AbsensiMengajar;
+use App\Services\PencocokSesiMengajar;
 use App\Models\AbsensiPegawai;
 use App\Models\AbsensiSiswa;
 use App\Models\JadwalPelajaran;
@@ -137,19 +138,18 @@ class JurnalAbsenKelas extends Component
             return null;
         }
 
-        $sasaran = array_filter([
-            $this->normalkan($jadwal->kelas?->nama_kelas),
-            $this->normalkan($jadwal->ruangan),
-        ]);
-
-        if (! $sasaran) {
-            return null;
-        }
-
-        return AbsensiMengajar::where('user_id', auth()->id())
-            ->whereDate('waktu_mulai', today())
-            ->get()
-            ->first(fn (AbsensiMengajar $a) => in_array($this->normalkan($a->kode_kelas), $sasaran, true));
+        /*
+         | Pencocokannya DIPINJAM dari App\Services\PencocokSesiMengajar,
+         | bukan ditulis ulang di sini.
+         |
+         | Layar Live Monitoring milik kepala sekolah menjawab pertanyaan
+         | yang sama ("sesi mana untuk jadwal ini?") lewat service itu juga.
+         | Kalau keduanya punya salinan logika sendiri, cepat atau lambat
+         | jawabannya berbeda — dan bentuk perbedaannya menyesatkan: kepsek
+         | melihat "belum diakhiri" sementara guru melihat sesinya terkunci,
+         | tanpa satu pun error yang menjelaskan.
+         */
+        return app(PencocokSesiMengajar::class)->untukJadwal($jadwal, auth()->id());
     }
 
     /**
@@ -709,18 +709,17 @@ class JurnalAbsenKelas extends Component
      * Samakan bentuk kode ruangan & nama kelas supaya bisa dibandingkan:
      * "RUANG-X-RPL-1", "ruang x rpl 1", dan "X RPL 1" jadi satu bentuk.
      */
+    /**
+     * Delegasi tipis ke PencocokSesiMengajar::normalkan().
+     *
+     * Dipertahankan sebagai method (bukan dihapus dan pemanggilnya diubah
+     * semua) supaya pemanggil lain di kelas ini tidak perlu ikut disunting —
+     * tapi ISINYA satu, di service, sehingga tidak ada dua definisi yang
+     * bisa berbeda.
+     */
     private function normalkan(?string $teks): ?string
     {
-        if ($teks === null || trim($teks) === '') {
-            return null;
-        }
-
-        return Str::of($teks)
-            ->replaceMatches('/^ruang[-_ ]*/i', '')
-            ->replace(['-', '_'], ' ')
-            ->squish()
-            ->upper()
-            ->value();
+        return PencocokSesiMengajar::normalkan($teks);
     }
 
     private function pesan(string $tipe, string $judul, string $pesan): void

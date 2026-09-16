@@ -111,6 +111,22 @@
                      pasangan yang paling sering tidak terbedakan. --}}
                 <article class="kartu-angkat relative min-w-0 overflow-hidden rounded-2xl border-2 bg-brand-surface shadow-soft dark:bg-gray-900 {{ $g['kartu'] }}">
 
+                    {{-- ============ TOMBOL MEMBENTANG, BUKAN <article> YANG DIJADIKAN <button> ============
+                         Kartunya berisi <h3>, <dl>, dan <p> — semuanya flow content,
+                         yang TIDAK SAH berada di dalam <button> (isinya harus phrasing
+                         content). Browser memang tetap menggambarnya, tapi HTML yang
+                         tidak sah adalah utang yang ditagih di tempat tak terduga:
+                         pembaca layar membacakan seluruh isi kartu sebagai satu label
+                         tombol yang panjangnya satu paragraf.
+
+                         Lapisan tembus pandang ini membuat seluruh kartu bisa diklik
+                         tanpa merusak strukturnya, dan aria-label-nya ringkas. --}}
+                    <button type="button"
+                        class="absolute inset-0 z-10 h-full w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-accent"
+                        aria-label="Lihat detail {{ $j->kelas?->nama_kelas ?? 'kelas' }} — {{ $j->mata_pelajaran }}"
+                        x-data
+                        @click="Livewire.dispatch('buka-detail-sesi', { jadwal: {{ $j->id }} })"></button>
+
                     <div class="h-1.5 w-full {{ $g['pita'] }}"></div>
 
                     <div class="p-5">
@@ -173,6 +189,10 @@
                                 Baru dimulai. Belum dihitung terlambat sebelum {{ $toleransi }} menit.
                             </p>
                         @endif
+                        <p class="mt-4 flex items-center gap-1.5 text-xs font-medium text-brand-muted">
+                            <x-icon name="eye" class="h-3.5 w-3.5 shrink-0" />
+                            Klik kartu untuk melihat detail
+                        </p>
                     </div>
                 </article>
             @endforeach
@@ -191,6 +211,11 @@
                 <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-gray-400"></span><strong>Abu</strong> &mdash; jam baru dimulai, masih dalam masa toleransi.</li>
             </ul>
         </div>
+
+    {{-- Panel detail. Dirender sekali di luar perulangan kartu dan menunggu
+         peristiwa 'buka-detail-sesi'; datanya baru diambil saat ada kartu yang
+         benar-benar diklik. --}}
+    @livewire('monitoring.detail-sesi')
 
     @endif
 
