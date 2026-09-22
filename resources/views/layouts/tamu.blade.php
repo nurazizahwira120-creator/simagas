@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0f766e">
-    <title>{{ $title ?? 'Masuk' }} — SIMAGAS</title>
+    <title>{{ $title ?? 'Masuk' }} — {{ config('sekolah.aplikasi') }}</title>
 
     {{-- Halaman ini tidak boleh diindeks mesin pencari. --}}
     <meta name="robots" content="noindex, nofollow">

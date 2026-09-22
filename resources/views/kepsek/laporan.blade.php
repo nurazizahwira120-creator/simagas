@@ -11,7 +11,7 @@
 
     {{-- Kop khusus cetak — hanya tampil saat print:block, disembunyikan di layar --}}
     <div class="hidden print:block print:mb-4">
-        <p class="text-base font-semibold">SMK Islam Assya'roniyyah</p>
+        <p class="text-base font-semibold">{{ \App\Models\PengaturanSistem::namaSekolah() }}</p>
         <p class="text-sm">Laporan Bulanan Kehadiran Siswa</p>
         <p class="text-sm">
             Periode: {{ $bulan->translatedFormat('F Y') }}

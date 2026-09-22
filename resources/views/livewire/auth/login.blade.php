@@ -31,17 +31,17 @@
                     <img src="{{ asset('logo-mark.png') }}" alt="" class="h-full w-full object-contain">
                 </span>
                 <div>
-                    <p class="text-sm font-bold leading-tight tracking-wide">SIMAGAS</p>
-                    <p class="text-xs text-white/60">Sistem Absensi Digital</p>
+                    <p class="text-sm font-bold leading-tight tracking-wide">{{ config('sekolah.aplikasi') }}</p>
+                    <p class="text-xs text-white/60">{{ config('sekolah.tagline') }}</p>
                 </div>
             </div>
 
             <div class="relative max-w-sm">
                 <h1 class="text-3xl font-extrabold leading-tight tracking-tight">
-                    Selamat Datang di SIMAGAS
+                    Selamat Datang di {{ config('sekolah.aplikasi') }}
                 </h1>
                 <p class="mt-3 text-sm leading-relaxed text-white/70">
-                    Satu portal untuk seluruh kehadiran SMK Islam Assya'roniyyah — scan di gerbang,
+                    Satu portal untuk seluruh kehadiran {{ \App\Models\PengaturanSistem::namaSekolah() }} — scan di gerbang,
                     validasi wali kelas, dan pantauan kepala sekolah, semuanya dalam satu sistem.
                 </p>
 
@@ -61,14 +61,14 @@
                 </ul>
             </div>
 
-            <p class="relative text-xs text-white/40">&copy; {{ now()->year }} SMK Islam Assya'roniyyah</p>
+            <p class="relative text-xs text-white/40">&copy; {{ now()->year }} {{ \App\Models\PengaturanSistem::namaSekolah() }}</p>
         </div>
 
         {{-- ============ SISI KANAN — FORM ============ --}}
         <div class="p-8 sm:p-10 lg:p-12">
 
             <div class="mb-8 flex justify-center lg:justify-start">
-                <img src="{{ asset('logo.png') }}" alt="SIMAGAS — Sistem Absensi Digital"
+                <img src="{{ asset('logo.png') }}" alt="{{ config('sekolah.aplikasi') }} — {{ config('sekolah.tagline') }}"
                     class="h-auto w-44 sm:w-48">
             </div>
 

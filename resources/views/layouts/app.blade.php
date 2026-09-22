@@ -23,8 +23,8 @@
          Nyaris tidak pernah ketahuan karena tab browser memotong judul
          panjang — tapi terbaca utuh di bookmark, riwayat, dan hasil cetak. --}}
     <title>{{ View::hasSection('title')
-        ? trim(View::yieldContent('title')) . ' — SIMAGAS'
-        : 'SIMAGAS - Sistem Absensi Digital' }}</title>
+        ? trim(View::yieldContent('title')) . ' — ' . config('sekolah.aplikasi')
+        : config('sekolah.aplikasi') . ' - ' . config('sekolah.tagline') }}</title>
 
     {{-- Memuat CSS/JS hasil build Vite (@vite ada DI DALAM partial ini —
          jangan ditambahkan lagi di sini) + favicon + font + skrip tema. --}}
@@ -93,7 +93,7 @@
     aria-live="polite"
     class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
 
-    <img src="{{ asset('logo.png') }}" alt="Logo SIMAGAS"
+    <img src="{{ asset('logo.png') }}" alt="Logo {{ config('sekolah.aplikasi') }}"
         class="mb-8 h-auto w-56 animate-pulse drop-shadow-xl md:w-64">
 
     {{-- Tiga titik memantul. Delay-nya NEGATIF supaya animasinya dimulai di
@@ -218,7 +218,7 @@
                          dipakai di bawah. --}}
                     <button type="button" id="installPwaBtn" hidden
                         class="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-100 px-4 py-2 transition duration-300 hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700"
-                        title="Pasang SIMAGAS sebagai aplikasi di perangkat ini">
+                        title="Pasang {{ config('sekolah.aplikasi') }} sebagai aplikasi di perangkat ini">
                         <img src="{{ asset('images/logo/icon-192x192.png') }}" alt=""
                             class="h-6 w-6 rounded-md">
                         <span class="hidden text-sm font-medium text-gray-800 sm:block dark:text-white">Install App</span>
@@ -644,7 +644,17 @@
                 'background:#0d9488;color:#fff;border-radius:14px;padding:14px 16px;' +
                 'box-shadow:0 12px 32px rgba(0,0,0,.25);font:14px/1.5 system-ui,sans-serif';
             kotak.innerHTML =
-                '<strong>Versi baru SIMAGAS tersedia.</strong><br>' +
+                {{-- @js() menghasilkan nilai LENGKAP DENGAN tanda kutipnya
+                     sendiri ('SIMAGAS'), jadi ia tidak boleh ditaruh di
+                     TENGAH teks yang sudah berkutip — kutipannya bertabrakan
+                     dan seluruh berkas JS ini berhenti dijalankan:
+
+                       Uncaught SyntaxError: Unexpected identifier 'SIMAGAS'
+
+                     Akibatnya bukan cuma pita "versi baru" yang hilang,
+                     melainkan SEMUA skrip di halaman ini. Sambungannya harus
+                     lewat + seperti di bawah. --}}
+                '<strong>Versi baru ' + @js(config('sekolah.aplikasi')) + ' tersedia.</strong><br>' +
                 '<span style="opacity:.9">Isian di halaman ini akan hilang kalau dimuat ulang sekarang.</span>';
 
             var tombol = document.createElement('button');

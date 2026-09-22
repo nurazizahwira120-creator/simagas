@@ -523,8 +523,8 @@
             class="flex min-w-0 flex-1 items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
             <img src="{{ asset('logo-mark.png') }}" alt="" class="h-10 w-10 shrink-0 object-contain">
             <span class="label-menu min-w-0">
-                <span class="block truncate text-[15px] font-extrabold leading-tight tracking-tight text-gray-800 dark:text-gray-100">SIMAGAS</span>
-                <span class="block truncate text-[11px] font-medium text-gray-400 dark:text-gray-500">Sistem Absensi Digital</span>
+                <span class="block truncate text-[15px] font-extrabold leading-tight tracking-tight text-gray-800 dark:text-gray-100">{{ config('sekolah.aplikasi') }}</span>
+                <span class="block truncate text-[11px] font-medium text-gray-400 dark:text-gray-500">{{ config('sekolah.tagline') }}</span>
             </span>
         </{{ $adaDashboard ? 'a' : 'div' }}>
 

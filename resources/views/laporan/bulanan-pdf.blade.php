@@ -68,7 +68,7 @@
     <div class="kop">
         <h1>LAPORAN KEHADIRAN BULANAN</h1>
         <div class="sub">
-            SMK Islam Assya'roniyyah &mdash; SIMAGAS (Sistem Absensi Digital)<br>
+            {{ \App\Models\PengaturanSistem::namaSekolah() }} &mdash; {{ config('sekolah.aplikasi') }} ({{ config('sekolah.tagline') }})<br>
             Periode: <strong>{{ $label_periode }}</strong>
             &nbsp;&middot;&nbsp; Hari kerja: <strong>{{ $hari_kerja }} hari</strong>
             &nbsp;&middot;&nbsp; Dibuat otomatis {{ $dibuat_pada->translatedFormat('d F Y, H:i') }} WIB
@@ -277,7 +277,7 @@
         <strong>satu</strong>. Mata pelajaran dengan pertemuan sedikit persentasenya belum tentu
         mewakili keadaan sebenarnya, karena itu kedua kolom sengaja ditaruh berdekatan supaya
         dibaca bersamaan.<br><br>
-        Dokumen ini dihasilkan otomatis oleh SIMAGAS dan tidak memerlukan tanda tangan basah.
+        Dokumen ini dihasilkan otomatis oleh {{ config('sekolah.aplikasi') }} dan tidak memerlukan tanda tangan basah.
     </div>
 
 </body>

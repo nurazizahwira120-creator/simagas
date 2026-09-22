@@ -58,7 +58,7 @@
             <div class="p-8 sm:p-10 lg:p-12">
 
                 <div class="flex flex-col items-center text-center">
-                    <img src="{{ asset('logo.png') }}" alt="SIMAGAS — Sistem Absensi Digital"
+                    <img src="{{ asset('logo.png') }}" alt="{{ config('sekolah.aplikasi') }} — {{ config('sekolah.tagline') }}"
                         class="h-auto w-40 sm:w-44">
                     <h1 class="mt-6 text-2xl font-extrabold tracking-tight text-navy-700">Daftar Akun Baru</h1>
                     <p class="mt-1.5 max-w-md text-sm text-brand-muted">

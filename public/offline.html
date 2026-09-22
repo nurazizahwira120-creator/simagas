@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tidak ada koneksi — SIMAGAS</title>
+    <title>Tidak ada koneksi</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <!--
         Halaman ini disajikan service worker saat perangkat benar-benar tidak
@@ -39,9 +39,14 @@
 </head>
 <body>
     <div class="kotak">
-        <img src="/images/logo/icon-192x192.png" alt="SIMAGAS">
+        <!-- Halaman ini HTML statis, dilayani service worker saat jaringan mati,
+             jadi ia tidak bisa membaca config/sekolah.php. Karena itu nama
+             aplikasinya sengaja TIDAK disebut: satu berkas yang sama harus benar
+             untuk setiap sekolah yang memakai kode ini. Logonya sudah cukup
+             memberi tahu pengguna aplikasi mana yang sedang ia buka. -->
+        <img src="/images/logo/icon-192x192.png" alt="">
         <h1>Tidak ada koneksi</h1>
-        <p>SIMAGAS butuh internet untuk menampilkan data absensi yang terbaru.</p>
+        <p>Aplikasi ini butuh internet untuk menampilkan data absensi yang terbaru.</p>
 
         <ul>
             <li>Periksa Wi-Fi atau data seluler Anda.</li>

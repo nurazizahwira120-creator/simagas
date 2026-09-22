@@ -221,7 +221,7 @@
                                  keduanya diposisikan absolut, bukan flex column,
                                  supaya letaknya tidak bergeser mengikuti panjang
                                  nama atau alamat di sisi kiri. --}}
-                            <img src="{{ asset('logo.png') }}" alt="SIMAGAS"
+                            <img src="{{ asset('logo.png') }}" alt="{{ config('sekolah.aplikasi') }}"
                                 class="absolute right-9 top-8 h-auto w-[165px] object-contain">
 
                             <div class="absolute right-[70px] top-1/2 -translate-y-1/2 pt-8">
@@ -294,7 +294,7 @@
                             {{-- Footer teal penuh --}}
                             <div class="absolute inset-x-0 bottom-0 bg-teal-600 px-10 py-3.5 text-center">
                                 <p class="text-[12px] leading-relaxed text-white">
-                                    Kartu ini adalah milik SMK Islam Assya'roniyyah.
+                                    Kartu ini adalah milik {{ \App\Models\PengaturanSistem::namaSekolah() }}.
                                     Jika menemukan kartu ini, harap kembalikan ke alamat Sekolah.
                                 </p>
                             </div>

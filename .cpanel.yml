@@ -3,10 +3,10 @@
 # Git Version Control.
 #
 # =====================================================================
-# SUSUNAN FOLDER DI SERVER INI — kenapa berkas harus DISALIN
+# SUSUNAN FOLDER — kenapa berkas harus DISALIN
 # =====================================================================
-# Aplikasi Laravel : /home/simm6468/backend_simagas   <- ini repo git-nya
-# Akar situs (web) : /home/simm6468/public_html       <- FOLDER TERPISAH
+# Aplikasi Laravel : $HOME/backend_simagas   <- ini repo git-nya
+# Akar situs (web) : $HOME/public_html       <- FOLDER TERPISAH
 #
 # Keduanya BUKAN folder yang sama, dan public_html bukan symlink. Artinya
 # `git pull` hanya menyegarkan backend_simagas — sementara yang benar-benar
@@ -14,23 +14,23 @@
 #
 # Akibatnya sudah pernah terjadi dan sangat membingungkan: kode PHP-nya
 # versi baru, tapi CSS dan service worker yang diunduh HP masih versi lama,
-# tanpa satu pun pesan error. Yang muncul cuma pita merah "berkas CSS-nya
-# versi lama" — kalau pita itu tidak ada, kesalahannya tidak terlihat sama
-# sekali.
+# tanpa satu pun pesan error.
 #
-# Perintah salin di bawah menutup celah itu supaya tidak perlu diingat
-# manual di setiap rilis.
+# =====================================================================
+# JALUR DITULIS RELATIF TERHADAP $HOME, BUKAN /home/simm6468
+# =====================================================================
+# Versi sebelumnya memaku "/home/simm6468" di setiap baris. Itu bekerja
+# sempurna selama hanya ada SATU pemasangan — dan gagal tanpa suara begitu
+# kode yang sama dipasang di akun cPanel lain: folder tujuannya tidak ada,
+# `cp` gagal, tetapi deploy-nya tetap dilaporkan selesai.
 #
-# ============ YANG SENGAJA TIDAK IKUT DISALIN ============
-# index.php  -> public_html/index.php SUDAH DISESUAIKAN untuk menunjuk ke
-#               ../backend_simagas. Menimpanya dengan index.php bawaan
-#               repo akan MEMATIKAN SELURUH SITUS.
-# .htaccess  -> boleh berisi aturan khusus hosting.
-# storage    -> itu symlink ke storage/app/public; menyalinnya akan
-#               menggantinya dengan folder biasa dan semua foto profil
-#               berhenti tampil.
-# build/     -> ada di .gitignore, jadi tidak pernah ada di repo server.
-# =========================================================
+# Bentuk kegagalannya paling menyesatkan: PHP-nya versi baru (itu dari
+# `git pull`, yang selalu berhasil), sementara CSS-nya tidak pernah
+# tersalin — jadi situsnya terbuka tapi tampilannya berantakan, dan tidak
+# ada satu pun pesan yang menyebut sebabnya.
+#
+# `set -e` pada tiap perintah gabungan membuat kegagalan penyalinan
+# BERHENTI dan terlihat, bukan diam-diam dilewati.
 #
 # ============ KENAPA "migrate --force" ============
 # Tanpa baris itu, setiap fitur yang menambah kolom database tidak pernah
@@ -44,42 +44,53 @@
 # tidak ada yang menghapus data — jadi aman dijalankan otomatis.
 # ==================================================
 #
-# Jalur ditulis ABSOLUT dan lengkap di setiap baris, bukan memakai variabel
-# atau `cd`: tiap task dijalankan cPanel di shell-nya sendiri, jadi apa pun
-# yang di-set di baris sebelumnya tidak terbawa ke baris berikutnya.
+# ============ YANG SENGAJA TIDAK IKUT DISALIN ============
+# index.php   -> public_html/index.php SUDAH DISESUAIKAN untuk menunjuk ke
+#                ../backend_simagas. Menimpanya dengan index.php bawaan
+#                repo akan MEMATIKAN SELURUH SITUS.
+# .htaccess   -> boleh berisi aturan khusus hosting.
+# storage     -> itu symlink ke storage/app/public; menyalinnya akan
+#                menggantinya dengan folder biasa dan semua foto profil
+#                berhenti tampil.
+# build/      -> ada di .gitignore, jadi tidak pernah ada di repo server.
+#
+# BERKAS IDENTITAS SEKOLAH -> logo.png, logo-mark.png, favicon.ico,
+#                apple-touch-icon.png, dan manifest.json TIDAK disalin.
+#                Kelimanya milik MASING-MASING pemasangan dan tinggal
+#                permanen di public_html. Itulah yang membuat satu repo
+#                bisa dipakai beberapa sekolah: mengganti logo cukup
+#                mengunggah berkas, dan deploy berikutnya tidak menimpanya.
+# =========================================================
 deployment:
   tasks:
     # --- 1. Aplikasi -------------------------------------------------
     # config:clear didahulukan supaya migrate membaca .env terbaru, bukan
     # salinan lama di bootstrap/cache/config.php.
-    - php artisan config:clear
-    - php artisan migrate --force
+    - export AKAR="$HOME/backend_simagas" && cd "$AKAR" && php artisan config:clear
+    - export AKAR="$HOME/backend_simagas" && cd "$AKAR" && php artisan migrate --force
 
     # --- 2. Segarkan akar situs -------------------------------------
     # Aset cadangan yang dipakai kalau folder build/ tidak ada. Inilah dua
     # berkas yang menentukan tampilan situs di server ini.
-    - /bin/cp -f /home/simm6468/backend_simagas/public/simagas.css /home/simm6468/public_html/simagas.css
-    - /bin/cp -f /home/simm6468/backend_simagas/public/simagas.js /home/simm6468/public_html/simagas.js
+    - set -e; cd "$HOME/backend_simagas"; cp -f public/simagas.css "$HOME/public_html/simagas.css"; cp -f public/simagas.js "$HOME/public_html/simagas.js"
 
     # Service worker notifikasi HP. HARUS dilayani dari akar situs —
     # cakupan (scope) sebuah service worker tidak boleh melebihi folder
     # tempat berkasnya berada, jadi menaruhnya di subfolder membuatnya
     # tidak berlaku untuk halaman mana pun.
-    - /bin/cp -f /home/simm6468/backend_simagas/public/firebase-messaging-sw.js /home/simm6468/public_html/firebase-messaging-sw.js
+    - set -e; cd "$HOME/backend_simagas"; cp -f public/firebase-messaging-sw.js "$HOME/public_html/firebase-messaging-sw.js"
 
-    # Service worker PWA + halaman offline + manifest.
-    - /bin/cp -f /home/simm6468/backend_simagas/public/sw.js /home/simm6468/public_html/sw.js
-    - /bin/cp -f /home/simm6468/backend_simagas/public/offline.html /home/simm6468/public_html/offline.html
-    - /bin/cp -f /home/simm6468/backend_simagas/public/manifest.json /home/simm6468/public_html/manifest.json
+    # Service worker PWA + halaman offline. manifest.json TIDAK ikut:
+    # isinya nama & deskripsi sekolah, jadi ia milik masing-masing server.
+    - set -e; cd "$HOME/backend_simagas"; cp -f public/sw.js "$HOME/public_html/sw.js"; cp -f public/offline.html "$HOME/public_html/offline.html"
 
     # Gambar & suara notifikasi. Disalin dengan "/." di ujung sumbernya
     # supaya ISI foldernya yang tersalin, bukan foldernya masuk ke dalam
     # folder tujuan (cp images public_html/images menghasilkan
     # public_html/images/images kalau tujuannya sudah ada).
-    - /bin/cp -Rf /home/simm6468/backend_simagas/public/images/. /home/simm6468/public_html/images/
-    - /bin/cp -Rf /home/simm6468/backend_simagas/public/audio/. /home/simm6468/public_html/audio/
+    - set -e; cd "$HOME/backend_simagas"; cp -Rf public/images/. "$HOME/public_html/images/"; cp -Rf public/audio/. "$HOME/public_html/audio/"
 
     # --- 3. Bersihkan cache ------------------------------------------
     # Paling akhir: sesudah berkas & database sudah pada tempatnya.
     # optimize:clear sekaligus mencakup view, route, dan cache aplikasi.
-    - php artisan optimize:clear
+    - export AKAR="$HOME/backend_simagas" && cd "$AKAR" && php artisan optimize:clear

@@ -66,7 +66,11 @@ class PengaturanSistem extends Model
     public static function ambil(): self
     {
         return static::query()->first() ?? static::query()->create([
-            'nama_sekolah' => "SMK Islam Assya'roniyyah",
+            // Diambil dari config/sekolah.php, BUKAN dipaku di sini: satu kode
+            // ini dipakai beberapa sekolah, masing-masing dengan .env sendiri.
+            // Kalau dipaku, sekolah yang baru dipasang akan menampilkan nama
+            // sekolah lain di seluruh kop laporannya sampai ada yang sadar.
+            'nama_sekolah' => config('sekolah.nama'),
             'wa_gateway_status' => false,
             'wa_delay' => 2,
 
@@ -77,5 +81,41 @@ class PengaturanSistem extends Model
             'longitude' => '106.827153',
             'radius_meter' => 50,
         ]);
+    }
+
+    /**
+     * Nama sekolah yang berlaku — dipakai kop laporan, kartu siswa, dan
+     * halaman login.
+     *
+     * ============ KENAPA DIINGAT DI MEMORI ============
+     * Kop laporan bulanan memanggilnya sekali per halaman PDF, dan sidebar
+     * memanggilnya di setiap permintaan. Tanpa penyimpanan sementara ini,
+     * satu PDF 12 halaman berarti 12 query untuk membaca satu teks yang
+     * tidak mungkin berubah di tengah permintaan yang sama.
+     *
+     * Disimpan per-permintaan (properti statis), BUKAN di cache Laravel:
+     * cache yang basi sesudah Super Admin mengganti nama sekolah akan
+     * membuatnya seolah tidak tersimpan, dan itu laporan bug yang mahal
+     * untuk ditelusuri.
+     * =================================================
+     */
+    public static function namaSekolah(): string
+    {
+        static $nama = null;
+
+        if ($nama !== null) {
+            return $nama;
+        }
+
+        // Kalau tabelnya belum ada sama sekali (mis. sebelum migrate pertama
+        // di server baru), jangan menjatuhkan halaman hanya karena namanya
+        // belum bisa dibaca — pakai cadangan dari .env.
+        try {
+            $nama = trim((string) static::ambil()->nama_sekolah);
+        } catch (\Throwable) {
+            $nama = '';
+        }
+
+        return $nama = $nama !== '' ? $nama : (string) config('sekolah.nama');
     }
 }

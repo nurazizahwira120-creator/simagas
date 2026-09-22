@@ -33,7 +33,7 @@
 
     {{-- Kop cetak --}}
     <div class="hidden print:mb-4 print:block">
-        <p class="text-base font-bold">SMK Islam Assya'roniyyah</p>
+        <p class="text-base font-bold">{{ \App\Models\PengaturanSistem::namaSekolah() }}</p>
         <p class="text-sm">Laporan Absensi Harian &middot; {{ $tanggal->translatedFormat('l, d F Y') }}</p>
         <hr class="mt-3">
     </div>

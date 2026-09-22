@@ -273,7 +273,7 @@
                     // 'swal:toast', bukan di pemanggilan langsung seperti ini.
                     window.simagasSwal.toast({
                         icon: 'success',
-                        title: data.judul || 'SIMAGAS',
+                        title: data.judul || @js(config('sekolah.aplikasi')),
                         text: data.isi || '',
                     });
                 }

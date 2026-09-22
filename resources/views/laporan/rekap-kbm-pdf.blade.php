@@ -61,7 +61,7 @@
     <div class="kop">
         <h1>REKAP KEHADIRAN KBM PER JADWAL PELAJARAN</h1>
         <div class="sub">
-            SMK Islam Assya'roniyyah &mdash; SIMAGAS (Sistem Absensi Digital)<br>
+            {{ \App\Models\PengaturanSistem::namaSekolah() }} &mdash; {{ config('sekolah.aplikasi') }} ({{ config('sekolah.tagline') }})<br>
             Periode: <strong>{{ $label_periode }}</strong>
             &nbsp;&middot;&nbsp; Dicetak {{ $dibuat_pada->translatedFormat('d F Y, H:i') }} WIB
             @if (! empty($saringan))
@@ -167,7 +167,7 @@
         sengaja dikosongkan (&mdash;) karena menuliskan 0% akan terbaca seolah seluruh kelas tidak hadir.<br>
         <strong>Bolos</strong> berbeda dari <strong>Alpa</strong>: bolos berarti siswa tercatat masuk gerbang pagi itu,
         tetapi tidak ada di kelas pada jam tersebut.<br>
-        Dokumen ini dihasilkan SIMAGAS sesuai saringan yang dipilih saat pencetakan.
+        Dokumen ini dihasilkan {{ config('sekolah.aplikasi') }} sesuai saringan yang dipilih saat pencetakan.
         Angkanya dihitung ulang dari jurnal KBM setiap kali dicetak, sehingga koreksi yang dilakukan guru selalu ikut terbawa.
     </div>
 

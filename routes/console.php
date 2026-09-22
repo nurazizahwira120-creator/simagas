@@ -261,3 +261,61 @@ Schedule::call(function () {
     ->hourly()
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping(10);
+
+/*
+|--------------------------------------------------------------------------
+| Pemroses antrean — mengirim WhatsApp ke wali murid
+|--------------------------------------------------------------------------
+|
+| ============ KENAPA JADWAL INI ADA ============
+| Pesan WhatsApp (kehadiran gerbang, peringatan alpa/bolos) tidak dikirim
+| langsung: ia masuk ANTREAN (`QUEUE_CONNECTION=database`) supaya layar guru
+| piket tidak menunggu beberapa detik setiap kali satu siswa lewat.
+|
+| Antrean hanya berguna kalau ada yang memprosesnya. Di hosting ini tidak
+| ada — `queue:work` biasanya dijalankan sebagai proses yang hidup terus,
+| dan hosting bersama tidak mengizinkannya. Akibatnya nyata: selama DUA
+| MINGGU 120 pesan menumpuk di tabel `jobs`, tidak satu pun wali murid
+| menerima WhatsApp, dan tidak ada satu pun galat di mana pun.
+|
+| Cara mengetahuinya kalau terulang:
+|   php artisan queue:monitor database:default
+| Baris "Oldest pending job" semestinya tidak pernah lebih dari semenit.
+| ===============================================
+|
+| ============ BAGAIMANA IA BEKERJA TANPA PROSES YANG HIDUP TERUS ============
+| Setiap menit, cron cPanel memanggil `schedule:run`, dan jadwal ini
+| menjalankan `queue:work --stop-when-empty`: habiskan antrean yang ada,
+| lalu BERHENTI. Menit berikutnya diulang. Keterlambatan terburuknya sekitar
+| satu menit — untuk kabar "anak Anda sudah sampai sekolah", itu tidak
+| terasa.
+|
+| --max-time 50 memastikan ia selalu berhenti sebelum menit berikutnya
+| dimulai, dan withoutOverlapping() mencegah dua pemroses berjalan
+| bersamaan kalau suatu saat satu putaran lebih lambat dari biasanya —
+| dua pemroses serentak bisa mengirim pesan yang sama dua kali.
+| ============================================================================
+|
+| TETAP Schedule::call(), BUKAN Schedule::command() — alasannya sama persis
+| dengan jadwal-jadwal di atas: hosting ini mematikan proc_open, dan
+| `queue:work` yang dipanggil lewat Artisan::call berjalan DI DALAM proses
+| yang sama, tanpa membuat proses baru.
+|
+| ============ PESAN YANG SUDAH MENUMPUK ============
+| Tidak perlu dibersihkan dengan tangan. SendWhatsAppNotification membuang
+| sendiri pesan yang umurnya lebih dari tiga jam — termasuk seluruh 120
+| pesan lama itu — jadi orang tua tidak akan menerima rentetan kabar dari
+| dua minggu lalu begitu jadwal ini mulai berjalan.
+| ===================================================
+*/
+Schedule::call(function () {
+    Artisan::call('queue:work', [
+        '--stop-when-empty' => true,
+        '--max-time' => 50,
+        '--tries' => 3,
+    ]);
+})
+    ->name('simagas-proses-antrean')
+    ->everyMinute()
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(5);
