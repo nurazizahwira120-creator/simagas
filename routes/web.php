@@ -6,6 +6,7 @@ use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\LaporanBulananController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\PanduanController;
+use App\Http\Controllers\LembarParafMengajarController;
 use App\Http\Controllers\RekapKbmController;
 use App\Http\Controllers\ValidasiRaporController;
 use App\Http\Controllers\RppController;
@@ -574,6 +575,18 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/rekap-kbm/unduh', [RekapKbmController::class, 'unduh'])
             ->name('rekap-kbm.unduh');
+
+        /*
+        | Lembar Paraf Guru Mengajar — cetakan A4 harian sebagai cadangan
+        | laporan mengajar. Hak aksesnya sama (kepsek + super_admin), jadi
+        | ikut closure ini. Saringannya (tanggal, urutan) lewat query string
+        | supaya tombol cetak cukup meneruskan URL yang sedang tampil.
+        */
+        Route::get('/lembar-paraf-mengajar', [LembarParafMengajarController::class, 'index'])
+            ->name('lembar-paraf');
+
+        Route::get('/lembar-paraf-mengajar/cetak', [LembarParafMengajarController::class, 'cetak'])
+            ->name('lembar-paraf.cetak');
     };
 
     // role:kepsek — hanya kepsek, TIDAK termasuk super_admin (lihat grup

@@ -70,13 +70,16 @@
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
-        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.rekap-kbm*', 'anak' => [
+        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.rekap-kbm*|.lembar-paraf*', 'anak' => [
             ['label' => 'Absensi Harian',       'icon' => 'clock',            'route' => '.laporan-harian',  'match' => '.laporan-harian'],
             ['label' => 'Rekap Bulanan Siswa',  'icon' => 'document-report',  'route' => '.laporan',         'match' => '.laporan'],
             // Acuannya JADWAL PELAJARAN, bukan siswa. Menjawab pertanyaan
             // yang tidak bisa dijawab butir mana pun di atas maupun di bawah:
             // jam & mata pelajaran mana yang paling banyak ditinggalkan.
             ['label' => 'Rekap KBM per Jadwal', 'icon' => 'calendar',         'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
+            // Lembar kertas harian untuk paraf manual guru — cadangan kalau
+            // catatan scan di sistem dipersoalkan.
+            ['label' => 'Lembar Paraf Mengajar', 'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
             // Arsip PDF hasil Cron Job — beda dari 'Rekap Bulanan Siswa' di
             // atas yang dihitung langsung saat halaman dibuka. Yang ini
             // berkas jadi, siap unduh & cetak, dan mencakup pegawai juga.
@@ -361,9 +364,10 @@
          | Selisih antara nomor 1 dan 2 persis yang dicari kepala sekolah:
          | anak yang masuk gerbang pagi lalu hilang di jam ketiga.
          */
-        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.rekap-kbm*|.laporan-bulanan*', 'anak' => [
+        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.rekap-kbm*|.laporan-bulanan*|.lembar-paraf*', 'anak' => [
             ['label' => 'Laporan & Rekapitulasi', 'icon' => 'document-report', 'route' => '.laporan',         'match' => '.laporan'],
             ['label' => 'Rekap KBM per Jadwal',   'icon' => 'calendar',        'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
+            ['label' => 'Lembar Paraf Mengajar',  'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
             ['label' => 'Laporan Bulanan (PDF)',  'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
         ]],
 
