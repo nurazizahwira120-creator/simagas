@@ -6,7 +6,7 @@
     <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold">Kelola Pegawai</h1>
-            <p class="text-sm text-brand-muted">{{ $daftarPegawai->total() }} pegawai terdaftar.</p>
+            <p class="text-sm text-brand-muted line-clamp-2">{{ $daftarPegawai->total() }} pegawai terdaftar.</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route($panelPrefix . '.pegawai.qr-semua') }}"

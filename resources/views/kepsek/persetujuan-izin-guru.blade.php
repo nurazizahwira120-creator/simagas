@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink dark:text-gray-100">Persetujuan Izin Guru</h1>
-        <p class="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted dark:text-brand-faint">
-            Pengajuan di halaman ini <strong>belum</strong> memengaruhi kehadiran siapa pun.
-            Kehadiran guru baru ditandai izin setelah Anda menekan Setujui.
+        <p class="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted dark:text-brand-faint line-clamp-2">
+            Kehadiran guru baru ditandai izin setelah Anda menekan <strong>Setujui</strong>.
         </p>
     </div>
 

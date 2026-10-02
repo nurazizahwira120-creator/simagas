@@ -6,7 +6,7 @@
     <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold">Kelola Kelas</h1>
-            <p class="text-sm text-brand-muted">Daftar kelas beserta wali kelas dan jumlah siswanya.</p>
+            <p class="text-sm text-brand-muted line-clamp-2">Daftar kelas beserta wali kelas dan jumlah siswanya.</p>
         </div>
         <a href="{{ route($panelPrefix . '.kelas.create') }}"
             class="inline-flex items-center gap-1.5 rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white shadow-soft hover:bg-brand-accent-dark">

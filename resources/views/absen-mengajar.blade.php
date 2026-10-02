@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Absen Mengajar (QR)</h1>
-        <p class="mt-1 text-sm text-brand-muted">
-            Scan stiker QR ruangan di meja guru setiap kali Anda masuk kelas.
-            Wajib sudah Absen Kehadiran pagi ini terlebih dahulu.
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">
+            Scan QR ruangan setiap masuk kelas. Wajib Absen Kehadiran pagi terlebih dahulu.
         </p>
     </div>
 

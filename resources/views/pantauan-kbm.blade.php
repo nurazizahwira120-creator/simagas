@@ -6,7 +6,7 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Pantauan KBM Harian</h1>
-        <p class="mt-1 text-sm text-brand-muted">
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">
             Kehadiran anak Anda per jam pelajaran hari ini, sesuai jurnal yang diisi guru
             di kelas.
         </p>

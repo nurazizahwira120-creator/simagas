@@ -6,10 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink dark:text-gray-100">Pengajuan Izin Guru</h1>
-        <p class="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted dark:text-brand-faint">
-            Saat Anda tidak masuk, ada satu kelas yang tetap datang dan menunggu.
-            Karena itu yang ditanyakan di sini bukan hanya alasannya, tapi juga
-            <strong>nasib kelasnya</strong>.
+        <p class="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted dark:text-brand-faint line-clamp-2">
+            Isi alasan izin beserta <strong>tugas untuk kelas</strong> yang Anda tinggalkan.
         </p>
     </div>
 

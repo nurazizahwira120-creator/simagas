@@ -5,7 +5,7 @@
 @section('content')
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Pengaturan</h1>
-        <p class="mt-1 text-sm text-brand-muted">Aturan waktu absensi, persetujuan akun baru, dan tahun ajaran aktif.</p>
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">Aturan waktu absensi, persetujuan akun baru, dan tahun ajaran aktif.</p>
     </div>
 
     @php

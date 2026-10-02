@@ -12,7 +12,7 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">Rapor Anak</h1>
-        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
+        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
             Nilai ditampilkan setelah rapor kelas disetujui dan diterbitkan Kepala Sekolah.
         </p>
     </div>

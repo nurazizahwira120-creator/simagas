@@ -5,8 +5,8 @@
 @section('content')
     <div class="mb-6">
         <h1 class="text-xl font-bold">Master Data</h1>
-        <p class="text-sm text-brand-muted">
-            Import massal dari Excel/CSV atau export data yang sudah ada, untuk Siswa, Pegawai, dan Kelas.
+        <p class="text-sm text-brand-muted line-clamp-2">
+            Import atau export data Siswa, Pegawai, dan Kelas lewat Excel/CSV.
         </p>
     </div>
 

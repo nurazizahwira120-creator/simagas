@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">Daftar Izin Pegawai</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Rekap pengajuan izin &amp; sakit yang dikirim pegawai. Halaman ini hanya
-            menampilkan data — tidak ada tombol yang mengubahnya.
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Rekap pengajuan izin &amp; sakit dari pegawai (hanya tampilan).
         </p>
     </div>
 

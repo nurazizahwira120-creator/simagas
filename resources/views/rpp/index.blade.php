@@ -7,8 +7,8 @@
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">RPP Saya</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Rencana Pelaksanaan Pembelajaran yang Anda unggah. Hanya Anda dan Kepala Sekolah yang bisa membukanya.
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                RPP yang Anda unggah. Hanya Anda dan Kepala Sekolah yang bisa membukanya.
             </p>
         </div>
 

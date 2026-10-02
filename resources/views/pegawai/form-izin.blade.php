@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">Pengajuan Izin</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Ajukan izin atau sakit untuk tanggal tertentu. Pengajuan langsung tercatat
-            di absensi Anda dan terbaca oleh Kepala Sekolah.
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Ajukan izin atau sakit. Langsung tercatat dan terbaca Kepala Sekolah.
         </p>
     </div>
 

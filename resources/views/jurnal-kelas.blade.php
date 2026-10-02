@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Jurnal &amp; Absen Kelas</h1>
-        <p class="mt-1 text-sm text-brand-muted">
-            Daftar hadir siswa untuk jam pelajaran yang sedang berlangsung. Terbuka
-            setelah Anda men-scan QR ruangan lewat menu Absen Mengajar.
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">
+            Daftar hadir siswa jam ini. Terbuka setelah scan QR ruangan di Absen Mengajar.
         </p>
     </div>
 

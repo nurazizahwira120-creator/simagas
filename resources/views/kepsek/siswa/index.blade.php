@@ -6,7 +6,7 @@
     <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold">Kelola Siswa</h1>
-            <p class="text-sm text-brand-muted">{{ $daftarSiswa->total() }} siswa terdaftar.</p>
+            <p class="text-sm text-brand-muted line-clamp-2">{{ $daftarSiswa->total() }} siswa terdaftar.</p>
         </div>
         <div class="flex gap-2">
             @if ($kelasFilter)

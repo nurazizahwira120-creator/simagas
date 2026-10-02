@@ -22,10 +22,8 @@
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">
             Lembar Paraf Guru Mengajar
         </h1>
-        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
-            Cetakan A4 harian untuk paraf manual guru, sebagai cadangan laporan mengajar bila catatan
-            di sistem tidak sesuai. Guru yang izinnya sudah disetujui otomatis tertulis
-            <strong>GURU IZIN</strong> pada kolom parafnya. Tanggal dan jam cetak tercantum di setiap halaman.
+        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Cetakan A4 harian untuk paraf guru. Guru berizin otomatis tertulis <strong>GURU IZIN</strong>.
         </p>
     </div>
 

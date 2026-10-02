@@ -17,7 +17,15 @@
     baru saja hilang. Menghapus satu notifikasi juga tidak menghilangkan data
     apa pun yang tidak bisa dilihat lagi di halaman Pengumuman.
 --}}
-<div class="relative"
+{{--
+    POSISI PANEL DI HP: pembungkus ini SENGAJA baru "relative" mulai layar
+    sm ke atas. Di HP, panel (absolute) jadi menempel ke <header> topbar
+    (sticky = elemen berposisi terdekat), sehingga bisa dibentangkan selebar
+    layar dengan jarak 12px kiri-kanan. Dulu panel w-80 ditambatkan ke
+    kanan tombol lonceng — yang di HP letaknya di tengah topbar — sehingga
+    sisi kirinya terpotong keluar layar.
+--}}
+<div class="sm:relative"
     x-data="{ buka: false }"
     x-on:simagas-tutup-dropdown.window="buka = false"
     x-on:click.outside="buka = false"
@@ -51,7 +59,7 @@
         x-transition:leave-start="opacity-100 translate-y-0"
         x-transition:leave-end="opacity-0 -translate-y-1"
         x-cloak
-        class="shadow-theme-lg absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 sm:w-96">
+        class="shadow-theme-lg absolute inset-x-3 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 sm:inset-x-auto sm:right-0 sm:top-auto sm:w-96">
 
         <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-800">
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">
@@ -80,7 +88,7 @@
             {{-- max-h + overflow: dengan 8 notifikasi panel ini bisa lebih
                  tinggi dari layar HP, dan panel yang menjulur ke luar layar
                  tidak bisa digulung sendiri. --}}
-            <ul class="custom-scrollbar max-h-96 divide-y divide-gray-200 overflow-y-auto dark:divide-gray-800">
+            <ul class="custom-scrollbar max-h-[60vh] divide-y divide-gray-200 overflow-y-auto sm:max-h-96 dark:divide-gray-800">
                 @foreach ($this->daftar as $n)
                     @php
                         $isi = $n->data;

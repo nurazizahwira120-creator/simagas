@@ -6,8 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Absen Radius</h1>
-        <p class="mt-1 text-sm text-brand-muted">
-            Catat kehadiran Anda dengan verifikasi lokasi. {{ now()->translatedFormat('l, d F Y') }}.
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">
+            Catat kehadiran dengan verifikasi lokasi &middot; {{ now()->translatedFormat('l, d F Y') }}
         </p>
     </div>
 

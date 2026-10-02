@@ -5,7 +5,7 @@
 @section('content')
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Pencarian Cepat</h1>
-        <p class="mt-1 text-sm text-brand-muted">
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">
             Cari siswa berdasarkan nama atau NIS. Hasil muncul seketika tanpa memuat ulang halaman.
         </p>
     </div>

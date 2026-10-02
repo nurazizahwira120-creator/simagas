@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">Kelola Pengumuman</h1>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Pengumuman langsung berbunyi di lonceng penerima (real-time), bisa diubah,
-            dihapus, dikirim ulang, dan sekaligus dikirim lewat WhatsApp bila gateway-nya aktif.
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Ubah, hapus, atau kirim ulang pengumuman ke lonceng dan WhatsApp.
         </p>
     </div>
 

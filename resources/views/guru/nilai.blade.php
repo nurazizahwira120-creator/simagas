@@ -6,9 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">Input Nilai Siswa</h1>
-        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
-            Pilih kelas dan mata pelajaran, lalu isi nilainya untuk seluruh siswa sekaligus.
-            Kolom yang dikosongkan berarti nilainya <em>belum ada</em> — bukan nol.
+        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Pilih kelas &amp; mapel, lalu isi nilai. Kolom kosong berarti <em>belum ada</em>, bukan nol.
         </p>
     </div>
 

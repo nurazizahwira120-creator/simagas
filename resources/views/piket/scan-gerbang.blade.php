@@ -6,10 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink dark:text-gray-100">Gerbang Sekolah</h1>
-        <p class="mt-1 max-w-3xl text-sm text-brand-muted dark:text-brand-faint">
-            Scan kartu siswa di sebelah kiri, catat izin yang masuk di sebelah kanan.
-            Keduanya di satu layar supaya kamera tidak perlu dimatikan saat ada wali murid
-            menyerahkan surat.
+        <p class="mt-1 max-w-3xl text-sm text-brand-muted dark:text-brand-faint line-clamp-2">
+            Scan kartu siswa dan catat izin dalam satu layar, tanpa mematikan kamera.
         </p>
     </div>
 

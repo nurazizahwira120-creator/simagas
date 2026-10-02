@@ -7,9 +7,8 @@
     <div class="mb-6 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Absensi Kedatangan</h1>
-            <p class="mt-1 text-sm text-brand-muted">
-                Hasil scan QR anak Anda di gerbang sekolah — status hari ini dan riwayat
-                bulan berjalan. Kehadiran per mata pelajaran ada di menu Pantauan KBM.
+            <p class="mt-1 text-sm text-brand-muted line-clamp-2">
+                Hasil scan anak Anda di gerbang: status hari ini dan riwayat bulan ini.
             </p>
         </div>
     </div>

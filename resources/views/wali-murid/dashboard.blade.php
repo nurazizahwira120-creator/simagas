@@ -14,7 +14,7 @@
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">
             Halo, {{ auth()->user()->name }}
         </h1>
-        <p class="mt-1 text-sm text-brand-muted">{{ now()->translatedFormat('l, d F Y') }}</p>
+        <p class="mt-1 text-sm text-brand-muted line-clamp-2">{{ now()->translatedFormat('l, d F Y') }}</p>
     </div>
 
     <div class="mx-auto w-full max-w-3xl">

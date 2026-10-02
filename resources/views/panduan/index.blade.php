@@ -259,9 +259,8 @@
         <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink dark:text-gray-100">
             Pusat Bantuan &amp; Panduan Penggunaan {{ config('sekolah.aplikasi') }}
         </h1>
-        <p class="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted dark:text-brand-faint">
-            Panduan dikelompokkan per peran. Tab yang terbuka sudah disesuaikan dengan akun Anda —
-            tab lain tetap bisa dibaca bila Anda perlu memahami pekerjaan rekan.
+        <p class="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted dark:text-brand-faint line-clamp-2">
+            Panduan per peran. Tab yang terbuka sudah disesuaikan dengan akun Anda.
         </p>
     </div>
 

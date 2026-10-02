@@ -6,10 +6,8 @@
 
     <div class="mb-6">
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">Persetujuan Rapor</h1>
-        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
-            Selama berstatus <strong>Draft</strong>, guru masih bisa mengubah nilai. Begitu diajukan,
-            nilainya terkunci. Setelah disetujui, rapor terbit dan barulah bisa dilihat wali murid —
-            sekaligus menetapkan <strong>Bintang Kelas</strong> secara otomatis.
+        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Rapor yang disetujui terbit untuk wali murid dan menetapkan <strong>Bintang Kelas</strong>.
         </p>
     </div>
 

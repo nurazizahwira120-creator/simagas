@@ -6,7 +6,7 @@
 
     <div class="mb-6 print:hidden">
         <h1 class="text-xl font-bold">Laporan Bulanan Kehadiran Pegawai</h1>
-        <p class="text-sm text-brand-muted">Rekap kehadiran per pegawai, bisa difilter per bulan dan per jabatan.</p>
+        <p class="text-sm text-brand-muted line-clamp-2">Rekap kehadiran per pegawai, bisa difilter per bulan dan per jabatan.</p>
     </div>
 
     {{-- Kop khusus cetak — hanya tampil saat print:block, disembunyikan di layar --}}

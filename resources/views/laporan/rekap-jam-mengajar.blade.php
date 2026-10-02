@@ -21,13 +21,8 @@
         <h1 class="text-2xl font-extrabold tracking-tight text-gray-800 dark:text-gray-100">
             Rekap Jam Mengajar Guru
         </h1>
-        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
-            Beban mengajar dihitung dalam <strong>jam pelajaran (JP)</strong>, bukan jumlah sesi. Setiap jadwal
-            bernilai panjangnya dibagi durasi 1 JP
-            @if ($data)
-                (saat ini <strong>{{ $data['durasi_jp'] }} menit</strong>, diatur di Pengaturan Sistem)
-            @endif
-            &mdash; jadi blok 4 JP dihitung 4, bukan 1.
+        <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+            Beban mengajar dalam <strong>jam pelajaran (JP)</strong>@if ($data), 1 JP = {{ $data['durasi_jp'] }} menit @endif &mdash; blok 4 JP dihitung 4.
         </p>
     </div>
 

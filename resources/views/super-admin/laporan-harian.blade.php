@@ -6,7 +6,7 @@
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4 print:hidden">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Laporan Absensi Harian</h1>
-            <p class="mt-1 text-sm text-brand-muted">Kehadiran siswa dan pegawai untuk satu tanggal.</p>
+            <p class="mt-1 text-sm text-brand-muted line-clamp-2">Kehadiran siswa dan pegawai untuk satu tanggal.</p>
         </div>
 
         <div class="flex flex-wrap items-end gap-2">

@@ -18,7 +18,7 @@
     <div class="mb-6 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Dashboard</h1>
-            <p class="mt-1 text-sm text-brand-muted">Kehadiran Anda hari ini dan riwayat terakhir.</p>
+            <p class="mt-1 text-sm text-brand-muted line-clamp-2">Kehadiran Anda hari ini dan riwayat terakhir.</p>
         </div>
     </div>
 

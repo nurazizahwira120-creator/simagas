@@ -6,7 +6,7 @@
     <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold">Kelola Pengguna</h1>
-            <p class="text-sm text-brand-muted">Akun kepala sekolah, wali kelas, wali murid, dan guru piket.</p>
+            <p class="text-sm text-brand-muted line-clamp-2">Akun kepala sekolah, wali kelas, wali murid, dan guru piket.</p>
         </div>
         <a href="{{ route($panelPrefix . '.users.create') }}"
             class="inline-flex items-center gap-1.5 rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white shadow-soft hover:bg-brand-accent-dark">

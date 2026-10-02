@@ -9,7 +9,7 @@
     <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold">Jadwal Pelajaran</h1>
-            <p class="text-sm text-brand-muted">{{ $totalJadwal }} slot jadwal ditampilkan.</p>
+            <p class="text-sm text-brand-muted line-clamp-2">{{ $totalJadwal }} slot jadwal ditampilkan.</p>
         </div>
         <a href="{{ route($panelPrefix . '.jadwal.create') }}"
             class="inline-flex items-center gap-1.5 rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white shadow-soft hover:bg-brand-accent-dark">
