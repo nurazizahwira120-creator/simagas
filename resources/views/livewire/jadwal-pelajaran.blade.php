@@ -8,6 +8,9 @@
 --}}
 <div class="space-y-5">
 
+    {{-- Satu objek untuk seluruh tabel: durasi JP dibaca sekali saja. --}}
+    @php $jp = app(\App\Services\JamPelajaran::class); @endphp
+
     {{-- ============ NOTIFIKASI JADWAL HARI INI (guru & wali kelas) ============
          Sengaja dipisah dari tabel: tabel menampilkan hari yang SEDANG DIPILIH
          di filter, sedangkan kotak ini selalu tentang HARI INI. Kalau guru
@@ -103,6 +106,7 @@
                             @endif
                             <td class="whitespace-nowrap py-3.5 pr-4 font-mono text-[13px] font-semibold text-brand-ink">
                                 {{ $item->rentangJam() }}
+                                <span class="ml-1 font-sans text-[11px] font-semibold text-brand-accent-text">{{ $jp->untukJadwal($item) }} JP</span>
                             </td>
                             <td class="py-3.5 pr-4 font-semibold text-brand-ink">
                                 {{ $item->mata_pelajaran }}

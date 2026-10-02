@@ -106,13 +106,54 @@
         </div>
     </div>
 
+    {{-- ============ PEMBANTU JAM PELAJARAN (JP) ============
+         Admin cukup mengisi jam mulai + jumlah JP, jam selesainya dihitung
+         otomatis dari durasi 1 JP di Pengaturan Sistem. Jam selesai tetap
+         bisa diketik manual — kolom "Jumlah JP" hanya pembantu dan TIDAK
+         ikut tersimpan (jumlah JP selalu dihitung ulang dari panjang jadwal,
+         lihat App\Services\JamPelajaran).
+
+         Ditulis dengan Alpine (ikut terbawa Livewire). Kalau Alpine gagal
+         dimuat, form tetap bekerja seperti semula: kedua kolom jam tetap
+         wajib diisi dan divalidasi server. --}}
+    @php $durasiJp = app(\App\Services\JamPelajaran::class)->durasiMenit(); @endphp
+
+    <div x-data="{
+            durasi: {{ $durasiJp }},
+            jp: '',
+            info: '',
+            menit(jam) {
+                if (! jam || jam.indexOf(':') < 0) return null;
+                const [j, m] = jam.split(':').map(Number);
+                return j * 60 + m;
+            },
+            segarkan() {
+                const a = this.menit(this.$refs.mulai.value);
+                const b = this.menit(this.$refs.selesai.value);
+                if (a === null || b === null || b <= a) { this.info = ''; return; }
+                const lama = b - a;
+                const jumlah = Math.max(1, Math.round(lama / this.durasi));
+                this.info = lama + ' menit = ' + jumlah + ' JP'
+                    + (lama % this.durasi ? ' (bukan kelipatan ' + this.durasi + ' menit)' : '');
+            },
+            terapkan() {
+                const a = this.menit(this.$refs.mulai.value);
+                const n = parseInt(this.jp, 10);
+                if (a === null || ! n || n < 1) return;
+                const akhir = a + n * this.durasi;
+                if (akhir >= 24 * 60) return;
+                this.$refs.selesai.value = String(Math.floor(akhir / 60)).padStart(2, '0') + ':' + String(akhir % 60).padStart(2, '0');
+                this.segarkan();
+            },
+        }" x-init="segarkan()" class="space-y-3">
+
     <div class="grid grid-cols-2 gap-3">
         <div>
             <label for="jam_mulai" class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-brand-muted">
                 <x-icon name="clock" class="h-3.5 w-3.5" />
                 Jam Mulai
             </label>
-            <input id="jam_mulai" name="jam_mulai" type="time" required
+            <input id="jam_mulai" name="jam_mulai" type="time" required x-ref="mulai" x-on:input="terapkan(); segarkan()" x-on:change="terapkan(); segarkan()"
                 value="{{ old('jam_mulai', isset($jadwal) ? $jadwal->jam_mulai->format('H:i') : '') }}"
                 class="w-full rounded-lg border border-brand-border px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/15">
         </div>
@@ -121,10 +162,28 @@
                 <x-icon name="clock" class="h-3.5 w-3.5" />
                 Jam Selesai
             </label>
-            <input id="jam_selesai" name="jam_selesai" type="time" required
+            <input id="jam_selesai" name="jam_selesai" type="time" required x-ref="selesai" x-on:input="jp = ''; segarkan()" x-on:change="jp = ''; segarkan()"
                 value="{{ old('jam_selesai', isset($jadwal) ? $jadwal->jam_selesai->format('H:i') : '') }}"
                 class="w-full rounded-lg border border-brand-border px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/15">
         </div>
+    </div>
+
+    <div class="flex flex-wrap items-end gap-3">
+        <div>
+            <label for="jumlah_jp" class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-brand-muted">
+                <x-icon name="hashtag" class="h-3.5 w-3.5" />
+                Jumlah JP <span class="font-normal text-brand-muted/70">(opsional, pengisi jam selesai)</span>
+            </label>
+            {{-- Tanpa atribut name: nilainya sengaja tidak ikut terkirim. --}}
+            <input id="jumlah_jp" type="number" min="1" max="12" step="1" inputmode="numeric"
+                x-model="jp" x-on:input="terapkan()" placeholder="mis. 2"
+                class="w-28 rounded-lg border border-brand-border px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/15">
+        </div>
+        <p class="pb-2 text-xs text-brand-muted">
+            1 JP = <strong>{{ $durasiJp }} menit</strong>
+            <span x-show="info" x-cloak> &middot; <span class="font-semibold text-brand-accent-text" x-text="info"></span></span>
+        </p>
+    </div>
     </div>
 
     <p class="flex items-start gap-1.5 rounded-lg bg-brand-surface-muted px-3 py-2 text-xs text-brand-muted">

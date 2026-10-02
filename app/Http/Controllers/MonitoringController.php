@@ -94,7 +94,9 @@ class MonitoringController extends Controller
              | Menyebut kolom yang tidak ada LOLOS diam-diam di SQLite tapi
              | membalas 500 di MySQL; lihat tests/Feature/KolomEagerLoadTest.
              */
-            ->with(['guru:id,nama', 'kelas:id,nama_kelas'])
+            // user_id ikut diambil: StatusBerhalanganGuru membutuhkannya
+            // untuk mencocokkan pengajuan izin (berkunci pada akun).
+            ->with(['guru:id,nama,user_id', 'kelas:id,nama_kelas'])
             ->where('hari', $hariIni->value)
             ->where('jam_mulai', '<=', $jamSekarang)
             ->where('jam_selesai', '>', $jamSekarang)
@@ -110,7 +112,10 @@ class MonitoringController extends Controller
             'ringkas' => [
                 'total' => count($baris),
                 'aman' => collect($baris)->where('status', 'aman')->count(),
-                'perhatian' => collect($baris)->where('status', 'perhatian')->count(),
+                // Kelas yang gurunya berhalangan ikut "Perlu dilihat" (bukan
+                // "Belum ada jurnal"): kelasnya butuh tindakan — memastikan
+                // ada pengganti — tapi gurunya tidak sedang mangkir.
+                'perhatian' => collect($baris)->whereIn('status', ['perhatian', 'berhalangan'])->count(),
                 'kosong' => collect($baris)->where('status', 'kosong')->count(),
             ],
             'toleransi' => self::TOLERANSI_MENIT,
@@ -174,7 +179,14 @@ class MonitoringController extends Controller
             )
             ->pluck('jumlah_bolos', 'jadwal_id');
 
-        return $jadwal->map(function (JadwalPelajaran $j) use ($sudahDiisi, $bolos, $sekarang) {
+        // Guru yang berhalangan hari ini. Kelasnya yang belum terisi diberi
+        // status sendiri ('berhalangan'), bukan 'kosong': yang perlu
+        // dilakukan kepala sekolah berbeda — bukan menegur gurunya, tetapi
+        // memastikan ada pengganti lewat halaman Kelas Pengganti.
+        $berhalangan = app(\App\Services\StatusBerhalanganGuru::class)
+            ->pada($jadwal->pluck('guru')->filter(), $sekarang);
+
+        return $jadwal->map(function (JadwalPelajaran $j) use ($sudahDiisi, $bolos, $sekarang, $berhalangan) {
             $terisi = $sudahDiisi->has($j->id);
             $jumlahBolos = (int) ($bolos[$j->id] ?? 0);
 
@@ -202,6 +214,11 @@ class MonitoringController extends Controller
                 $terisi && $jumlahBolos > 0 => 'perhatian',
                 $terisi => 'aman',
 
+                // Belum terisi dan gurunya berhalangan -> butuh pengganti.
+                // Diperiksa SEBELUM 'menunggu': kelas ini tidak akan pernah
+                // diisi gurunya sendiri, jadi menunggu tidak ada gunanya.
+                $j->guru_id && $berhalangan->has($j->guru_id) => 'berhalangan',
+
                 // Belum terisi tapi masih dalam masa toleransi — belum layak
                 // disebut kosong. Lihat catatan pada TOLERANSI_MENIT.
                 $menitBerjalan < self::TOLERANSI_MENIT => 'menunggu',
@@ -214,6 +231,7 @@ class MonitoringController extends Controller
                 'status' => $status,
                 'jumlah_bolos' => $jumlahBolos,
                 'menit_berjalan' => $menitBerjalan,
+                'berhalangan' => $j->guru_id ? $berhalangan->get($j->guru_id) : null,
                 'gaya' => $this->gaya($status),
             ];
         })->all();
@@ -245,6 +263,13 @@ class MonitoringController extends Controller
                 'chip' => 'border-amber-300 bg-amber-500/10 text-amber-700 dark:text-amber-400',
                 'ikon' => 'exclamation-triangle',
                 'label' => 'Ada siswa tidak hadir',
+            ],
+            'berhalangan' => [
+                'kartu' => 'border-amber-300 dark:border-amber-500/40',
+                'pita' => 'bg-amber-500',
+                'chip' => 'border-amber-300 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+                'ikon' => 'swap',
+                'label' => 'Guru berhalangan',
             ],
             'menunggu' => [
                 'kartu' => 'border-gray-200 dark:border-gray-800',

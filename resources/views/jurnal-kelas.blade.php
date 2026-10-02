@@ -18,3 +18,8 @@
     <livewire:guru.jurnal-absen-kelas />
 
 @endsection
+
+{{-- Pemampat foto bukti di browser (dipakai komponen di atas). --}}
+@push('scripts')
+    @include('partials.pemampat-foto')
+@endpush

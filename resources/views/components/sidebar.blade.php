@@ -70,7 +70,7 @@
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
-        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.rekap-kbm*|.lembar-paraf*', 'anak' => [
+        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.rekap-kbm*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
             ['label' => 'Absensi Harian',       'icon' => 'clock',            'route' => '.laporan-harian',  'match' => '.laporan-harian'],
             ['label' => 'Rekap Bulanan Siswa',  'icon' => 'document-report',  'route' => '.laporan',         'match' => '.laporan'],
             // Acuannya JADWAL PELAJARAN, bukan siswa. Menjawab pertanyaan
@@ -80,6 +80,8 @@
             // Lembar kertas harian untuk paraf manual guru — cadangan kalau
             // catatan scan di sistem dipersoalkan.
             ['label' => 'Lembar Paraf Mengajar', 'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
+            // Beban mengajar guru dalam JAM PELAJARAN (JP), bukan jumlah sesi.
+            ['label' => 'Rekap Jam Mengajar',   'icon' => 'clock',           'route' => '.rekap-jam-mengajar', 'match' => '.rekap-jam-mengajar*'],
             // Arsip PDF hasil Cron Job — beda dari 'Rekap Bulanan Siswa' di
             // atas yang dihitung langsung saat halaman dibuka. Yang ini
             // berkas jadi, siap unduh & cetak, dan mencakup pegawai juga.
@@ -184,6 +186,10 @@
     // berlangsung (aturannya ditegakkan di dalam komponennya, bukan di menu).
     $butirJurnal = ['label' => 'Jurnal & Absen Kelas', 'icon' => 'clipboard-check', 'route' => '.jurnal-kelas', 'match' => '.jurnal-kelas'];
 
+    // Kelas Pengganti — absensi KBM kelas yang gurunya berhalangan. Diisi
+    // guru lain / wali kelas / kepsek / guru piket TANPA scan QR ruangan.
+    $butirKelasPengganti = ['label' => 'Kelas Pengganti', 'icon' => 'swap', 'route' => '.kelas-pengganti', 'match' => '.kelas-pengganti'];
+
     // Label jadwal dibedakan per peran walau rutenya sama: bagi guru isinya
     // memang jadwal mengajarnya sendiri, sedangkan bagi staff & wali murid
     // isinya jadwal orang lain — menyebutnya "Jadwal Mengajar" di sana akan
@@ -235,6 +241,7 @@
         $butirIzinGuru,
         $butirAbsenAjar,
         $butirJurnal,
+        $butirKelasPengganti,
         $butirInputNilai,
         $butirValidasiRapor,
         $butirJadwalMengajar,
@@ -312,11 +319,12 @@
          | menekan Absen Mengajar, ditolak, dan tidak punya satu pun menu
          | untuk memenuhi syaratnya.
          */
-        ['label' => 'Kegiatan Mengajar', 'icon' => 'academic-cap', 'match' => '.jadwal-pelajaran|.absen-lokasi|.absen-mengajar|.jurnal-kelas', 'anak' => [
+        ['label' => 'Kegiatan Mengajar', 'icon' => 'academic-cap', 'match' => '.jadwal-pelajaran|.absen-lokasi|.absen-mengajar|.jurnal-kelas|.kelas-pengganti', 'anak' => [
             $butirJadwalPelajaran,
             $butirAbsenHadir,
             $butirAbsenAjar,
             $butirJurnal,
+            $butirKelasPengganti,
         ]],
 
         /*
@@ -364,10 +372,11 @@
          | Selisih antara nomor 1 dan 2 persis yang dicari kepala sekolah:
          | anak yang masuk gerbang pagi lalu hilang di jam ketiga.
          */
-        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.rekap-kbm*|.laporan-bulanan*|.lembar-paraf*', 'anak' => [
+        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.rekap-kbm*|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
             ['label' => 'Laporan & Rekapitulasi', 'icon' => 'document-report', 'route' => '.laporan',         'match' => '.laporan'],
             ['label' => 'Rekap KBM per Jadwal',   'icon' => 'calendar',        'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
             ['label' => 'Lembar Paraf Mengajar',  'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
+            ['label' => 'Rekap Jam Mengajar',     'icon' => 'clock',           'route' => '.rekap-jam-mengajar', 'match' => '.rekap-jam-mengajar*'],
             ['label' => 'Laporan Bulanan (PDF)',  'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
         ]],
 
@@ -415,6 +424,7 @@
         $butirIzinGuru,
         $butirAbsenAjar,
         $butirJurnal,
+        $butirKelasPengganti,
         $butirGerbang,
         $butirJadwalPelajaran,
         $butirEkskul,

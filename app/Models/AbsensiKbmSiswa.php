@@ -25,6 +25,10 @@ class AbsensiKbmSiswa extends Model
         'tanggal',
         'status',
         'keterangan',
+
+        // Akun yang mengisi (users.id). NULL pada data lama = diisi guru
+        // jadwalnya sendiri. Lihat migration 000040.
+        'diisi_oleh',
     ];
 
     protected function casts(): array
@@ -43,5 +47,11 @@ class AbsensiKbmSiswa extends Model
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(Siswa::class, 'siswa_id');
+    }
+
+    /** Akun yang mengisi absensi ini — guru jadwalnya, atau pengganti. */
+    public function pengisi(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diisi_oleh');
     }
 }

@@ -37,6 +37,14 @@ class SettingController extends Controller
         'jam_pulang_siswa' => \App\Services\KalenderAkademik::JAM_PULANG_BAWAAN,
         'jam_masuk_pegawai' => '06:45',
         'batas_terlambat_pegawai' => '07:00',
+
+        /*
+         | Durasi 1 jam pelajaran (menit). Dasar hitungan JP di laporan beban
+         | mengajar guru. Dibaca pemakainya lewat App\Services\JamPelajaran,
+         | yang juga memegang nilai bawaan & rentang sahnya — sama seperti
+         | jam_pulang_siswa di atas.
+         */
+        \App\Services\JamPelajaran::KUNCI => \App\Services\JamPelajaran::BAWAAN,
     ];
 
     /**
@@ -125,6 +133,8 @@ class SettingController extends Controller
         $request->merge(
             collect(self::KUNCI_WAKTU)
                 ->keys()
+                // Durasi JP berupa angka menit, bukan jam — tidak ikut dipangkas.
+                ->reject(fn ($kunci) => $kunci === \App\Services\JamPelajaran::KUNCI)
                 ->mapWithKeys(fn ($kunci) => [
                     $kunci => Str::substr((string) $request->input($kunci), 0, 5),
                 ])
@@ -155,7 +165,15 @@ class SettingController extends Controller
             'hari_kbm.*' => ['required', 'string', Rule::in(array_column(Hari::cases(), 'value'))],
             'jam_masuk_pegawai' => ['required', 'date_format:H:i'],
             'batas_terlambat_pegawai' => ['required', 'date_format:H:i', 'after_or_equal:jam_masuk_pegawai'],
+
+            'durasi_jp' => [
+                'required', 'integer',
+                'between:' . \App\Services\JamPelajaran::MIN . ',' . \App\Services\JamPelajaran::MAKS,
+            ],
         ], [
+            'durasi_jp.between' => 'Durasi 1 jam pelajaran harus antara ' . \App\Services\JamPelajaran::MIN
+                . ' dan ' . \App\Services\JamPelajaran::MAKS . ' menit.',
+            'durasi_jp.integer' => 'Durasi 1 jam pelajaran ditulis dalam menit, angka bulat (mis. 35).',
             'batas_terlambat_siswa.after_or_equal' => 'Batas terlambat siswa tidak boleh lebih awal daripada jam masuknya.',
             'batas_terlambat_pegawai.after_or_equal' => 'Batas terlambat guru/staff tidak boleh lebih awal daripada jam masuknya.',
             'jam_pulang_siswa.after' => 'Jam pulang harus lebih lambat daripada batas terlambat siswa. Sistem memakai jam ini sebagai batas penandaan alpa otomatis.',

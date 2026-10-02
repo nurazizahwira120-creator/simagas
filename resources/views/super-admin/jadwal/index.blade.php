@@ -3,6 +3,9 @@
 @section('title', 'Jadwal Pelajaran')
 
 @section('content')
+    {{-- Satu objek untuk seluruh tabel: durasi JP dibaca sekali saja. --}}
+    @php $jp = app(\App\Services\JamPelajaran::class); @endphp
+
     <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold">Jadwal Pelajaran</h1>
@@ -105,6 +108,14 @@
                                     <tr class="hover:bg-brand-surface-muted/60">
                                         <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-brand-muted">
                                             {{ $item->rentangJam() }}
+                                            {{-- Jumlah JP dihitung dari panjang jadwal ÷ durasi 1 JP
+                                                 (Pengaturan Sistem). Tanda "≠" menandai jadwal yang
+                                                 panjangnya bukan kelipatan durasi JP — tetap sah dan
+                                                 tetap dihitung, hanya perlu ditinjau. --}}
+                                            <span class="mt-0.5 block font-sans text-[11px] font-semibold {{ $jp->pas($item) ? 'text-brand-accent-text' : 'text-warning-500' }}"
+                                                @unless ($jp->pas($item)) title="Panjang jadwal {{ $jp->menitJadwal($item) }} menit bukan kelipatan {{ $jp->durasiMenit() }} menit" @endunless>
+                                                {{ $jp->untukJadwal($item) }} JP @unless ($jp->pas($item))≠ @endunless
+                                            </span>
                                         </td>
                                         <td class="px-4 py-3 font-medium">{{ $item->mata_pelajaran }}</td>
                                         <td class="px-4 py-3">

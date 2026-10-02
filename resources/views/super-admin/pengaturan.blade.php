@@ -158,6 +158,37 @@
                 </div>
             </fieldset>
 
+            {{-- ================= DURASI JAM PELAJARAN (JP) =================
+                 Satu-satunya tempat durasi 1 JP diatur. Seluruh hitungan beban
+                 mengajar (Rekap Jam Mengajar Guru, Laporan Bulanan) membaca
+                 nilai ini lewat App\Services\JamPelajaran. --}}
+            <fieldset class="mt-6 rounded-2xl bg-brand-surface-muted p-4">
+                <legend class="px-1 text-xs font-bold uppercase tracking-wide text-brand-faint">Jam Pelajaran (JP)</legend>
+
+                <div class="mt-2 flex flex-wrap items-end gap-4">
+                    <div>
+                        <label for="durasi_jp" class="mb-1.5 block text-xs font-semibold text-brand-muted">Durasi 1 JP</label>
+                        <div class="flex items-center gap-2">
+                            <input id="durasi_jp" name="durasi_jp" type="number" required inputmode="numeric"
+                                min="{{ \App\Services\JamPelajaran::MIN }}" max="{{ \App\Services\JamPelajaran::MAKS }}" step="1"
+                                value="{{ old('durasi_jp', $waktu['durasi_jp']) }}"
+                                class="w-28 rounded-xl border-0 bg-brand-surface px-3.5 py-2.5 text-sm text-brand-ink ring-1 ring-brand-border focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <span class="text-sm text-brand-muted">menit</span>
+                        </div>
+                        @error('durasi_jp')
+                            <p class="mt-1.5 text-xs font-semibold text-error-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <p class="min-w-0 flex-1 text-xs leading-relaxed text-brand-muted">
+                        Bawaan <strong>{{ \App\Services\JamPelajaran::BAWAAN }} menit</strong>. Jumlah JP setiap jadwal
+                        dihitung dari panjang jadwalnya dibagi angka ini, dibulatkan ke terdekat
+                        (mis. 07.00&ndash;08.10 = 70 menit = 2 JP). Ubah bila jam pelajaran sekolah berubah,
+                        misalnya saat bulan Ramadan &mdash; laporan langsung mengikuti tanpa perlu mengubah jadwal.
+                    </p>
+                </div>
+            </fieldset>
+
             <button type="submit"
                 class="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand-500/25 transition-colors hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 motion-reduce:transition-none">
                 <x-icon name="check-circle" class="h-5 w-5" />

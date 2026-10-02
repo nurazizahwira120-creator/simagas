@@ -2,12 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\AbsensiStatus;
 use App\Enums\UserRole;
 use App\Models\AbsensiMengajar;
-use App\Models\AbsensiPegawai;
 use App\Models\JadwalPelajaran;
-use App\Models\PengajuanIzinGuru;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -67,6 +64,7 @@ class LembarParafMengajar
     public function __construct(
         private readonly PencocokSesiMengajar $pencocok,
         private readonly KalenderAkademik $kalender,
+        private readonly StatusBerhalanganGuru $berhalangan,
     ) {
     }
 
@@ -101,12 +99,15 @@ class LembarParafMengajar
             );
         }
 
-        $idPegawai = $jadwal->pluck('guru_id')->filter()->unique()->values()->all();
         $idAkun = $jadwal->pluck('guru.user_id')->filter()->unique()->values()->all();
 
-        $izinDisetujui = $this->izinDisetujui($idAkun, $tanggal);
-        $izinMenunggu = $this->izinMenunggu($idAkun, $tanggal);
-        $absensiHarian = $this->absensiHarian($idPegawai, $tanggal);
+        // Aturan "berhalangan" dipusatkan di StatusBerhalanganGuru supaya
+        // lembar ini, halaman Kelas Pengganti, dan Live Monitoring selalu
+        // sepakat. Daftar gurunya diambil dari eager load di atas, jadi
+        // tidak ada query tambahan per guru.
+        $daftarGuru = $jadwal->pluck('guru')->filter();
+        $berhalangan = $this->berhalangan->pada($daftarGuru, $tanggal);
+        $izinMenunggu = $this->berhalangan->menunggu($daftarGuru, $tanggal);
         $sesiPerGuru = $this->sesiMengajar($idAkun, $tanggal);
 
         $sekarang = now();
@@ -117,7 +118,7 @@ class LembarParafMengajar
         $sesiDipakai = [];
 
         $baris = $jadwal->map(function (JadwalPelajaran $j) use (
-            $tanggal, $sekarang, $izinDisetujui, $izinMenunggu, $absensiHarian, $sesiPerGuru, &$sesiDipakai
+            $tanggal, $sekarang, $berhalangan, $izinMenunggu, $sesiPerGuru, &$sesiDipakai
         ) {
             $akun = $j->guru?->user_id;
 
@@ -138,11 +139,8 @@ class LembarParafMengajar
                 'ruangan' => $j->ruangan ?: null,
                 'guru' => $j->guru?->nama ?? '(guru belum diatur)',
                 'nip' => $j->guru?->nip ?: null,
-                'izin' => $this->keadaanIzin(
-                    $akun ? $izinDisetujui->get($akun) : null,
-                    $j->guru_id ? $absensiHarian->get($j->guru_id) : null,
-                ),
-                'izin_menunggu' => $akun !== null && $izinMenunggu->has($akun),
+                'izin' => $this->keadaanIzin($j->guru_id ? $berhalangan->get($j->guru_id) : null),
+                'izin_menunggu' => $j->guru_id !== null && $izinMenunggu->has($j->guru_id),
                 'sistem' => $this->catatanSistem($sesi, $j, $tanggal, $sekarang),
             ];
         });
@@ -207,65 +205,6 @@ class LembarParafMengajar
 
     /* ===================== PENGAMBILAN DATA (jumlah query tetap) ===================== */
 
-    /** @return Collection<int, PengajuanIzinGuru> dikunci users.id */
-    private function izinDisetujui(array $idAkun, Carbon $tanggal): Collection
-    {
-        if ($idAkun === []) {
-            return collect();
-        }
-
-        // orderBy id naik + keyBy: kalau ada dua pengajuan yang tumpang
-        // tindih, yang TERBARU menimpa yang lama.
-        return PengajuanIzinGuru::query()
-            ->berlakuPada($tanggal->toDateString())
-            ->whereIn('guru_id', $idAkun)
-            ->orderBy('id')
-            ->get(['id', 'guru_id', 'jenis_izin', 'tanggal_mulai', 'tanggal_selesai'])
-            ->keyBy('guru_id');
-    }
-
-    /** @return Collection<int, PengajuanIzinGuru> dikunci users.id */
-    private function izinMenunggu(array $idAkun, Carbon $tanggal): Collection
-    {
-        if ($idAkun === []) {
-            return collect();
-        }
-
-        return PengajuanIzinGuru::query()
-            ->menunggu()
-            ->whereIn('guru_id', $idAkun)
-            ->whereDate('tanggal_mulai', '<=', $tanggal->toDateString())
-            ->whereDate('tanggal_selesai', '>=', $tanggal->toDateString())
-            ->get(['id', 'guru_id'])
-            ->keyBy('guru_id');
-    }
-
-    /**
-     * Absensi harian pegawai pada tanggal itu.
-     *
-     * Dibaca SELAIN pengajuan izin guru karena izin juga bisa tercatat lewat
-     * jalur lain (form izin/sakit pegawai). Tanpa ini, guru yang sakit dan
-     * sudah tercatat sakit di absensi hariannya tetap tercetak dengan kolom
-     * paraf kosong seolah ia mangkir.
-     *
-     * whereDate(), bukan where(): kolom `tanggal` tersimpan sebagai
-     * '2026-09-13 00:00:00' — lihat catatan panjang di PenerapIzinGuru.
-     *
-     * @return Collection<int, AbsensiPegawai> dikunci pegawai.id
-     */
-    private function absensiHarian(array $idPegawai, Carbon $tanggal): Collection
-    {
-        if ($idPegawai === []) {
-            return collect();
-        }
-
-        return AbsensiPegawai::query()
-            ->whereIn('pegawai_id', $idPegawai)
-            ->whereDate('tanggal', $tanggal->toDateString())
-            ->get(['id', 'pegawai_id', 'status'])
-            ->keyBy('pegawai_id');
-    }
-
     /** @return Collection<int, Collection<int, AbsensiMengajar>> dikelompokkan per users.id */
     private function sesiMengajar(array $idAkun, Carbon $tanggal): Collection
     {
@@ -299,29 +238,24 @@ class LembarParafMengajar
     /* ===================== ATURAN PER BARIS ===================== */
 
     /**
-     * Isi kolom paraf untuk guru yang tidak hadir secara sah — atau null
+     * Isi kolom paraf untuk guru yang tidak hadir secara SAH — atau null
      * kalau kolomnya harus dibiarkan kosong untuk ditandatangani.
      *
-     * Pengajuan izin guru didahulukan karena membawa jenisnya (ITT/IDT),
-     * yang penting bagi guru piket: IDT berarti ada tugas yang harus
-     * dibagikan ke kelas.
+     * Hanya keadaan yang sah (izin disetujui, izin/sakit di absensi harian)
+     * yang dicetak. Guru ALPA sengaja tidak: mencetak "GURU ALPA" di kolom
+     * paraf akan membuatnya terlihat seperti keterangan resmi, dan kolom itu
+     * tetap harus kosong sebagai bukti tidak ada paraf.
      *
+     * @param  array{label:string, rinci:string|null, sah:bool}|null  $keadaan
      * @return array{label: string, rinci: string|null}|null
      */
-    private function keadaanIzin(?PengajuanIzinGuru $pengajuan, ?AbsensiPegawai $harian): ?array
+    private function keadaanIzin(?array $keadaan): ?array
     {
-        if ($pengajuan) {
-            return [
-                'label' => 'GURU IZIN',
-                'rinci' => $pengajuan->jenis_izin->label(),
-            ];
+        if (! $keadaan || ! $keadaan['sah']) {
+            return null;
         }
 
-        return match ($harian?->status) {
-            AbsensiStatus::Izin => ['label' => 'GURU IZIN', 'rinci' => null],
-            AbsensiStatus::Sakit => ['label' => 'GURU SAKIT', 'rinci' => null],
-            default => null,
-        };
+        return ['label' => $keadaan['label'], 'rinci' => $keadaan['rinci']];
     }
 
     /**

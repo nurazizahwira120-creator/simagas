@@ -99,8 +99,10 @@
             </td>
             <td width="17%" style="padding-right:6px;">
                 <div class="kartu">
-                    <div class="angka">{{ number_format($ringkas['total_sesi_mengajar'], 0, ',', '.') }}</div>
-                    <div class="label">Sesi KBM tervalidasi</div>
+                    {{-- Laporan lama (dibuat sebelum hitungan JP) tidak punya
+                         kunci total_jp_*; dirender ulang pun tetap aman. --}}
+                    <div class="angka">{{ number_format($ringkas['total_jp_terlaksana'] ?? 0, 0, ',', '.') }}<span style="font-size:9px;"> / {{ number_format($ringkas['total_jp_terjadwal'] ?? 0, 0, ',', '.') }} JP</span></div>
+                    <div class="label">JP mengajar terlaksana</div>
                 </div>
             </td>
             <td width="16%" style="padding-right:6px;">
@@ -138,7 +140,7 @@
                     <th width="7%" class="tengah">Izin</th>
                     <th width="7%" class="tengah">Sakit</th>
                     <th width="7%" class="tengah">Alpa</th>
-                    <th width="8%" class="tengah">Sesi KBM</th>
+                    <th width="8%" class="tengah">JP Ajar</th>
                     <th width="8%" class="tengah">%</th>
                 </tr>
             </thead>
@@ -153,7 +155,15 @@
                         <td class="tengah">{{ $p['izin'] }}</td>
                         <td class="tengah">{{ $p['sakit'] }}</td>
                         <td class="tengah {{ $p['alpha'] > 0 ? 'merah' : '' }}">{{ $p['alpha'] }}</td>
-                        <td class="tengah">{{ $p['sesi_mengajar'] }}</td>
+                        {{-- terlaksana / terjadwal. Strip untuk pegawai tanpa jadwal
+                             (staf TU, satpam) — "0/0" terbaca seperti guru yang mangkir. --}}
+                        <td class="tengah">
+                            @if (($p['jp_terjadwal'] ?? 0) > 0 || ($p['jp_terlaksana'] ?? 0) > 0)
+                                {{ $p['jp_terlaksana'] }}/{{ $p['jp_terjadwal'] }}
+                            @else
+                                &mdash;
+                            @endif
+                        </td>
                         <td class="tengah">{{ $p['persen'] === null ? '—' : $p['persen'] . '%' }}</td>
                     </tr>
                 @endforeach
@@ -257,13 +267,13 @@
 
     <div class="kaki">
         <strong>Cara membaca angka di laporan ini:</strong><br>
-        &bull; <strong>Hari kerja</strong> dihitung sebagai seluruh hari Senin&ndash;Sabtu dalam bulan ini.
-        Hari libur nasional dan libur sekolah <strong>belum dikecualikan</strong>, karena sistem belum
-        memiliki kalender akademik. Persentase pada bulan yang banyak liburnya karena itu akan
-        tampak lebih rendah daripada keadaan sebenarnya.<br>
-        &bull; <strong>Sesi KBM tervalidasi</strong> adalah sesi mengajar yang lengkap: guru sudah absen
-        kedatangan, sudah men-scan QR ruangan, sudah mengunggah foto bukti, dan sudah menutup sesinya.
-        Sesi yang hanya di-scan lalu ditinggalkan tidak ikut dihitung.<br>
+        &bull; <strong>Hari kerja</strong> dihitung dari hari KBM mingguan di Pengaturan Sistem, dikurangi
+        libur yang tercatat di Kalender Pendidikan.<br>
+        &bull; <strong>JP Ajar</strong> ditulis <em>terlaksana/terjadwal</em> dalam jam pelajaran
+        (1 JP = {{ $ringkas['durasi_jp'] ?? 35 }} menit). JP terlaksana hanya dihitung dari sesi mengajar yang
+        lengkap: guru sudah men-scan QR ruangan, mengunggah foto bukti, dan menutup sesinya &mdash; nilainya
+        mengikuti panjang jadwal, jadi blok 4 JP dihitung 4, bukan 1. Rincian per guru (termasuk JP
+        berhalangan dan JP pengganti) ada di menu <strong>Rekap Jam Mengajar</strong>.<br>
         &bull; <strong>Bolos</strong> adalah siswa yang tercatat masuk gerbang pada pagi harinya namun
         ditandai tidak hadir oleh guru di jam pelajaran &mdash; berbeda dari <strong>Alpa</strong>, yang
         berarti tidak hadir sejak dari rumah.<br>

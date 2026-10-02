@@ -184,6 +184,22 @@
                             <p class="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
                                 Jurnal sudah diisi &mdash; ada {{ $b['jumlah_bolos'] }} siswa berstatus alpa atau bolos.
                             </p>
+                        @elseif ($b['status'] === 'berhalangan')
+                            {{-- Bukan kelas mangkir: gurunya tercatat berhalangan.
+                                 Tindakannya memastikan ada pengganti yang mengisi
+                                 absensi lewat halaman Kelas Pengganti. --}}
+                            <p class="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
+                                {{ $b['berhalangan']['label'] ?? 'Guru berhalangan' }}
+                                @if (! empty($b['berhalangan']['rinci']))
+                                    ({{ $b['berhalangan']['rinci'] }})
+                                @endif
+                                &mdash; absensi siswa belum diisi pengganti.
+                                @if (Route::has($panelPrefix . '.kelas-pengganti'))
+                                    {{-- relative z-20: kartu ini ditutup tombol tembus pandang z-10
+                                         (lihat catatan di atas), tautan harus berada di atasnya. --}}
+                                    <a href="{{ route($panelPrefix . '.kelas-pengganti') }}" class="relative z-20 font-semibold underline">Buka Kelas Pengganti</a>
+                                @endif
+                            </p>
                         @elseif ($b['status'] === 'menunggu')
                             <p class="mt-4 rounded-lg bg-brand-surface-muted px-3 py-2 text-xs leading-relaxed text-brand-muted">
                                 Baru dimulai. Belum dihitung terlambat sebelum {{ $toleransi }} menit.

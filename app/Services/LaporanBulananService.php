@@ -6,6 +6,7 @@ use App\Enums\AbsensiStatus;
 use App\Enums\StatusKbm;
 use App\Models\AbsensiKbmSiswa;
 use App\Models\AbsensiMengajar;
+use Illuminate\Support\Carbon;
 use App\Models\AbsensiPegawai;
 use App\Models\AbsensiSiswa;
 use App\Models\MonthlyReport;
@@ -83,7 +84,15 @@ class LaporanBulananService
             ->whereNotNull('user_id')
             ->pluck('user_id', 'id');
 
-        $barisPegawai = $pegawai->map(function (Pegawai $p) use ($absensiPegawai, $sesiMengajar, $userIdPegawai, $hariKerja) {
+        // Beban mengajar dalam JAM PELAJARAN (JP) — menggantikan hitungan
+        // "Sesi KBM" sebagai angka utama. Satu sesi blok 4 JP kini bernilai
+        // 4, bukan 1. Aturannya (durasi JP, sesi tuntas, hari KBM) satu
+        // sumber dengan halaman Rekap Jam Mengajar Guru.
+        $jamMengajar = collect(
+            app(RekapJamMengajar::class)->hitung(Carbon::parse($awal), Carbon::parse($akhir))['baris']
+        )->keyBy('pegawai_id');
+
+        $barisPegawai = $pegawai->map(function (Pegawai $p) use ($absensiPegawai, $sesiMengajar, $userIdPegawai, $hariKerja, $jamMengajar) {
             $milik = $absensiPegawai->get($p->id, collect());
             $hitung = $milik->countBy(fn ($a) => $a->status instanceof AbsensiStatus ? $a->status->value : (string) $a->status);
 
@@ -99,6 +108,9 @@ class LaporanBulananService
                 'sakit' => (int) $hitung->get(AbsensiStatus::Sakit->value, 0),
                 'alpha' => (int) $hitung->get(AbsensiStatus::Alpha->value, 0),
                 'sesi_mengajar' => $userId ? (int) $sesiMengajar->get($userId, 0) : 0,
+                'jp_terjadwal' => (int) ($jamMengajar[$p->id]['jp_terjadwal'] ?? 0),
+                'jp_terlaksana' => (int) ($jamMengajar[$p->id]['jp_terlaksana'] ?? 0),
+                'persen_jp' => $jamMengajar[$p->id]['persen'] ?? null,
                 'persen' => $hariKerja > 0 ? round($hadir / $hariKerja * 100, 1) : null,
             ];
         })->all();
@@ -166,6 +178,9 @@ class LaporanBulananService
                 'kehadiran_pegawai' => array_sum(array_column($barisPegawai, 'hadir')),
                 'kehadiran_siswa' => array_sum(array_column($barisSiswa, 'hadir')),
                 'total_sesi_mengajar' => array_sum(array_column($barisPegawai, 'sesi_mengajar')),
+                'total_jp_terjadwal' => array_sum(array_column($barisPegawai, 'jp_terjadwal')),
+                'total_jp_terlaksana' => array_sum(array_column($barisPegawai, 'jp_terlaksana')),
+                'durasi_jp' => app(JamPelajaran::class)->durasiMenit(),
                 'total_bolos' => array_sum(array_column($barisSiswa, 'bolos')),
                 'jumlah_mapel' => count($kbmMapel),
                 'total_pertemuan_kbm' => array_sum(array_column($kbmMapel, 'pertemuan')),
