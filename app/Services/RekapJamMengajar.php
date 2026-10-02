@@ -51,7 +51,7 @@ use RuntimeException;
  */
 class RekapJamMengajar
 {
-    /** Rentang terpanjang sekali tarik — sama dengan Rekap KBM per Jadwal. */
+    /** Rentang terpanjang sekali tarik — lebih dari ini berisiko timeout di hosting bersama. */
     public const MAKS_HARI = 400;
 
     public function __construct(

@@ -8,7 +8,6 @@ use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\PanduanController;
 use App\Http\Controllers\LembarParafMengajarController;
 use App\Http\Controllers\RekapJamMengajarController;
-use App\Http\Controllers\RekapKbmController;
 use App\Http\Controllers\ValidasiRaporController;
 use App\Http\Controllers\RppController;
 use App\Http\Controllers\Auth\AuthController;
@@ -570,22 +569,11 @@ Route::middleware('auth')->group(function () {
             ->name('laporan-bulanan.unduh');
 
         /*
-        | Rekap KBM per Jadwal — ditumpangkan pada closure yang sama karena
-        | hak aksesnya persis sama (kepsek + super_admin) dan keduanya berada
-        | di kelompok menu "Pusat Laporan". Closure terpisah hanya akan
-        | menambah satu nama variabel yang harus diingat untuk di-`use` di dua
-        | grup rute di bawah.
-        |
-        | Rute unduhnya TANPA parameter jalur: seluruh saringannya (periode,
-        | kelas, mapel, guru) dibawa sebagai query string, sama persis dengan
-        | yang ada di URL halaman. Itu yang membuat tombol "Unduh PDF" cukup
-        | meneruskan saringan yang sedang tampil, tanpa jalur pembentukan data
-        | kedua yang bisa menyimpang dari layar.
+        | DIHAPUS: Rekap KBM per Jadwal (.rekap-kbm & .rekap-kbm.unduh) —
+        | tidak dipakai sekolah lagi. Rekap kehadiran siswa per mata
+        | pelajaran tetap ada di Laporan Bulanan (bagian C), dan beban
+        | mengajar guru di Rekap Jam Mengajar di bawah.
         */
-        Route::view('/rekap-kbm', 'laporan.rekap-kbm')->name('rekap-kbm');
-
-        Route::get('/rekap-kbm/unduh', [RekapKbmController::class, 'unduh'])
-            ->name('rekap-kbm.unduh');
 
         /*
         | Lembar Paraf Guru Mengajar — cetakan A4 harian sebagai cadangan
@@ -601,8 +589,8 @@ Route::middleware('auth')->group(function () {
 
         /*
         | Rekap Jam Mengajar Guru — beban mengajar berbasis JP. Hak aksesnya
-        | sama (kepsek + super_admin). Saringan lewat query string, sama
-        | seperti Rekap KBM per Jadwal.
+        | sama (kepsek + super_admin). Saringan lewat query string, jadi
+        | tombol unduh cukup meneruskan URL yang sedang tampil.
         */
         Route::get('/rekap-jam-mengajar', [RekapJamMengajarController::class, 'index'])
             ->name('rekap-jam-mengajar');

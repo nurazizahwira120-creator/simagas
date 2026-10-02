@@ -1,6 +1,6 @@
 {{--
     Template PDF Rekap Jam Mengajar Guru — dirender dompdf, BUKAN browser.
-    Aturan main sama dengan laporan.rekap-kbm-pdf: tanpa flexbox/grid, tanpa
+    Aturan main sama dengan laporan.bulanan-pdf: tanpa flexbox/grid, tanpa
     Tailwind, tanpa sumber dari internet, tanpa :nth-child.
 --}}
 <!DOCTYPE html>

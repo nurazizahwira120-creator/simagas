@@ -2,7 +2,7 @@
     Template PDF Lembar Paraf Guru Mengajar — dirender dompdf, BUKAN browser.
 
     ============ ATURAN MAIN DOMPDF ============
-    Sama seperti laporan.rekap-kbm-pdf: tidak ada flexbox/grid, tidak ada
+    Sama seperti laporan.bulanan-pdf: tidak ada flexbox/grid, tidak ada
     class Tailwind, tidak ada gambar dari internet, tidak ada :nth-child.
     Seluruh tata letak memakai <table> dan lebar persen.
     ============================================

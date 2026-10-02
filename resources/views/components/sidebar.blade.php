@@ -70,13 +70,9 @@
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
-        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.rekap-kbm*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
+        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
             ['label' => 'Absensi Harian',       'icon' => 'clock',            'route' => '.laporan-harian',  'match' => '.laporan-harian'],
             ['label' => 'Rekap Bulanan Siswa',  'icon' => 'document-report',  'route' => '.laporan',         'match' => '.laporan'],
-            // Acuannya JADWAL PELAJARAN, bukan siswa. Menjawab pertanyaan
-            // yang tidak bisa dijawab butir mana pun di atas maupun di bawah:
-            // jam & mata pelajaran mana yang paling banyak ditinggalkan.
-            ['label' => 'Rekap KBM per Jadwal', 'icon' => 'calendar',         'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
             // Lembar kertas harian untuk paraf manual guru — cadangan kalau
             // catatan scan di sistem dipersoalkan.
             ['label' => 'Lembar Paraf Mengajar', 'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
@@ -364,17 +360,17 @@
          |------------------------------------------------------------------
          | REKAP ABSENSI — periode yang sudah lewat
          |------------------------------------------------------------------
-         | Tiga butir yang urutannya menjawab pertanyaan bersambung:
+         | Urutannya menjawab pertanyaan bersambung:
          |   1. Laporan & Rekapitulasi  -> kehadiran di GERBANG per siswa
-         |   2. Rekap KBM per Jadwal    -> kehadiran di KELAS per jam
-         |   3. Laporan Bulanan (PDF)   -> berkasnya untuk rapat komite
+         |   2. Lembar Paraf Mengajar   -> cadangan kertas laporan mengajar
+         |   3. Rekap Jam Mengajar      -> beban mengajar guru dalam JP
+         |   4. Laporan Bulanan (PDF)   -> berkasnya untuk rapat komite
          |
-         | Selisih antara nomor 1 dan 2 persis yang dicari kepala sekolah:
-         | anak yang masuk gerbang pagi lalu hilang di jam ketiga.
+         | "Rekap KBM per Jadwal" DIHAPUS (tidak dipakai lagi). Kehadiran
+         | siswa per mata pelajaran tetap ada di Laporan Bulanan bagian C.
          */
-        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.rekap-kbm*|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
+        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
             ['label' => 'Laporan & Rekapitulasi', 'icon' => 'document-report', 'route' => '.laporan',         'match' => '.laporan'],
-            ['label' => 'Rekap KBM per Jadwal',   'icon' => 'calendar',        'route' => '.rekap-kbm',       'match' => '.rekap-kbm*'],
             ['label' => 'Lembar Paraf Mengajar',  'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
             ['label' => 'Rekap Jam Mengajar',     'icon' => 'clock',           'route' => '.rekap-jam-mengajar', 'match' => '.rekap-jam-mengajar*'],
             ['label' => 'Laporan Bulanan (PDF)',  'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
