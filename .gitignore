@@ -45,9 +45,15 @@ Thumbs.db
 # .gitignore hanya berlaku untuk berkas yang belum dilacak.
 *.zip
 
-# Berkas installer Laravel yang ikut terunduh ke akar project (282 KB,
-# bukan bagian dari aplikasi). Tanpa baris ini `git add -A` akan
-# memasukkannya ke repository dan ikut terkirim ke server setiap deploy.
+# Berkas bernama `laravel` di akar project adalah DATABASE SQLITE lokal
+# (bukan installer Laravel seperti dugaan semula). Ia tercipta kalau .env
+# di PC memakai DB_CONNECTION=sqlite dengan DB_DATABASE=laravel — Laravel
+# lalu membuat berkas database bernama persis "laravel" di folder project.
+#
+# Berkas ini SEMPAT terlacak Git (baris di bawah tidak berlaku untuk berkas
+# yang sudah terlacak) dan ikut ter-push ke GitHub serta ke server setiap
+# deploy. Sudah dikeluarkan dengan `git rm --cached laravel`: berkasnya
+# tetap ada di PC sebagai database lokal, hanya tidak ikut Git lagi.
 /laravel
 /composer.phar
 
