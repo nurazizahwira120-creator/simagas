@@ -159,6 +159,20 @@ class KelasPenggantiTest extends TestCase
         $this->assertSame(3, AbsensiKbmSiswa::where('diisi_oleh', $piket->id)->count());
     }
 
+    public function test_super_admin_bisa_membuka_halaman_dan_mengisi(): void
+    {
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)->get('/super-admin/kelas-pengganti')->assertOk()->assertSee('XI RPL 1');
+
+        Livewire::actingAs($admin)->test(KelasPengganti::class)
+            ->call('pilih', $this->jadwal['citra']->id)
+            ->call('simpan')
+            ->assertSet('notif.tipe', 'ok');
+
+        $this->assertSame(3, AbsensiKbmSiswa::where('diisi_oleh', $admin->id)->count());
+    }
+
     public function test_peran_lain_ditolak(): void
     {
         Livewire::actingAs(User::factory()->waliMurid()->create())

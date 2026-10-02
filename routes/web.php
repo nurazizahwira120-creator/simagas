@@ -388,7 +388,7 @@ Route::middleware('auth')->group(function () {
     /*
     | Kelas Pengganti — absensi KBM siswa untuk kelas yang gurunya
     | berhalangan (App\Livewire\Guru\KelasPengganti). Didaftarkan untuk
-    | guru, wali kelas, kepala sekolah, dan guru piket. Peran pengisinya
+    | guru, wali kelas, kepala sekolah, guru piket, dan super admin. Peran pengisinya
     | diperiksa ULANG di dalam komponen, tidak hanya oleh grup rute ini.
     */
     $daftarkanKelasPengganti = function () {
@@ -657,9 +657,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru, $daftarkanKelasPengganti) {
             $daftarkanLiveMonitoring();
             $daftarkanPersetujuanIzinGuru();
+
+            // Super Admin ikut bisa mengisi absensi kelas yang gurunya
+            // berhalangan (menggantikan / mewakili guru piket).
+            $daftarkanKelasPengganti();
             $daftarkanGerbang();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();

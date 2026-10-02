@@ -219,9 +219,19 @@
 @endphp
 
 @if ($adaVite)
-    {{-- Satu entry: app.js meng-import app.css, jadi Laravel memasang
-         <link> CSS dan <script> JS-nya sekaligus dari sini. --}}
-    @vite('resources/js/app.js')
+    {{-- DUA entry, sesuai `input` di vite.config.js.
+
+         Dulu hanya @vite('resources/js/app.js') dengan anggapan app.js
+         meng-import app.css. Anggapan itu SALAH: resources/js/app.js kosong
+         dan tidak meng-import apa pun, sehingga manifest hasil build
+         mencatat app.js TANPA CSS. Akibatnya di komputer yang punya
+         public/build/ (sesudah `npm run build`), halaman dimuat TANPA satu
+         pun <link> CSS — tampil polos, dan pita merah "berkas CSS-nya versi
+         lama" muncul dengan "CSS terbaca tidak ada".
+
+         Server tidak terkena karena public/build/ tidak ikut Git; di sana
+         yang dipakai cabang @else (public/simagas.css). --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 @else
     <link rel="stylesheet" href="{{ asset('simagas.css') }}?v={{ $capCss }}">
     <script src="{{ asset('simagas.js') }}?v={{ $capJs }}" defer></script>

@@ -34,7 +34,8 @@ use Livewire\Component;
  *    StatusBerhalanganGuru (izin disetujui, izin/sakit/alpa di absensi
  *    harian). Kelas yang gurunya hadir tetap hanya bisa diisi gurunya
  *    sendiri lewat halaman Jurnal & Absen Kelas.
- *  - Pengisi: guru lain, wali kelas, kepala sekolah, guru piket. TIDAK
+ *  - Pengisi: guru lain, wali kelas, kepala sekolah, guru piket, super
+ *    admin. TIDAK
  *    perlu scan QR ruangan (keputusan sekolah): guru piket menangani banyak
  *    kelas sekaligus. Sebagai gantinya, AKUN pengisinya tercatat di setiap
  *    baris (kolom diisi_oleh) dan tampil di layar ini.
@@ -54,7 +55,7 @@ use Livewire\Component;
 class KelasPengganti extends Component
 {
     /** Peran yang boleh mengisi sebagai pengganti. */
-    public const PERAN_BOLEH = [UserRole::Guru, UserRole::WaliKelas, UserRole::Kepsek, UserRole::GuruPiket];
+    public const PERAN_BOLEH = [UserRole::Guru, UserRole::WaliKelas, UserRole::Kepsek, UserRole::GuruPiket, UserRole::SuperAdmin];
 
     /** Kelas terbuka sekian menit sebelum jam pelajarannya dimulai. */
     public const TOLERANSI_MENIT = 15;

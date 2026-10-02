@@ -44,6 +44,12 @@
         ['label' => 'Piket Scan Gerbang',     'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
         ['label' => 'Persetujuan Izin Guru',  'icon' => 'check-circle',     'route' => '.persetujuan-izin-guru', 'match' => '.persetujuan-izin-guru*'],
 
+        // Kelas Pengganti — ditaruh tepat di bawah Persetujuan Izin Guru:
+        // izin yang baru disetujui di sana langsung membuat kelasnya muncul
+        // di sini untuk diisi absensinya. Ditulis apa adanya (bukan
+        // $butirKelasPengganti) karena alasan urutan baca yang sama.
+        ['label' => 'Kelas Pengganti',        'icon' => 'swap',             'route' => '.kelas-pengganti', 'match' => '.kelas-pengganti'],
+
         // Ditulis apa adanya, bukan $butirPanduan — variabel itu baru lahir
         // beberapa puluh baris di bawah blok ini (lihat catatan di atas).
         ['label' => 'Kalender Pendidikan',    'icon' => 'calendar',         'route' => '.kalender-pendidikan', 'match' => '.kalender-pendidikan', 'grup' => 'Lainnya'],

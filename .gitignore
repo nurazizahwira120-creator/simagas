@@ -59,3 +59,10 @@ Thumbs.db
 
 # Skrip bantu sekali pakai buatan sesi ini.
 /1-KIRIM-KE-GITHUB.bat
+
+# Seeder DATA DEMO — khusus komputer lokal, TIDAK PERNAH ikut ke GitHub
+# maupun server hosting. Isinya akun-akun berpassword "password"; kalau
+# sampai terkirim, siapa pun bisa login sebagai kepala sekolah di server.
+# DatabaseSeeder hanya memanggilnya bila berkas ini ADA dan APP_ENV=local,
+# jadi `php artisan db:seed` di server tetap berjalan normal tanpanya.
+/database/seeders/DataDemoSeeder.php

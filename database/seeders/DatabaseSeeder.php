@@ -63,6 +63,24 @@ class DatabaseSeeder extends Seeder
         $this->seedAturanWaktu();
         $this->seedTahunAjaranAktif();
         $this->seedSuperAdmin();
+
+        /*
+         | Data demo seluruh fitur — HANYA di komputer lokal.
+         |
+         | Tiga lapis pengaman supaya tidak pernah ikut ke server hosting:
+         |   1. Berkas DataDemoSeeder.php masuk .gitignore -> tidak pernah
+         |      ter-push ke GitHub, jadi tidak ada di server sama sekali.
+         |      class_exists() di bawah membuat db:seed di server tetap
+         |      berjalan normal tanpa berkas itu.
+         |   2. Hanya dipanggil bila APP_ENV=local.
+         |   3. DataDemoSeeder sendiri menolak berjalan bila APP_ENV=production.
+         |
+         | Di server, `php artisan db:seed` tetap hanya menyiapkan pengaturan,
+         | kalender, tahun ajaran, dan Super Admin seperti sebelumnya.
+         */
+        if (app()->environment('local') && class_exists(DataDemoSeeder::class)) {
+            $this->call(DataDemoSeeder::class);
+        }
     }
 
     /**
