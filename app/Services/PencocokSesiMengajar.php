@@ -104,11 +104,40 @@ class PencocokSesiMengajar
          | dan SQLite sekaligus. Bebannya tetap kecil: yang diambil hanya
          | sesi SATU guru pada SATU hari, jarang lebih dari sepuluh baris.
          */
-        return AbsensiMengajar::query()
+        $sesiGuru = AbsensiMengajar::query()
             ->where('user_id', $userId)
             ->whereDate('waktu_mulai', $tanggal ?: today())
             ->orderBy('waktu_mulai')
-            ->get()
+            ->get();
+
+        return $this->pertamaDari($sesiGuru, $jadwal);
+    }
+
+    /**
+     * Versi TANPA QUERY dari untukJadwal(): sesi PALING AWAL yang kode
+     * ruangannya cocok, dipilih dari kumpulan sesi yang sudah diambil
+     * pemanggil (satu guru, satu hari).
+     *
+     * Dipakai pengingat "Akhiri Sesi" (App\Services\PengingatAkhiriSesi),
+     * yang memeriksa banyak guru sekaligus dalam satu query. Aturan
+     * pilihnya SENGAJA identik dengan untukJadwal() — untukJadwal() pun kini
+     * memanggil method ini — supaya pengingat selalu membicarakan sesi yang
+     * SAMA dengan yang dikunci/dibuka di layar Jurnal guru. Kalau keduanya
+     * berbeda, guru bisa diingatkan untuk sesi yang di layarnya justru
+     * sudah tertutup.
+     *
+     * @param  Collection<int, AbsensiMengajar>  $sesiGuru
+     */
+    public function pertamaDari(Collection $sesiGuru, JadwalPelajaran $jadwal): ?AbsensiMengajar
+    {
+        $sasaran = self::sasaran($jadwal);
+
+        if (! $sasaran) {
+            return null;
+        }
+
+        return $sesiGuru
+            ->sortBy(fn (AbsensiMengajar $a) => $a->waktu_mulai?->getTimestamp() ?? 0)
             ->first(fn (AbsensiMengajar $a) => in_array(self::normalkan($a->kode_kelas), $sasaran, true));
     }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\TandaiAlpaSiswa;
+use App\Console\Commands\IngatkanAkhiriSesi;
 use App\Console\Commands\BersihkanBuktiMengajar;
 use App\Console\Commands\BuatLaporanBulanan;
 use App\Console\Commands\KalkulasiPenghargaanGuru;
@@ -316,6 +317,41 @@ Schedule::call(function () {
     ]);
 })
     ->name('simagas-proses-antrean')
+    ->everyMinute()
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(5);
+
+/*
+|--------------------------------------------------------------------------
+| Pengingat "Akhiri Sesi" — setiap menit
+|--------------------------------------------------------------------------
+| Guru yang 5 menit sesudah KBM selesai belum menekan "Akhiri Sesi" dikirimi
+| push ke HP (berbunyi & bergetar walau aplikasi ditutup) dan satu baris di
+| lonceng. Batas menekannya hanya 15 menit, jadi pemeriksaannya harus tiap
+| menit — jadwal per jam akan melewatkan seluruh jendela itu.
+|
+| Ringan untuk dijalankan sesering ini: hanya DUA query (jadwal hari ini +
+| sesi hari ini), dan langsung berhenti bila tidak ada jadwal yang sedang
+| berada di jendela 15 menit sesudah selesai. Setiap sesi hanya diingatkan
+| SEKALI (kolom absensi_mengajar.pengingat_akhiri_pada).
+|
+| Butuh cron cPanel `* * * * *` yang sama dengan antrean di atas.
+*/
+Schedule::call(function () {
+    $kode = Artisan::call(IngatkanAkhiriSesi::class);
+
+    if ($kode !== 0) {
+        Log::error('Pengingat Akhiri Sesi GAGAL.', [
+            'kode_keluar' => $kode,
+            'keluaran' => Artisan::output(),
+        ]);
+
+        return false;
+    }
+
+    return null;
+})
+    ->name('simagas-pengingat-akhiri-sesi')
     ->everyMinute()
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping(5);

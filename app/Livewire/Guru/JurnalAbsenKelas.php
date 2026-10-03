@@ -57,7 +57,7 @@ class JurnalAbsenKelas extends Component
      * di detik bel berbunyi dan guru kehilangan pekerjaannya yang belum
      * sempat disimpan.
      */
-    private const TOLERANSI_MENIT = 15;
+    public const TOLERANSI_MENIT = 15;
 
     /**
      * Status per siswa: [siswa_id => 'hadir'|'sakit'|'izin'|'alpa'].
@@ -582,7 +582,14 @@ class JurnalAbsenKelas extends Component
             return;
         }
 
+        $sesiId = $this->scanCocok->id;
         $this->segarkanPemeriksaan();
+
+        // Mematikan alarm pengingat "Akhiri Sesi" yang mungkin sedang
+        // berbunyi di layar ini (partials/pengingat-akhiri-sesi). Tanpa
+        // event ini alarmnya baru berhenti setelah halaman dimuat ulang —
+        // guru yang sudah patuh malah terus "dimarahi" HP-nya.
+        $this->dispatch('sesi-diakhiri', id: $sesiId);
 
         $this->pesan('ok', 'Sesi kelas diakhiri',
             'Kehadiran mengajar Anda tercatat lengkap dengan bukti. Jurnal jam ini sekarang terkunci.');

@@ -136,7 +136,7 @@
      | dikenal bukan error. Pernah terjadi dan butuh berjam-jam untuk
      | ditelusuri; sekarang aplikasinya yang memberi tahu sendiri.
      */
-    $versiAset = '2026-10-02a';
+    $versiAset = '2026-10-02b';
 
     $pengguna = auth()->user();
     $inisial = $pengguna
@@ -886,6 +886,11 @@
          di blok Pusher di atas) sudah tersedia saat notifikasi latar depan
          hendak membunyikannya.
          ==================================================================== --}}
+    {{-- Alarm "Akhiri Sesi" untuk guru: bunyi + getar 5 menit sesudah KBM
+         selesai bila sesinya belum diakhiri. Tidak mengeluarkan apa pun
+         untuk peran lain atau bila tidak ada sesi terbuka. --}}
+    @include('partials.pengingat-akhiri-sesi')
+
     @include('partials.firebase-push')
 @endauth
 

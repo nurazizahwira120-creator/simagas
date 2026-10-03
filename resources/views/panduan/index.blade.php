@@ -119,6 +119,7 @@
                         'Status siswa sudah terisi <strong>Hadir</strong> secara bawaan — Anda hanya perlu mengubah yang tidak hadir.',
                         'Siswa yang paginya sudah dicatat izin/sakit di gerbang akan <strong>terisi otomatis</strong> dan ditandai di layar. Tidak perlu mengisinya lagi.',
                         'Unggah <strong>foto bukti mengajar</strong>, lalu tekan <strong>Simpan Absensi KBM</strong>. Setelah selesai, tekan <strong>Akhiri Sesi</strong> — jurnalnya lalu terkunci.',
+                        'Batas menekan <strong>Akhiri Sesi</strong> adalah <strong>15 menit</strong> sesudah jam pelajaran selesai. Bila 5 menit sesudah selesai belum ditekan, HP Anda <strong>berbunyi dan bergetar</strong> sebagai pengingat, disertai hitung mundur di layar.',
                     ],
                     'catatan' => 'Siswa yang Anda tandai Alpa padahal tadi pagi tercatat masuk gerbang akan otomatis dicatat sebagai <strong>Bolos</strong> — anak itu ada di sekolah tapi tidak ada di kelas Anda.',
                 ],

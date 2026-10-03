@@ -40,6 +40,7 @@ class AbsensiMengajar extends Model
         'waktu_mulai',
         'waktu_selesai',
         'bukti_dihapus_pada',
+        'pengingat_akhiri_pada',
     ];
 
     protected function casts(): array
@@ -48,6 +49,9 @@ class AbsensiMengajar extends Model
             'waktu_mulai' => 'datetime',
             'waktu_selesai' => 'datetime',
             'bukti_dihapus_pada' => 'datetime',
+            // Kapan guru diingatkan menekan "Akhiri Sesi" — lihat
+            // App\Services\PengingatAkhiriSesi.
+            'pengingat_akhiri_pada' => 'datetime',
         ];
     }
 
