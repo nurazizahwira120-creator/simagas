@@ -50,10 +50,23 @@
 <body class="min-h-screen bg-gray-50 font-sans text-gray-700 antialiased dark:bg-gray-900 dark:text-gray-300">
 
 {{-- ====================================================================
-     SPLASH SCREEN (PRELOADER)
+     SPLASH SCREEN (PRELOADER) — HANYA SEKALI PER SESI LOGIN
      ====================================================================
-     Menutupi layar sampai halaman selesai dimuat, lalu memudar sambil
-     sedikit membesar.
+     Menutupi layar sampai halaman selesai dimuat, lalu memudar.
+
+     ============ KENAPA SEKALI PER SESI ============
+     Dulu splash ini muncul di SETIAP perpindahan halaman: menunggu 1 detik
+     sesudah halaman siap, lalu memudar 0,7 detik — ±1,7 detik jeda untuk
+     setiap klik menu, padahal halamannya sendiri sudah siap jauh sebelum itu.
+     Sekarang ia hanya tampil di halaman PERTAMA sesudah login (penandanya
+     disimpan di sesi server, 'splash_sudah_tampil'), langsung menutup begitu
+     halaman siap, dan memudar 0,3 detik. Login ulang = sesi baru = splash
+     tampil lagi sekali.
+
+     Penandanya di SESI SERVER, bukan sessionStorage browser: keputusan
+     "tampil atau tidak" diambil sebelum HTML dikirim, jadi tidak ada kilatan
+     splash sesaat di halaman yang seharusnya tanpa splash.
+     ================================================
 
      TIGA LAPIS PENGAMAN — kenapa tidak cukup satu:
      Splash ini menutupi SELURUH aplikasi. Kalau ia gagal menutup, tidak ada
@@ -67,7 +80,7 @@
        2. Event 'load' menunggu SEMUA aset. CSS & JS aplikasi sekarang dilayani
           dari server sendiri (hasil build Vite), tapi Google Fonts masih dari
           internet — kalau koneksi sekolah lambat atau diblokir, 'load' bisa
-          tertahan puluhan detik. Batas keras 4 detik memastikan aplikasi tetap
+          tertahan puluhan detik. Batas keras 2,5 detik memastikan aplikasi tetap
           bisa dipakai walau fontnya belum sempat turun.
        3. Kalau Alpine tidak jalan sama sekali (mis. Livewire belum di-install
           lewat composer), x-show tidak akan pernah bekerja dan splash ini
@@ -77,16 +90,25 @@
      Dipakai addEventListener, bukan window.onload = ..., supaya tidak menimpa
      handler onload lain yang mungkin dipasang halaman/pustaka lain.
 --}}
+@php
+    $tampilkanSplash = ! session()->has('splash_sudah_tampil');
+
+    if ($tampilkanSplash) {
+        session()->put('splash_sudah_tampil', true);
+    }
+@endphp
+
+@if ($tampilkanSplash)
 <div id="splash-screen"
     x-data="{ show: true }"
     x-show="show"
     x-init="
-        const tutup = () => setTimeout(() => show = false, 1000);
+        const tutup = () => show = false;
         if (document.readyState === 'complete') { tutup(); }
         else { window.addEventListener('load', tutup, { once: true }); }
-        setTimeout(() => show = false, 4000);
+        setTimeout(() => show = false, 2500);
     "
-    x-transition:leave="transition ease-in duration-700"
+    x-transition:leave="transition ease-in duration-300"
     x-transition:leave-start="opacity-100 transform scale-100"
     x-transition:leave-end="opacity-0 transform scale-110"
     role="status"
@@ -111,7 +133,7 @@
 
 <script>
     // Lapis pengaman ke-3 (lihat catatan di atas): murni JavaScript biasa,
-    // tanpa Alpine. Kalau setelah 8 detik splash masih terlihat, berarti
+    // tanpa Alpine. Kalau setelah 5 detik splash masih terlihat, berarti
     // Alpine memang tidak pernah jalan — buang paksa elemennya supaya
     // aplikasinya tetap bisa dipakai.
     setTimeout(function () {
@@ -119,8 +141,9 @@
         if (splash && splash.style.display !== 'none') {
             splash.remove();
         }
-    }, 8000);
+    }, 5000);
 </script>
+@endif
 
 @php
     /*
