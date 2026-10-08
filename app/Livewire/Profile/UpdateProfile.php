@@ -90,11 +90,35 @@ class UpdateProfile extends Component
      * gambar rusak di mana-mana — gejala yang menyesatkan, karena kelihatan
      * seperti unggahannya gagal padahal tidak. Karena itu kondisinya dideteksi
      * dan dijelaskan, bukan dibiarkan jadi teka-teki.
+     *
+     * ============ DUA TEMPAT YANG DIPERIKSA ============
+     * 1. public_path('storage') -> backend/public/storage (Laragon, VPS biasa)
+     * 2. DOCUMENT_ROOT/storage  -> folder yang BENAR-BENAR dilayani web server
+     *
+     * Di cPanel, web server melayani ~/public_html, bukan ~/backend_simagas/public.
+     * Symlink-nya ada di public_html/storage, sehingga pemeriksaan nomor 1 saja
+     * selalu "belum ada" dan peringatan palsu muncul walau foto tampil normal.
+     * DOCUMENT_ROOT dibaca dari request, jadi tidak ada path hosting yang
+     * ditulis mati di kode.
+     * ===================================================
      */
     #[Computed]
     public function symlinkStorageSiap(): bool
     {
-        return File::exists(public_path('storage'));
+        $kandidat = [public_path('storage')];
+
+        $akarWeb = request()->server('DOCUMENT_ROOT');
+        if (is_string($akarWeb) && $akarWeb !== '') {
+            $kandidat[] = rtrim($akarWeb, '/\\') . DIRECTORY_SEPARATOR . 'storage';
+        }
+
+        foreach ($kandidat as $path) {
+            if (File::exists($path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function rules(): array
