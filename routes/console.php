@@ -2,6 +2,8 @@
 
 use App\Console\Commands\TandaiAlpaSiswa;
 use App\Console\Commands\IngatkanAkhiriSesi;
+use App\Console\Commands\BersihkanDataLama;
+use App\Services\DenyutPenjadwal;
 use App\Console\Commands\BersihkanBuktiMengajar;
 use App\Console\Commands\BuatLaporanBulanan;
 use App\Console\Commands\KalkulasiPenghargaanGuru;
@@ -355,3 +357,43 @@ Schedule::call(function () {
     ->everyMinute()
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping(5);
+
+/*
+|--------------------------------------------------------------------------
+| Pembersihan data sampah — setiap malam 02:30
+|--------------------------------------------------------------------------
+| Notifikasi lonceng lama, antrean gagal lama, dan cache kedaluwarsa. Data
+| absensi/nilai/jurnal TIDAK PERNAH disentuh. Lihat
+| App\Console\Commands\BersihkanDataLama.
+*/
+Schedule::call(function () {
+    $kode = Artisan::call(BersihkanDataLama::class);
+
+    if ($kode !== 0) {
+        Log::error('Pembersihan data lama GAGAL.', [
+            'kode_keluar' => $kode,
+            'keluaran' => Artisan::output(),
+        ]);
+
+        return false;
+    }
+
+    Log::info('Pembersihan data lama selesai.', ['keluaran' => Artisan::output()]);
+})
+    ->name('simagas-bersihkan-data')
+    ->dailyAt('02:30')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(30);
+
+/*
+|--------------------------------------------------------------------------
+| Denyut penjadwal — setiap menit
+|--------------------------------------------------------------------------
+| Menulis waktu sekarang ke storage/app/private/penjadwal-denyut.txt. Kalau
+| cron cPanel mati, dashboard Super Admin menampilkan peringatan. Lihat
+| App\Services\DenyutPenjadwal.
+*/
+Schedule::call(fn () => DenyutPenjadwal::catat())
+    ->name('simagas-denyut')
+    ->everyMinute()
+    ->timezone('Asia/Jakarta');

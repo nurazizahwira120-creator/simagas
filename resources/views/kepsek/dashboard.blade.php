@@ -21,6 +21,10 @@
         </a>
     </div>
 
+    @if ($kesehatan ?? null)
+        @include('partials.kesehatan-sistem', ['kesehatan' => $kesehatan])
+    @endif
+
     {{-- Absensi mandiri — halaman ini dipakai bersama oleh Kepsek dan Super
          Admin, tapi Super Admin tidak punya fitur absensi. Pakai Route::has()
          alih-alih mengecek role: kondisinya jadi mengikuti pendaftaran rute

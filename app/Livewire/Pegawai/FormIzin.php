@@ -147,7 +147,7 @@ class FormIzin extends Component
 
         $lama = AbsensiPegawai::query()
             ->where('pegawai_id', $pegawai->id)
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->first();
 
         if ($lama && $lama->status === AbsensiStatus::Hadir) {
@@ -185,7 +185,7 @@ class FormIzin extends Component
          | barisnya belum ada lalu mencoba INSERT — dan langsung menabrak
          | unique(pegawai_id, tanggal) dengan error yang menyesatkan
          | ("Integrity constraint violation") padahal maksudnya cuma
-         | memperbarui. Baris $lama di atas sudah dicari dengan whereDate()
+         | memperbarui. Baris $lama di atas sudah dicari dengan wherePadaTanggal()
          | yang menangani perbedaan itu, jadi tinggal dipakai.
          */
         if ($lama) {

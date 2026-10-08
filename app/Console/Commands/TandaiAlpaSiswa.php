@@ -82,7 +82,7 @@ class TandaiAlpaSiswa extends Command
         }
 
         // ---- PENJAGA 3: hanya yang belum punya baris ----
-        $sudahAda = AbsensiSiswa::whereDate('tanggal', $tanggal->toDateString())
+        $sudahAda = AbsensiSiswa::wherePadaTanggal('tanggal', $tanggal->toDateString())
             ->pluck('siswa_id')
             ->all();
 

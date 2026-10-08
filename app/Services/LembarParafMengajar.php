@@ -214,7 +214,7 @@ class LembarParafMengajar
 
         return AbsensiMengajar::query()
             ->whereIn('user_id', $idAkun)
-            ->whereDate('waktu_mulai', $tanggal->toDateString())
+            ->wherePadaTanggal('waktu_mulai', $tanggal->toDateString())
             ->orderBy('waktu_mulai')
             ->get(['id', 'user_id', 'kode_kelas', 'waktu_mulai', 'waktu_selesai'])
             ->groupBy('user_id');

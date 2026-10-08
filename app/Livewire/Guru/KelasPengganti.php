@@ -133,7 +133,7 @@ class KelasPengganti extends Component
         // sama ke seluruh baris kelas itu.
         $rekap = AbsensiKbmSiswa::query()
             ->whereIn('jadwal_id', $jadwal->pluck('id'))
-            ->whereDate('tanggal', $hariIni->toDateString())
+            ->wherePadaTanggal('tanggal', $hariIni->toDateString())
             ->groupBy('jadwal_id')
             ->select('jadwal_id')
             ->selectRaw('COUNT(*) as jumlah')

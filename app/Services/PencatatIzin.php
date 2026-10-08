@@ -79,7 +79,7 @@ class PencatatIzin
     public function sudahAda(Siswa $siswa, $tanggal = null): bool
     {
         return PencatatanIzin::where('siswa_id', $siswa->id)
-            ->whereDate('tanggal', $tanggal ?: today())
+            ->wherePadaTanggal('tanggal', $tanggal ?: today())
             ->exists();
     }
 

@@ -29,7 +29,7 @@ class OrtuController extends Controller
             'anakAnak' => $anakAnak,
             'anak' => $anak,
             'absensiHariIni' => $anak
-                ? AbsensiSiswa::where('siswa_id', $anak->id)->whereDate('tanggal', today())->first()
+                ? AbsensiSiswa::where('siswa_id', $anak->id)->wherePadaTanggal('tanggal', today())->first()
                 : null,
         ]);
     }
@@ -66,13 +66,12 @@ class OrtuController extends Controller
         $anak ??= $anakAnak->first();
 
         $absensiHariIni = AbsensiSiswa::where('siswa_id', $anak->id)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->first();
 
         $riwayat = AbsensiSiswa::where('siswa_id', $anak->id)
-            ->whereYear('tanggal', today()->year)
-            ->whereMonth('tanggal', today()->month)
-            ->whereDate('tanggal', '<', today())
+            ->wherePadaBulan('tanggal', today()->year, today()->month)
+            ->whereSebelumTanggal('tanggal', today())
             ->orderByDesc('tanggal')
             ->get();
 

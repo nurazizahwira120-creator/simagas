@@ -79,7 +79,7 @@ class AbsenMengajarQr extends Component
         }
 
         return AbsensiPegawai::where('pegawai_id', $pegawaiId)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->exists();
     }
 
@@ -101,7 +101,7 @@ class AbsenMengajarQr extends Component
         }
 
         return AbsensiPegawai::where('pegawai_id', $pegawaiId)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->first()?->jam_masuk?->format('H:i');
     }
 
@@ -115,7 +115,7 @@ class AbsenMengajarQr extends Component
     public function riwayatHariIni(): Collection
     {
         return AbsensiMengajar::where('user_id', auth()->id())
-            ->whereDate('waktu_mulai', today())
+            ->wherePadaTanggal('waktu_mulai', today())
             ->orderByDesc('waktu_mulai')
             ->get();
     }

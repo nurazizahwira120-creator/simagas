@@ -23,6 +23,24 @@ class JadwalPelajaran extends Model
         'guru_id',
     ];
 
+    /**
+     * Setiap jadwal dibuat/diubah, nama mata pelajarannya didaftarkan ke
+     * master `mapels` — kalau tidak, mapel baru tidak pernah muncul di
+     * Input Nilai. Lihat Mapel::sinkron().
+     *
+     * rescue(): pendaftaran mapel adalah pelengkap. Gagalnya TIDAK boleh
+     * membatalkan penyimpanan jadwal yang sedang dikerjakan admin; ia
+     * tercatat di log, dan diajarOleh() akan menyembuhkannya nanti.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $jadwal) {
+            if ($jadwal->wasChanged('mata_pelajaran') || $jadwal->wasRecentlyCreated) {
+                rescue(fn () => Mapel::sinkron([$jadwal->mata_pelajaran]), report: true);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

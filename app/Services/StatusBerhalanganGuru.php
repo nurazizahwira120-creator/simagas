@@ -92,12 +92,10 @@ class StatusBerhalanganGuru
         //     guru piket (IDT = ada tugas untuk dibagikan ke kelas).
         $harian = AbsensiPegawai::query()
             ->whereIn('pegawai_id', $pegawai->pluck('id'))
-            // whereDate, BUKAN whereBetween: kolom `tanggal` bisa tersimpan
-            // sebagai '2026-09-24 00:00:00', dan di SQLite teks itu LEBIH
-            // BESAR dari batas '2026-09-24' — hari terakhir rentang hilang
-            // diam-diam. Lihat juga catatan di PenerapIzinGuru.
-            ->whereDate('tanggal', '>=', $awal->toDateString())
-            ->whereDate('tanggal', '<=', $akhir->toDateString())
+            // Rentang dengan batas atas '... 23:59:59' (bukan whereDate):
+            // tetap menangkap '2026-09-24 00:00:00' di SQLite, dan bisa
+            // memakai indeks di MySQL. Lihat QueryTanggalServiceProvider.
+            ->whereAntaraTanggal('tanggal', $awal, $akhir)
             ->whereIn('status', [AbsensiStatus::Izin->value, AbsensiStatus::Sakit->value, AbsensiStatus::Alpha->value])
             ->get(['pegawai_id', 'tanggal', 'status']);
 

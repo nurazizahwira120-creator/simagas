@@ -83,7 +83,7 @@ class ScannerController extends Controller
     private function catatKehadiranSiswa(Siswa $siswa): JsonResponse
     {
         $absensiHariIni = AbsensiSiswa::where('siswa_id', $siswa->id)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->first();
 
         if ($absensiHariIni) {
@@ -179,7 +179,7 @@ class ScannerController extends Controller
     private function catatKehadiranPegawai(Pegawai $pegawai): JsonResponse
     {
         $absensiHariIni = AbsensiPegawai::where('pegawai_id', $pegawai->id)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->first();
 
         if ($absensiHariIni) {

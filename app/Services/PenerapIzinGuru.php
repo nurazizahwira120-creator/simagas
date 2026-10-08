@@ -88,11 +88,12 @@ class PenerapIzinGuru
                  | absen sama sekali justru berhasil. Persis kebalikan dari
                  | yang diduga orang saat melaporkannya.
                  |
-                 | whereDate() membandingkan bagian TANGGALNYA saja, jadi ia
-                 | menemukan baris yang sudah ada apa pun bentuk simpanannya.
+                 | wherePadaTanggal() mencari rentang satu hari penuh, jadi ia
+                 | menemukan baris yang sudah ada apa pun bentuk simpanannya
+                 | (lihat QueryTanggalServiceProvider).
                  */
                 $baris = AbsensiPegawai::where('pegawai_id', $pegawai->id)
-                    ->whereDate('tanggal', $tanggal->toDateString())
+                    ->wherePadaTanggal('tanggal', $tanggal->toDateString())
                     ->first();
 
                 /*

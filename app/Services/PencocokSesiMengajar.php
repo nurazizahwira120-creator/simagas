@@ -106,7 +106,7 @@ class PencocokSesiMengajar
          */
         $sesiGuru = AbsensiMengajar::query()
             ->where('user_id', $userId)
-            ->whereDate('waktu_mulai', $tanggal ?: today())
+            ->wherePadaTanggal('waktu_mulai', $tanggal ?: today())
             ->orderBy('waktu_mulai')
             ->get();
 

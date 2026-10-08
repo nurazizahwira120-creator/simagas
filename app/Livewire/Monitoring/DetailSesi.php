@@ -129,7 +129,7 @@ class DetailSesi extends Component
         return AbsensiKbmSiswa::query()
             ->with('siswa:id,nis,nama')
             ->where('jadwal_id', $this->jadwalId)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->get();
     }
 
@@ -200,7 +200,7 @@ class DetailSesi extends Component
 
         return PencatatanIzin::query()
             ->whereIn('siswa_id', $idSiswa)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->get()
             ->keyBy('siswa_id');
     }

@@ -30,8 +30,10 @@
 @source "../views/**/*.blade.php";
 @source "../../app/**/*.php";
 
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap")
-layer(base);
+/* SIMAGAS: @import font Outfit bawaan TailAdmin DIBUANG. Aplikasi ini
+   memakai Plus Jakarta Sans (dimuat lewat <link> di partials/head-assets);
+   Outfit tidak pernah tampil, tapi @import-nya tetap MENAHAN tampilan
+   halaman sampai satu permintaan tambahan ke Google selesai. */
 
 @import "tailwindcss";
 
@@ -41,7 +43,7 @@ layer(base);
 
 @theme {
   --font-*: initial;
-  --font-outfit: Outfit, "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-outfit: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
@@ -213,7 +215,7 @@ layer(base);
      ulang — bukan ditulis dari nol.
      ==================================================================== */
 
-  --font-sans: "Plus Jakarta Sans", Outfit, -apple-system, BlinkMacSystemFont,
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, sans-serif;
 
   /* `font-mono` dipakai untuk NIS/NIP dan kode QR: angka lebar tetap membuat
@@ -1094,7 +1096,7 @@ pre[class*="language-"] {
    secara berarti, naikkan keduanya bersamaan.
    ===================================================================== */
 :root {
-  --simagas-versi: "2026-10-02b";
+  --simagas-versi: "2026-10-08a";
 }
 
 /* =====================================================================

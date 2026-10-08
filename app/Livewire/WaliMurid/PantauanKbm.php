@@ -84,7 +84,7 @@ class PantauanKbm extends Component
             ->values();
 
         $absensi = AbsensiKbmSiswa::where('siswa_id', $anak->id)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->whereIn('jadwal_id', $jadwal->pluck('id'))
             ->get()
             ->keyBy('jadwal_id');

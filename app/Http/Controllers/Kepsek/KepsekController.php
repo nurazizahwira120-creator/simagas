@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AbsensiSiswa;
 use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Enums\UserRole;
+use App\Services\DenyutPenjadwal;
 use Illuminate\Http\Request;
 
 class KepsekController extends Controller
@@ -20,7 +22,7 @@ class KepsekController extends Controller
     {
         $totalSiswa = Siswa::count();
 
-        $totalHadirHariIni = AbsensiSiswa::whereDate('tanggal', today())
+        $totalHadirHariIni = AbsensiSiswa::wherePadaTanggal('tanggal', today())
             ->where('status', AbsensiStatus::Hadir)
             ->count();
 
@@ -32,7 +34,7 @@ class KepsekController extends Controller
             ->withCount('siswa')
             ->withCount(['siswa as hadir_count' => function ($query) {
                 $query->whereHas('absensi', function ($query) {
-                    $query->whereDate('tanggal', today())
+                    $query->wherePadaTanggal('tanggal', today())
                         ->where('status', AbsensiStatus::Hadir);
                 });
             }])
@@ -55,6 +57,11 @@ class KepsekController extends Controller
 
         return view('kepsek.dashboard', [
             'user' => $request->user(),
+            // Kesehatan cron hanya untuk Super Admin: ia yang bisa membetulkan
+            // cron cPanel; kepala sekolah tidak perlu melihat urusan teknis.
+            'kesehatan' => $request->user()?->role === UserRole::SuperAdmin
+                ? app(DenyutPenjadwal::class)->status()
+                : null,
             'totalSiswa' => $totalSiswa,
             'totalHadirHariIni' => $totalHadirHariIni,
             'persentaseKehadiran' => $persentaseKehadiran,

@@ -141,12 +141,12 @@ class PantauanSiswa extends Component
         $tanggal = $this->tanggalDipakai;
 
         $gerbang = AbsensiSiswa::whereIn('siswa_id', $siswa->pluck('id'))
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->get()
             ->keyBy('siswa_id');
 
         $kbm = AbsensiKbmSiswa::whereIn('siswa_id', $siswa->pluck('id'))
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->get()
             ->groupBy('siswa_id');
 
@@ -291,7 +291,7 @@ class PantauanSiswa extends Component
          | ==============================================================
          */
         try {
-            $jumlah = AbsensiSiswa::whereDate('tanggal', $this->tanggalDipakai->toDateString())
+            $jumlah = AbsensiSiswa::wherePadaTanggal('tanggal', $this->tanggalDipakai->toDateString())
                 ->where('keterangan', \App\Console\Commands\TandaiAlpaSiswa::PENANDA)
                 ->count();
         } catch (\Illuminate\Database\QueryException $e) {
@@ -411,7 +411,7 @@ class PantauanSiswa extends Component
 
         $absensi = AbsensiSiswa::query()
             ->join('siswa', 'siswa.id', '=', 'absensi_siswa.siswa_id')
-            ->whereDate('absensi_siswa.tanggal', $tanggal)
+            ->wherePadaTanggal('absensi_siswa.tanggal', $tanggal)
             ->groupBy('siswa.kelas_id')
             ->select('siswa.kelas_id')
             ->selectRaw($hitung(AbsensiStatus::Hadir) . ' as hadir')

@@ -68,6 +68,66 @@ class Mapel extends Model
         return array_values($hasil);
     }
 
+    /**
+     * Pastikan setiap nama mata pelajaran punya baris di master `mapels`.
+     *
+     * ============ BUG YANG DIPERBAIKI ============
+     * Master ini dulu HANYA diisi sekali, oleh migrasi 000031, dari jadwal
+     * yang ada saat itu. Mata pelajaran yang ditambahkan ke jadwal SESUDAHNYA
+     * (tahun ajaran baru, guru baru, mapel muatan lokal) tidak pernah masuk —
+     * dan karena Input Nilai menyaring lewat master ini, mapel tersebut
+     * diam-diam hilang dari pilihan guru. Tidak ada error; daftarnya cuma
+     * "kurang satu".
+     * =============================================
+     *
+     * Dipanggil dari tiga tempat:
+     *   - JadwalPelajaran::booted()  -> setiap jadwal dibuat/diubah;
+     *   - diajarOleh()               -> penyembuh diri untuk data lama;
+     *   - migrasi 000042             -> mengisi yang terlewat sekali jalan.
+     *
+     * Pembandingnya TIDAK membedakan besar-kecil huruf (meniru MySQL), dan
+     * yang disisipkan hanya nama yang benar-benar belum ada — jadi aman
+     * dipanggil berulang kali. insertOrIgnore menjadi jaring terakhir kalau
+     * dua permintaan kebetulan menyisipkan nama yang sama bersamaan.
+     *
+     * @param  iterable<int, string|null>  $nama
+     * @return int jumlah mata pelajaran baru yang ditambahkan
+     */
+    public static function sinkron(iterable $nama): int
+    {
+        // 120 = panjang kolom mapels.nama. Nama lebih panjang dipotong
+        // daripada membuat MySQL mode ketat menolak seluruh sisipan.
+        $bersih = array_map(
+            fn (string $n) => mb_substr($n, 0, 120),
+            static::rapikanNama($nama),
+        );
+
+        if ($bersih === []) {
+            return 0;
+        }
+
+        $sudahAda = static::query()
+            ->pluck('nama')
+            ->mapWithKeys(fn ($n) => [mb_strtolower(trim(preg_replace('/\s+/u', ' ', (string) $n) ?? '')) => true]);
+
+        $baru = array_values(array_filter(
+            $bersih,
+            fn (string $n) => ! $sudahAda->has(mb_strtolower($n)),
+        ));
+
+        if ($baru === []) {
+            return 0;
+        }
+
+        $sekarang = now();
+
+        return static::query()->insertOrIgnore(array_map(fn (string $n) => [
+            'nama' => $n,
+            'created_at' => $sekarang,
+            'updated_at' => $sekarang,
+        ], $baru));
+    }
+
     public function nilai(): HasMany
     {
         return $this->hasMany(Nilai::class, 'mapel_id');
@@ -101,6 +161,11 @@ class Mapel extends Model
         if ($nama === []) {
             return collect();
         }
+
+        // Penyembuh diri: mapel di jadwal yang belum punya baris master
+        // (data lama sebelum perbaikan ini) dibuatkan sekarang, supaya
+        // langsung muncul di Input Nilai tanpa menunggu siapa pun.
+        static::sinkron($nama);
 
         /*
          | whereIn pada nama yang sudah dirapikan.

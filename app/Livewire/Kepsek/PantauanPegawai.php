@@ -108,7 +108,7 @@ class PantauanPegawai extends Component
         $tanggal = $this->tanggalDipakai;
 
         $kehadiran = AbsensiPegawai::whereIn('pegawai_id', $pegawai->pluck('id'))
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->get()
             ->keyBy('pegawai_id');
 
@@ -116,7 +116,7 @@ class PantauanPegawai extends Component
         // (bukan pegawai_id) — lihat catatan di migrasi 000015.
         $mengajar = $this->melihatHariIni
             ? AbsensiMengajar::whereIn('user_id', $pegawai->pluck('user.id')->filter())
-                ->whereDate('waktu_mulai', $tanggal)
+                ->wherePadaTanggal('waktu_mulai', $tanggal)
                 ->orderBy('waktu_mulai')
                 ->get()
                 ->groupBy('user_id')

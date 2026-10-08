@@ -185,7 +185,7 @@ class AbsensiEkskul extends Component
     {
         return AbsensiEkskulModel::query()
             ->where('jadwal_ekskul_id', $this->jadwalId)
-            ->whereDate('tanggal', $this->tanggal)
+            ->wherePadaTanggal('tanggal', $this->tanggal)
             ->exists();
     }
 
@@ -203,7 +203,7 @@ class AbsensiEkskul extends Component
     {
         $tersimpan = AbsensiEkskulModel::query()
             ->where('jadwal_ekskul_id', $this->jadwalId)
-            ->whereDate('tanggal', $this->tanggal)
+            ->wherePadaTanggal('tanggal', $this->tanggal)
             ->get()
             ->keyBy('siswa_id');
 
@@ -281,7 +281,7 @@ class AbsensiEkskul extends Component
                 ];
 
                 /*
-                 | Baris yang sudah ada dicari dengan whereDate(), BUKAN
+                 | Baris yang sudah ada dicari dengan wherePadaTanggal(), BUKAN
                  | updateOrCreate(['tanggal' => '2026-09-05', ...]).
                  |
                  | Kolomnya DATE dan modelnya meng-cast 'tanggal' => 'date',
@@ -300,7 +300,7 @@ class AbsensiEkskul extends Component
                 $baris = AbsensiEkskulModel::query()
                     ->where('jadwal_ekskul_id', $this->jadwalId)
                     ->where('siswa_id', $siswa->id)
-                    ->whereDate('tanggal', $tanggal->toDateString())
+                    ->wherePadaTanggal('tanggal', $tanggal->toDateString())
                     ->first();
 
                 if ($baris) {

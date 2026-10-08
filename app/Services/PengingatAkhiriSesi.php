@@ -83,7 +83,7 @@ class PengingatAkhiriSesi
         // SATU query untuk semua sesi semua guru yang terlibat hari ini.
         $sesiPerUser = AbsensiMengajar::query()
             ->whereIn('user_id', $jadwalHariIni->pluck('guru.user_id')->unique()->values())
-            ->whereDate('waktu_mulai', $sekarang->toDateString())
+            ->wherePadaTanggal('waktu_mulai', $sekarang->toDateString())
             ->orderBy('waktu_mulai')
             ->get()
             ->groupBy('user_id');

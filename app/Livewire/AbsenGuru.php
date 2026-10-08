@@ -77,7 +77,7 @@ class AbsenGuru extends Component
         // Sudah ada catatan hari ini? Termasuk yang dari scan gerbang atau
         // tombol absen mandiri — semuanya menulis ke tabel yang sama.
         $sudahAda = AbsensiPegawai::where('pegawai_id', $pegawai->id)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->first();
 
         if ($sudahAda) {
@@ -261,7 +261,7 @@ class AbsenGuru extends Component
         return view('livewire.absen-guru', [
             'pegawai' => $pegawai,
             'absensiHariIni' => $pegawai
-                ? AbsensiPegawai::where('pegawai_id', $pegawai->id)->whereDate('tanggal', today())->first()
+                ? AbsensiPegawai::where('pegawai_id', $pegawai->id)->wherePadaTanggal('tanggal', today())->first()
                 : null,
             'titik' => self::titikSekolah(),
         ]);

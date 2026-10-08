@@ -41,7 +41,7 @@ use Illuminate\Support\Facades\Storage;
  * ============ KENAPA AMAN MENGHAPUS FOTO LAMA ============
  * Foto bukti hanya pernah ditampilkan di SATU tempat: halaman Jurnal & Absen
  * Kelas, dan hanya untuk sesi HARI INI (lihat JurnalAbsenKelas::scanCocok
- * yang menyaring whereDate('waktu_mulai', today())). Tidak ada satu pun
+ * yang menyaring sesi pada tanggal hari ini saja). Tidak ada satu pun
  * halaman yang menampilkan foto sesi kemarin, apalagi bulan lalu. Jadi
  * membuang berkas lama tidak menghilangkan apa pun dari layar siapa pun.
  */

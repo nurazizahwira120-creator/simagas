@@ -86,8 +86,7 @@ class DaftarIzinPegawai extends Component
         return AbsensiPegawai::query()
             ->with('pegawai')
             ->whereIn('status', [AbsensiStatus::Izin->value, AbsensiStatus::Sakit->value])
-            ->whereYear('tanggal', $this->tahun)
-            ->whereMonth('tanggal', $this->bulan)
+            ->wherePadaBulan('tanggal', (int) $this->tahun, (int) $this->bulan)
             ->when($this->cari !== '', function ($q) {
                 $q->whereHas('pegawai', fn ($p) => $p->where('nama', 'like', '%' . $this->cari . '%'));
             })
@@ -101,8 +100,7 @@ class DaftarIzinPegawai extends Component
     public function ringkasan(): array
     {
         $dasar = AbsensiPegawai::query()
-            ->whereYear('tanggal', $this->tahun)
-            ->whereMonth('tanggal', $this->bulan);
+            ->wherePadaBulan('tanggal', (int) $this->tahun, (int) $this->bulan);
 
         return [
             'izin' => (clone $dasar)->where('status', AbsensiStatus::Izin->value)->count(),

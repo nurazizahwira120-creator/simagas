@@ -144,7 +144,7 @@ class FormIzin extends Component
     {
         return PencatatanIzin::query()
             ->with(['siswa:id,nis,nama,kelas_id', 'siswa.kelas:id,nama_kelas', 'petugas:id,name'])
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->latest('id')
             ->get();
     }

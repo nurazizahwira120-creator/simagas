@@ -51,7 +51,7 @@ class LaporanHarianController extends Controller
     private function rekapSiswa(Carbon $tanggal): array
     {
         $absensi = AbsensiSiswa::query()
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->get()
             ->keyBy('siswa_id');
 
@@ -80,7 +80,7 @@ class LaporanHarianController extends Controller
     private function rekapPegawai(Carbon $tanggal): array
     {
         $absensi = AbsensiPegawai::query()
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->get()
             ->keyBy('pegawai_id');
 

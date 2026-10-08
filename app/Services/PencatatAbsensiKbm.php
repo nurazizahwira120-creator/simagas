@@ -64,7 +64,7 @@ class PencatatAbsensiKbm
         }
 
         return AbsensiSiswa::whereIn('siswa_id', $idSiswa)
-            ->whereDate('tanggal', $tanggal->toDateString())
+            ->wherePadaTanggal('tanggal', $tanggal->toDateString())
             ->where('status', AbsensiStatus::Hadir)
             ->pluck('siswa_id');
     }
@@ -82,7 +82,7 @@ class PencatatAbsensiKbm
         }
 
         return AbsensiSiswa::whereIn('siswa_id', $idSiswa)
-            ->whereDate('tanggal', $tanggal->toDateString())
+            ->wherePadaTanggal('tanggal', $tanggal->toDateString())
             ->whereIn('status', [AbsensiStatus::Izin->value, AbsensiStatus::Sakit->value])
             ->get(['siswa_id', 'status'])
             ->mapWithKeys(fn (AbsensiSiswa $a) => [
@@ -100,7 +100,7 @@ class PencatatAbsensiKbm
     public function statusAwal(JadwalPelajaran $jadwal, CarbonInterface $tanggal, Collection $siswa): array
     {
         $tersimpan = AbsensiKbmSiswa::where('jadwal_id', $jadwal->id)
-            ->whereDate('tanggal', $tanggal->toDateString())
+            ->wherePadaTanggal('tanggal', $tanggal->toDateString())
             ->get()
             ->keyBy('siswa_id');
 
@@ -172,7 +172,7 @@ class PencatatAbsensiKbm
         // kali ke orang tua yang sama — cara tercepat membuat wali murid
         // memblokir nomor sekolah.
         $sebelumnya = AbsensiKbmSiswa::where('jadwal_id', $jadwal->id)
-            ->whereDate('tanggal', $hari)
+            ->wherePadaTanggal('tanggal', $hari)
             ->pluck('status', 'siswa_id')
             ->map(fn ($s) => $s instanceof StatusKbm ? $s->value : (string) $s);
 

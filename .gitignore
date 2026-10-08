@@ -66,3 +66,13 @@ Thumbs.db
 # DatabaseSeeder hanya memanggilnya bila berkas ini ADA dan APP_ENV=local,
 # jadi `php artisan db:seed` di server tetap berjalan normal tanpanya.
 /database/seeders/DataDemoSeeder.php
+
+# Log galat PHP bawaan hosting (cPanel menulis `error_log` di folder tempat
+# skrip PHP berjalan). public/error_log SEMPAT ikut ter-commit — isinya
+# jalur folder server (/home/<akun>/...), informasi yang tidak perlu ada di
+# repository. Sudah dikeluarkan dengan `git rm public/error_log`.
+error_log
+
+# Database SQLite lokal (dipakai saat pengujian / percobaan di PC).
+/database/*.sqlite
+/database/*.sqlite-journal

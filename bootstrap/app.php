@@ -32,6 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
          */
         $middleware->appendToGroup('web', \App\Http\Middleware\CegahCacheHalaman::class);
 
+        // Header keamanan standar (anti-clickjacking, nosniff, dll) dan
+        // menyembunyikan versi PHP. Lihat App\Http\Middleware\TambahHeaderKeamanan.
+        $middleware->appendToGroup('web', \App\Http\Middleware\TambahHeaderKeamanan::class);
+
         /*
          | Endpoint deploy DIKECUALIKAN dari pemeriksaan token CSRF.
          |

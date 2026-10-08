@@ -21,7 +21,7 @@ class WaliKelasController extends Controller
         $kelas = $user->kelasWali()
             ->with([
                 'siswa' => fn ($query) => $query->orderBy('nama'),
-                'siswa.absensi' => fn ($query) => $query->whereDate('tanggal', today()),
+                'siswa.absensi' => fn ($query) => $query->wherePadaTanggal('tanggal', today()),
             ])
             ->first();
 

@@ -150,7 +150,7 @@ class MonitoringController extends Controller
         //     Cukup tahu ada/tidak, jadi yang diambil hanya jadwal_id-nya.
         $sudahDiisi = AbsensiKbmSiswa::query()
             ->whereIn('jadwal_id', $idJadwal)
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->distinct()
             ->pluck('jadwal_id')
             ->flip();
@@ -170,7 +170,7 @@ class MonitoringController extends Controller
          */
         $bolos = AbsensiKbmSiswa::query()
             ->whereIn('jadwal_id', $idJadwal)
-            ->whereDate('tanggal', $tanggal)
+            ->wherePadaTanggal('tanggal', $tanggal)
             ->groupBy('jadwal_id')
             ->select('jadwal_id')
             ->selectRaw(

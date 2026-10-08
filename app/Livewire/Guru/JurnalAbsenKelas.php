@@ -172,7 +172,7 @@ class JurnalAbsenKelas extends Component
         }
 
         return AbsensiPegawai::where('pegawai_id', $pegawaiId)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->whereNotNull('jam_masuk')
             ->first();
     }

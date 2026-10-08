@@ -31,13 +31,12 @@ class PegawaiDashboardController extends Controller
         }
 
         $absensiHariIni = AbsensiPegawai::where('pegawai_id', $pegawai->id)
-            ->whereDate('tanggal', today())
+            ->wherePadaTanggal('tanggal', today())
             ->first();
 
         $riwayat = AbsensiPegawai::where('pegawai_id', $pegawai->id)
-            ->whereYear('tanggal', today()->year)
-            ->whereMonth('tanggal', today()->month)
-            ->whereDate('tanggal', '<', today())
+            ->wherePadaBulan('tanggal', today()->year, today()->month)
+            ->whereSebelumTanggal('tanggal', today())
             ->orderByDesc('tanggal')
             ->get();
 

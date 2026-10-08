@@ -79,7 +79,7 @@ class AppServiceProvider extends ServiceProvider
                 'pegawaiSaya' => $pegawai,
                 'absensiSayaHariIni' => $pegawai
                     ? AbsensiPegawai::where('pegawai_id', $pegawai->id)
-                        ->whereDate('tanggal', today())
+                        ->wherePadaTanggal('tanggal', today())
                         ->first()
                     : null,
             ]);

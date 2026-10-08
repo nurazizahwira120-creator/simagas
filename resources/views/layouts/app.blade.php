@@ -136,7 +136,7 @@
      | dikenal bukan error. Pernah terjadi dan butuh berjam-jam untuk
      | ditelusuri; sekarang aplikasinya yang memberi tahu sendiri.
      */
-    $versiAset = '2026-10-02b';
+    $versiAset = '2026-10-08a';
 
     $pengguna = auth()->user();
     $inisial = $pengguna
