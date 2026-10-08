@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
  * Logika ini semula tinggal di dalam App\Livewire\Guru\JurnalAbsenKelas,
  * dan itu cukup selama satu-satunya pengisi adalah guru pemilik jadwal.
  *
- * Sekarang ada pengisi kedua: halaman Kelas Pengganti (guru lain / piket
+ * Sekarang ada pengisi kedua: halaman Guru Inval (guru/staf yang ditunjuk
  * mengisi absensi kelas yang gurunya berhalangan). Aturan penyimpanannya
  * HARUS sama persis — alpa + masuk gerbang = bolos, izin gerbang terisi
  * otomatis, peringatan WhatsApp hanya untuk perubahan baru. Kalau disalin,

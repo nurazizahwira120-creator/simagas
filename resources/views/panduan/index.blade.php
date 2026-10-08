@@ -49,6 +49,17 @@
                     'catatan' => 'Selama belum disetujui, guru itu masih terhitung tidak hadir. Jangan menunda pemeriksaan sampai akhir bulan — rekap kehadiran ikut terpengaruh.',
                 ],
                 [
+                    'judul' => 'Guru Inval (menunjuk pengganti)',
+                    'isi' => 'Jam pelajaran yang gurunya izin, sakit, atau alpa muncul di menu Guru Inval. Kelas itu hanya bisa diisi absensinya oleh guru/staf yang Anda tunjuk.',
+                    'langkah' => [
+                        'Buka <strong>Guru Inval</strong>. Pilih tanggal (hari ini atau s.d. 14 hari ke depan untuk izin yang sudah disetujui).',
+                        'Pilih guru/staf di tiap jam lalu tekan <strong>Tunjuk</strong>, atau pilih satu orang lalu tekan <strong>Tunjuk semua jam</strong>.',
+                        'Nama yang sedang mengajar atau sudah memegang inval di jam yang sama tidak bisa dipilih.',
+                        'Yang ditunjuk langsung menerima notifikasi. <strong>Batalkan</strong> bila rencana berubah.',
+                    ],
+                    'catatan' => 'Anda dan Super Admin tetap bisa mengisi atau mengoreksi absensi kelas mana pun lewat tombol Isi absensi.',
+                ],
+                [
                     'judul' => 'Persetujuan Rapor',
                     'isi' => 'Nilai yang diinput guru tidak otomatis terlihat wali murid. Rapor baru muncul di akun orang tua setelah Anda menyetujuinya.',
                     'langkah' => [
@@ -143,6 +154,16 @@
                         'Untuk izin satu hari, isi tanggal selesai sama dengan tanggal mulai.',
                     ],
                     'catatan' => 'Kehadiran Anda BELUM berubah sampai kepala sekolah menyetujuinya. Ajukan jauh-jauh hari bila memungkinkan, jangan di pagi hari keberangkatan.',
+                ],
+                [
+                    'judul' => 'Tugas Inval',
+                    'isi' => 'Kalau Anda ditunjuk menggantikan guru yang berhalangan, notifikasinya masuk ke lonceng dan HP. Kelasnya muncul di menu Tugas Inval.',
+                    'langkah' => [
+                        'Buka <strong>Tugas Inval</strong>. Tombol <strong>Isi Absensi</strong> aktif 15 menit sebelum jam pelajaran dimulai.',
+                        'Tidak perlu scan QR ruangan. Ubah hanya siswa yang tidak hadir, lalu simpan.',
+                        'Jam yang Anda gantikan tercatat sebagai JP inval di Rekap Jam Mengajar.',
+                    ],
+                    'catatan' => 'Kelas yang tidak ditugaskan kepada Anda tidak bisa diisi. Hubungi kepala sekolah bila Anda diminta menggantikan tanpa penunjukan.',
                 ],
             ],
         ],

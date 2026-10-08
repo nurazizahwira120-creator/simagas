@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
  * ============ KENAPA DIPUSATKAN ============
  * Pertanyaan yang sama sekarang diajukan empat layar:
  *   - Lembar Paraf Mengajar   -> kolom paraf diisi "GURU IZIN"
- *   - Kelas Pengganti         -> absensi KBM kelasnya dibuka untuk guru lain
+ *   - Guru Inval              -> jamnya bisa ditunjuk penggantinya (inval)
  *   - Live Monitoring         -> kelas kosong karena gurunya izin, bukan mangkir
  *   - Rekap Jam Mengajar      -> JP yang tidak terlaksana karena izin
  *

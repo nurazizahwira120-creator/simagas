@@ -284,7 +284,7 @@ class JurnalAbsenKelas extends Component
 
         // Aturan urutan isian awal (jurnal tersimpan > izin gerbang > hadir)
         // ada di PencatatAbsensiKbm::statusAwal(), dipakai bersama halaman
-        // Kelas Pengganti.
+        // Guru Inval.
         $awal = $this->pencatat()->statusAwal($jadwal, today(), $this->daftarSiswa);
 
         $this->status = $awal['status'];
@@ -293,7 +293,7 @@ class JurnalAbsenKelas extends Component
 
     /**
      * Logika penyimpanan absensi KBM tinggal di service ini, dipakai bersama
-     * halaman Kelas Pengganti. Lihat catatan di App\Services\PencatatAbsensiKbm.
+     * halaman Guru Inval. Lihat catatan di App\Services\PencatatAbsensiKbm.
      */
     private function pencatat(): PencatatAbsensiKbm
     {

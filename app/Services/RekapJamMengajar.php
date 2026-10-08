@@ -38,7 +38,7 @@ use RuntimeException;
  *  JP Tidak Terlaksana : sisanya — terjadwal, guru tidak berhalangan,
  *                   tetapi tidak ada sesi tuntas yang cocok.
  *  JP Pengganti   : JP kelas guru LAIN yang absensinya diisi guru ini
- *                   lewat halaman Kelas Pengganti.
+ *                   sebagai guru inval.
  *  Sesi di luar jadwal : sesi tuntas yang tidak cocok dengan jadwal mana
  *                   pun (ruangan salah scan, atau hari libur). Tidak diberi
  *                   JP — tapi ditampilkan supaya tidak hilang diam-diam.

@@ -187,17 +187,17 @@
                         @elseif ($b['status'] === 'berhalangan')
                             {{-- Bukan kelas mangkir: gurunya tercatat berhalangan.
                                  Tindakannya memastikan ada pengganti yang mengisi
-                                 absensi lewat halaman Kelas Pengganti. --}}
+                                 absensi lewat halaman Guru Inval. --}}
                             <p class="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
                                 {{ $b['berhalangan']['label'] ?? 'Guru berhalangan' }}
                                 @if (! empty($b['berhalangan']['rinci']))
                                     ({{ $b['berhalangan']['rinci'] }})
                                 @endif
-                                &mdash; absensi siswa belum diisi pengganti.
-                                @if (Route::has($panelPrefix . '.kelas-pengganti'))
+                                &mdash; absensi siswa belum diisi guru inval.
+                                @if (Route::has($panelPrefix . '.guru-inval'))
                                     {{-- relative z-20: kartu ini ditutup tombol tembus pandang z-10
                                          (lihat catatan di atas), tautan harus berada di atasnya. --}}
-                                    <a href="{{ route($panelPrefix . '.kelas-pengganti') }}" class="relative z-20 font-semibold underline">Buka Kelas Pengganti</a>
+                                    <a href="{{ route($panelPrefix . '.guru-inval') }}" class="relative z-20 font-semibold underline">Buka Guru Inval</a>
                                 @endif
                             </p>
                         @elseif ($b['status'] === 'menunggu')

@@ -44,11 +44,11 @@
         ['label' => 'Piket Scan Gerbang',     'icon' => 'shield-check',     'route' => '.gerbang',         'match' => '.gerbang*'],
         ['label' => 'Persetujuan Izin Guru',  'icon' => 'check-circle',     'route' => '.persetujuan-izin-guru', 'match' => '.persetujuan-izin-guru*'],
 
-        // Kelas Pengganti — ditaruh tepat di bawah Persetujuan Izin Guru:
-        // izin yang baru disetujui di sana langsung membuat kelasnya muncul
-        // di sini untuk diisi absensinya. Ditulis apa adanya (bukan
-        // $butirKelasPengganti) karena alasan urutan baca yang sama.
-        ['label' => 'Kelas Pengganti',        'icon' => 'swap',             'route' => '.kelas-pengganti', 'match' => '.kelas-pengganti'],
+        // Guru Inval — ditaruh tepat di bawah Persetujuan Izin Guru: izin
+        // yang baru disetujui di sana langsung membuat jamnya muncul di sini
+        // untuk ditunjuk penggantinya. Ditulis apa adanya (bukan
+        // $butirGuruInval) karena alasan urutan baca yang sama.
+        ['label' => 'Guru Inval',             'icon' => 'swap',             'route' => '.guru-inval',      'match' => '.guru-inval'],
 
         // Ditulis apa adanya, bukan $butirPanduan — variabel itu baru lahir
         // beberapa puluh baris di bawah blok ini (lihat catatan di atas).
@@ -188,9 +188,11 @@
     // berlangsung (aturannya ditegakkan di dalam komponennya, bukan di menu).
     $butirJurnal = ['label' => 'Jurnal & Absen Kelas', 'icon' => 'clipboard-check', 'route' => '.jurnal-kelas', 'match' => '.jurnal-kelas'];
 
-    // Kelas Pengganti — absensi KBM kelas yang gurunya berhalangan. Diisi
-    // guru lain / wali kelas / kepsek / guru piket TANPA scan QR ruangan.
-    $butirKelasPengganti = ['label' => 'Kelas Pengganti', 'icon' => 'swap', 'route' => '.kelas-pengganti', 'match' => '.kelas-pengganti'];
+    // Guru Inval — rute yang sama, label berbeda menurut peran:
+    //   Kepsek             -> "Guru Inval"  (menunjuk pengganti)
+    //   guru / staf / piket -> "Tugas Inval" (mengisi kelas yang ditugaskan)
+    $butirGuruInval = ['label' => 'Guru Inval', 'icon' => 'swap', 'route' => '.guru-inval', 'match' => '.guru-inval'];
+    $butirTugasInval = ['label' => 'Tugas Inval', 'icon' => 'swap', 'route' => '.guru-inval', 'match' => '.guru-inval'];
 
     // Label jadwal dibedakan per peran walau rutenya sama: bagi guru isinya
     // memang jadwal mengajarnya sendiri, sedangkan bagi staff & wali murid
@@ -243,7 +245,7 @@
         $butirIzinGuru,
         $butirAbsenAjar,
         $butirJurnal,
-        $butirKelasPengganti,
+        $butirTugasInval,
         $butirInputNilai,
         $butirValidasiRapor,
         $butirJadwalMengajar,
@@ -321,12 +323,12 @@
          | menekan Absen Mengajar, ditolak, dan tidak punya satu pun menu
          | untuk memenuhi syaratnya.
          */
-        ['label' => 'Kegiatan Mengajar', 'icon' => 'academic-cap', 'match' => '.jadwal-pelajaran|.absen-lokasi|.absen-mengajar|.jurnal-kelas|.kelas-pengganti', 'anak' => [
+        ['label' => 'Kegiatan Mengajar', 'icon' => 'academic-cap', 'match' => '.jadwal-pelajaran|.absen-lokasi|.absen-mengajar|.jurnal-kelas|.guru-inval', 'anak' => [
             $butirJadwalPelajaran,
             $butirAbsenHadir,
             $butirAbsenAjar,
             $butirJurnal,
-            $butirKelasPengganti,
+            $butirGuruInval,
         ]],
 
         /*
@@ -426,7 +428,7 @@
         $butirIzinGuru,
         $butirAbsenAjar,
         $butirJurnal,
-        $butirKelasPengganti,
+        $butirTugasInval,
         $butirGerbang,
         $butirJadwalPelajaran,
         $butirEkskul,

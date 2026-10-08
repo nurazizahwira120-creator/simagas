@@ -102,7 +102,7 @@ class LembarParafMengajar
         $idAkun = $jadwal->pluck('guru.user_id')->filter()->unique()->values()->all();
 
         // Aturan "berhalangan" dipusatkan di StatusBerhalanganGuru supaya
-        // lembar ini, halaman Kelas Pengganti, dan Live Monitoring selalu
+        // lembar ini, halaman Guru Inval, dan Live Monitoring selalu
         // sepakat. Daftar gurunya diambil dari eager load di atas, jadi
         // tidak ada query tambahan per guru.
         $daftarGuru = $jadwal->pluck('guru')->filter();

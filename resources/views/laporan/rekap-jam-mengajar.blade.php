@@ -98,7 +98,7 @@
                 <p class="mt-1 text-xs text-brand-muted dark:text-brand-faint">
                     JP terlaksana hanya dihitung dari sesi yang tuntas: scan QR ruangan, foto bukti, dan diakhiri.
                     @if ($r['jp_pengganti'] > 0)
-                        Total {{ $r['jp_pengganti'] }} JP diisi guru pengganti.
+                        Total {{ $r['jp_pengganti'] }} JP diisi guru inval.
                     @endif
                     @if ($r['jp_akan_datang'] > 0)
                         {{ $r['jp_akan_datang'] }} JP lagi di periode ini belum selesai, jadi belum dihitung.
@@ -116,7 +116,7 @@
                             <th class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">Terlaksana</th>
                             <th class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">Berhalangan</th>
                             <th class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">Tidak terlaksana</th>
-                            <th class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">Pengganti</th>
+                            <th class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">Inval</th>
                             <th class="px-6 py-4 text-right text-sm font-semibold text-brand-ink dark:text-white">%</th>
                         </tr>
                     </thead>

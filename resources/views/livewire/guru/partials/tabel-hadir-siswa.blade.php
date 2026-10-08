@@ -1,7 +1,7 @@
 {{--
     Tabel daftar hadir siswa — dipakai BERSAMA oleh dua komponen:
       - App\Livewire\Guru\JurnalAbsenKelas  (guru pemilik jadwal)
-      - App\Livewire\Guru\KelasPengganti    (pengganti saat guru berhalangan)
+      - App\Livewire\Guru\GuruInval        (guru inval saat guru berhalangan)
 
     Satu berkas, bukan dua salinan: tampilan status, penanda gerbang, dan
     perilaku tombolnya harus sama persis di kedua halaman. Kalau disalin,

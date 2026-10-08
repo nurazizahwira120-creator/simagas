@@ -166,7 +166,7 @@
                 </div>
             </div>
 
-            {{-- Tabel dipakai bersama halaman Kelas Pengganti. --}}
+            {{-- Tabel dipakai bersama halaman Guru Inval. --}}
             @include('livewire.guru.partials.tabel-hadir-siswa')
 
             @if ($this->daftarSiswa->isNotEmpty())

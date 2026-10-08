@@ -182,7 +182,7 @@ class MonitoringController extends Controller
         // Guru yang berhalangan hari ini. Kelasnya yang belum terisi diberi
         // status sendiri ('berhalangan'), bukan 'kosong': yang perlu
         // dilakukan kepala sekolah berbeda — bukan menegur gurunya, tetapi
-        // memastikan ada pengganti lewat halaman Kelas Pengganti.
+        // memastikan ada pengganti lewat halaman Guru Inval.
         $berhalangan = app(\App\Services\StatusBerhalanganGuru::class)
             ->pada($jadwal->pluck('guru')->filter(), $sekarang);
 

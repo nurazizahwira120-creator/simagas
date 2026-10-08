@@ -82,7 +82,7 @@
                     <th width="9%" class="tengah">Terlaksana</th>
                     <th width="9%" class="tengah">Berhalangan</th>
                     <th width="10%" class="tengah">Tidak Terlaksana</th>
-                    <th width="9%" class="tengah">Pengganti</th>
+                    <th width="9%" class="tengah">Inval</th>
                     <th width="8%" class="tengah">Sesi Luar Jadwal</th>
                     <th width="8%" class="kanan">%</th>
                 </tr>
@@ -120,7 +120,7 @@
         <strong>JP Terlaksana</strong> = JP jadwal yang sesi mengajarnya tuntas (scan QR ruangan, foto bukti, diakhiri).
         <strong>JP Berhalangan</strong> = JP pada hari guru tercatat izin, sakit, atau alpa.
         <strong>JP Tidak Terlaksana</strong> = sisanya: guru tidak berhalangan tetapi tidak ada sesi tuntas yang cocok.
-        <strong>Pengganti</strong> = JP kelas guru lain yang absensi siswanya diisi guru ini lewat halaman Kelas Pengganti.
+        <strong>Inval</strong> = JP kelas guru lain yang absensi siswanya diisi guru ini sebagai guru inval.
         <strong>Sesi Luar Jadwal</strong> = sesi tuntas yang tidak cocok dengan jadwal mana pun (salah scan ruangan atau hari libur);
         tidak diberi JP.
         <strong>%</strong> = JP Terlaksana &divide; JP Terjadwal.
