@@ -41,6 +41,12 @@ class KelolaEkskul extends Component
 
     public string $keterangan = '';
 
+    /**
+     * JP yang dihitung untuk honor sesi ekskul (opsional). Kosong = dihitung
+     * otomatis dari panjang jadwal, sama dengan jadwal pelajaran.
+     */
+    public string $jp_honor = '';
+
     /** Kotak pencarian di atas tabel. */
     public string $cari = '';
 
@@ -67,6 +73,7 @@ class KelolaEkskul extends Component
             'jam_selesai' => ['required', 'date_format:H:i'],
             'pembina_id' => ['required', 'integer', 'exists:pegawai,id'],
             'keterangan' => ['nullable', 'string', 'max:255'],
+            'jp_honor' => ['nullable', 'integer', 'min:1', 'max:20'],
         ];
     }
 
@@ -83,6 +90,9 @@ class KelolaEkskul extends Component
             'pembina_id.required' => 'Pilih dulu pembinanya.',
             'pembina_id.exists' => 'Pembina yang dipilih sudah tidak ada di data pegawai.',
             'keterangan.max' => 'Keterangan maksimal 255 karakter.',
+            'jp_honor.integer' => 'JP harus berupa angka bulat.',
+            'jp_honor.min' => 'JP minimal 1.',
+            'jp_honor.max' => 'JP maksimal 20.',
         ];
     }
 
@@ -219,6 +229,7 @@ class KelolaEkskul extends Component
 
         $data['nama_ekskul'] = trim($data['nama_ekskul']);
         $data['keterangan'] = trim((string) $data['keterangan']) ?: null;
+        $data['jp_honor'] = filled($data['jp_honor'] ?? null) ? (int) $data['jp_honor'] : null;
 
         // Begitu pembinanya dipilih dari daftar pegawai, nama teks lama
         // (peninggalan sebelum ada relasi) tidak boleh ikut tertinggal —
@@ -308,6 +319,7 @@ class KelolaEkskul extends Component
 
         $this->pembina_id = $baris->pembina_id !== null ? (int) $baris->pembina_id : null;
         $this->keterangan = (string) $baris->keterangan;
+        $this->jp_honor = $baris->jp_honor ? (string) $baris->jp_honor : '';
         $this->notif = null;
         $this->resetValidation();
 
@@ -316,7 +328,7 @@ class KelolaEkskul extends Component
 
     public function batal(): void
     {
-        $this->reset(['ekskulId', 'nama_ekskul', 'jam_mulai', 'jam_selesai', 'pembina_id', 'keterangan']);
+        $this->reset(['ekskulId', 'nama_ekskul', 'jam_mulai', 'jam_selesai', 'pembina_id', 'keterangan', 'jp_honor']);
         $this->hari = 'Senin';
         $this->resetValidation();
     }

@@ -76,7 +76,7 @@
             ['label' => 'Kenaikan Kelas',     'icon' => 'arrow-right',      'route' => '.kenaikan-kelas',   'match' => '.kenaikan-kelas*'],
         ]],
 
-        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
+        ['label' => 'Pusat Laporan',          'icon' => 'chart-pie',        'match' => '.laporan-harian|.laporan|.laporan-pegawai|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*|.rekap-ekskul*', 'anak' => [
             ['label' => 'Absensi Harian',       'icon' => 'clock',            'route' => '.laporan-harian',  'match' => '.laporan-harian'],
             ['label' => 'Rekap Bulanan Siswa',  'icon' => 'document-report',  'route' => '.laporan',         'match' => '.laporan'],
             // Lembar kertas harian untuk paraf manual guru — cadangan kalau
@@ -89,7 +89,13 @@
             // berkas jadi, siap unduh & cetak, dan mencakup pegawai juga.
             ['label' => 'Laporan Bulanan (PDF)', 'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
             ['label' => 'Rekap Bulanan Pegawai','icon' => 'briefcase',        'route' => '.laporan-pegawai', 'match' => '.laporan-pegawai'],
+            // Kehadiran anggota & keterlaksanaan sesi ekskul per bulan.
+            ['label' => 'Rekap Absensi Ekskul', 'icon' => 'clipboard-check',  'route' => '.rekap-ekskul',    'match' => '.rekap-ekskul*'],
         ]],
+
+        // Honor Guru (uji coba): tarif per JP + rekap honor semua guru.
+        // Ditulis apa adanya karena alasan urutan baca yang sama (lihat atas).
+        ['label' => 'Honor Guru',               'icon' => 'cash',             'route' => '.honor-guru',  'match' => '.honor-guru'],
 
         ['label' => 'Kelola Pengumuman',        'icon' => 'bell',             'route' => '.pengumuman',  'match' => '.pengumuman'],
 
@@ -194,6 +200,18 @@
     $butirGuruInval = ['label' => 'Guru Inval', 'icon' => 'swap', 'route' => '.guru-inval', 'match' => '.guru-inval'];
     $butirTugasInval = ['label' => 'Tugas Inval', 'icon' => 'swap', 'route' => '.guru-inval', 'match' => '.guru-inval'];
 
+    /*
+     | Honor mengajar (uji coba).
+     |   Rincian Pendapatan -> guru & staf, honor MILIKNYA SENDIRI. Selalu
+     |                         tampil (permintaan sekolah), walau fitur belum
+     |                         dinyalakan — halamannya sendiri yang menjelaskan
+     |                         "belum diaktifkan Kepala Sekolah". Peran yang
+     |                         boleh membukanya ditentukan routes/web.php.
+     |   Honor Guru         -> Kepsek (Super Admin ditulis di menunya sendiri).
+     */
+    $butirRincianPendapatan = ['label' => 'Rincian Pendapatan', 'icon' => 'cash', 'route' => '.rincian-pendapatan', 'match' => '.rincian-pendapatan'];
+    $butirHonorGuru = ['label' => 'Honor Guru', 'icon' => 'cash', 'route' => '.honor-guru', 'match' => '.honor-guru'];
+
     // Label jadwal dibedakan per peran walau rutenya sama: bagi guru isinya
     // memang jadwal mengajarnya sendiri, sedangkan bagi staff & wali murid
     // isinya jadwal orang lain — menyebutnya "Jadwal Mengajar" di sana akan
@@ -246,6 +264,7 @@
         $butirAbsenAjar,
         $butirJurnal,
         $butirTugasInval,
+        $butirRincianPendapatan,
         $butirInputNilai,
         $butirValidasiRapor,
         $butirJadwalMengajar,
@@ -377,12 +396,15 @@
          | "Rekap KBM per Jadwal" DIHAPUS (tidak dipakai lagi). Kehadiran
          | siswa per mata pelajaran tetap ada di Laporan Bulanan bagian C.
          */
-        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*', 'anak' => [
+        ['label' => 'Rekap Absensi', 'icon' => 'document-report', 'match' => '.laporan|.laporan-bulanan*|.lembar-paraf*|.rekap-jam-mengajar*|.rekap-ekskul*', 'anak' => [
             ['label' => 'Laporan & Rekapitulasi', 'icon' => 'document-report', 'route' => '.laporan',         'match' => '.laporan'],
             ['label' => 'Lembar Paraf Mengajar',  'icon' => 'printer',         'route' => '.lembar-paraf',    'match' => '.lembar-paraf*'],
             ['label' => 'Rekap Jam Mengajar',     'icon' => 'clock',           'route' => '.rekap-jam-mengajar', 'match' => '.rekap-jam-mengajar*'],
             ['label' => 'Laporan Bulanan (PDF)',  'icon' => 'download',        'route' => '.laporan-bulanan', 'match' => '.laporan-bulanan*'],
+            ['label' => 'Rekap Absensi Ekskul',   'icon' => 'clipboard-check', 'route' => '.rekap-ekskul',    'match' => '.rekap-ekskul*'],
         ]],
+
+        $butirHonorGuru,
 
         ['label' => 'Manajemen Data Sekolah',       'icon' => 'users',           'match' => '.users.*|.kelas.*|.siswa.*', 'anak' => [
             ['label' => 'Pengguna', 'icon' => 'users',          'route' => '.users.index', 'match' => '.users.*'],
@@ -429,6 +451,7 @@
         $butirAbsenAjar,
         $butirJurnal,
         $butirTugasInval,
+        $butirRincianPendapatan,
         $butirGerbang,
         $butirJadwalPelajaran,
         $butirEkskul,
@@ -457,6 +480,11 @@
     $saring = function (array $daftar) use ($adaRute, &$saring) {
         $hasil = [];
         foreach ($daftar as $butir) {
+            // Butir bersyarat (mis. Rincian Pendapatan saat fitur mati) bernilai null.
+            if (! $butir) {
+                continue;
+            }
+
             if (isset($butir['anak'])) {
                 $butir['anak'] = $saring($butir['anak']);
                 if ($butir['anak']) {

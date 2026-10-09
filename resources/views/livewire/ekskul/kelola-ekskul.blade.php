@@ -138,6 +138,18 @@
                 </div>
             </div>
 
+            {{-- JP untuk honor sesi ekskul. Kosong = otomatis dari panjang jadwal. --}}
+            <div>
+                <label for="ek-jp" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    JP dihitung untuk honor <span class="text-xs font-normal text-gray-400">(opsional)</span>
+                </label>
+                <input id="ek-jp" type="number" inputmode="numeric" min="1" max="20" wire:model="jp_honor"
+                    placeholder="Kosongkan = otomatis dari jam mulai–selesai" class="{{ $kelasInput }} sm:w-72">
+                @error('jp_honor')
+                    <p class="mt-1.5 text-sm text-error-600 dark:text-error-400">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div>
                 <label for="ek-keterangan" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Keterangan <span class="text-xs font-normal text-gray-400">(opsional)</span>
@@ -282,6 +294,14 @@
                                                 title="Kelola anggota {{ $item->nama_ekskul }}">
                                                 <x-icon name="users" class="h-4 w-4" />
                                                 Anggota
+                                            </a>
+                                        @endif
+
+                                        @if ($bolehKelolaBaris && Route::has($panelPrefix . '.ekskul.qr'))
+                                            <a href="{{ route($panelPrefix . '.ekskul.qr', $item->id) }}" target="_blank" rel="noopener"
+                                                class="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-600 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]"
+                                                aria-label="Cetak QR {{ $item->nama_ekskul }}" title="Cetak stiker QR">
+                                                <x-icon name="qr-code" class="h-4 w-4" />
                                             </a>
                                         @endif
 

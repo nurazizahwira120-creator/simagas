@@ -4,6 +4,7 @@ namespace App\Livewire\Guru;
 
 use App\Models\AbsensiMengajar;
 use App\Models\AbsensiPegawai;
+use App\Models\JadwalEkskul;
 use App\Models\Kelas;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -146,6 +147,16 @@ class AbsenMengajarQr extends Component
         if ($kode === '' || ! preg_match(self::POLA_KODE, $kode)) {
             $this->pesan('error', 'QR tidak dikenali',
                 'Kode yang terbaca bukan kode ruangan yang sah. Pastikan yang di-scan adalah stiker QR resmi di meja guru.');
+
+            return;
+        }
+
+        // QR ekskul ter-scan di sini: JANGAN dicatat sebagai sesi mengajar
+        // (akan jadi "sesi di luar jadwal" di Rekap Jam Mengajar). Arahkan
+        // ke halaman yang benar.
+        if (JadwalEkskul::tampakKodeEkskul($kode)) {
+            $this->pesan('warn', 'Ini QR ekskul',
+                'Sesi ekskul dimulai dari menu Jadwal Ekskul → Absensi ekskul Anda, lalu tekan Scan QR Ekskul di sana.');
 
             return;
         }

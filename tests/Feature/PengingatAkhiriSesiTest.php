@@ -88,8 +88,17 @@ class PengingatAkhiriSesiTest extends TestCase
     /** Firebase dianggap aktif, server Google dipalsukan. */
     private function siapkanFirebasePalsu(): void
     {
-        $kunci = openssl_pkey_new(['private_key_bits' => 2048]);
-        openssl_pkey_export($kunci, $pem);
+        // Kunci RSA sementara untuk menandatangani token palsu. Berkas
+        // konfigurasi disertakan karena PHP di Windows (Laragon) sering tidak
+        // menemukan openssl.cnf bawaan — tanpa itu openssl_pkey_new() gagal
+        // dan SELURUH tes di kelas ini ikut gagal.
+        $opsi = ['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA,
+            'config' => base_path('tests/Fixtures/openssl.cnf')];
+        $kunci = openssl_pkey_new($opsi);
+
+        if ($kunci === false || ! openssl_pkey_export($kunci, $pem, null, $opsi)) {
+            $this->markTestSkipped('OpenSSL di komputer ini tidak bisa membuat kunci RSA.');
+        }
 
         config([
             'firebase.enabled' => true, 'firebase.project_id' => 'uji', 'firebase.vapid_key' => 'v',

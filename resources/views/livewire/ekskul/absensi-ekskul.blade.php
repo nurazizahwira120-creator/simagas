@@ -11,6 +11,13 @@
     ];
 @endphp
 
+@once
+    @push('scripts')
+        {{-- Pembaca QR kamera untuk Sesi Ekskul (sama dengan Absen Mengajar). --}}
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    @endpush
+@endonce
+
 <div class="space-y-6">
 
     @if (! $jadwal)
@@ -52,7 +59,21 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            @if ($peran === 'isi' && Route::has($panelPrefix . '.rekap-ekskul'))
+                <a href="{{ route($panelPrefix . '.rekap-ekskul', ['ekskul' => $jadwal->id]) }}"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
+                    <x-icon name="document-report" class="h-4 w-4" />
+                    Rekap Bulanan
+                </a>
+            @endif
+            @if ($peran === 'isi' && Route::has($panelPrefix . '.ekskul.qr'))
+                <a href="{{ route($panelPrefix . '.ekskul.qr', $jadwal->id) }}" target="_blank" rel="noopener"
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
+                    <x-icon name="qr-code" class="h-4 w-4" />
+                    Cetak QR
+                </a>
+            @endif
             @if ($peran === 'isi')
                 <a href="{{ route($panelPrefix . '.ekskul.anggota', $jadwal->id) }}" wire:navigate
                     class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
@@ -67,6 +88,11 @@
             </a>
         </div>
     </div>
+
+    {{-- ================= SESI EKSKUL HARI INI (pembina) ================= --}}
+    @if ($this->sesiHariIni)
+        @include('livewire.ekskul.partials.sesi-ekskul')
+    @endif
 
     {{-- ============================================================
          MODE PEMBINA / ADMIN — form isi kehadiran
@@ -307,7 +333,7 @@
     @if ($peran === 'lihat')
         <div class="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Rekap Kehadiran</h3>
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Rekap Kehadiran {{ now()->translatedFormat('F Y') }}</h3>
                 <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
                     Pengisian absensi hanya bisa dilakukan pembina ekskul ini ({{ $jadwal->namaPembina() }}).
                 </p>

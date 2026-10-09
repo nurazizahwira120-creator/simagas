@@ -355,8 +355,8 @@
                                 <button type="button" wire:click="akhiriSesi"
                                     wire:loading.attr="disabled" wire:target="akhiriSesi"
                                     data-konfirmasi="Sesudah diakhiri, jurnal jam ini tidak bisa diubah lagi."
-                                    data-judul="Akhiri Sesi Kelas?"
-                                    data-ya="Ya, Akhiri Sesi"
+                                    data-konfirmasi-judul="Akhiri Sesi Kelas?"
+                                    data-konfirmasi-ya="Ya, Akhiri Sesi"
                                     class="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-6 py-3 font-medium text-white transition hover:bg-brand-500/90 disabled:opacity-60">
                                     <x-icon name="check-circle" class="h-5 w-5" />
                                     <span wire:loading.remove wire:target="akhiriSesi">Akhiri Sesi Kelas</span>

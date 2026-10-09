@@ -1,0 +1,8 @@
+# Konfigurasi OpenSSL minimal KHUSUS PENGUJIAN.
+# PHP di Windows (Laragon/XAMPP) sering tidak menemukan openssl.cnf bawaan,
+# sehingga openssl_pkey_new() gagal. Berkas ini cukup untuk membuat kunci
+# RSA sementara di tes. Tidak dipakai aplikasi.
+[ req ]
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]

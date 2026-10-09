@@ -4,8 +4,10 @@ namespace App\Console\Commands;
 
 use App\Jobs\KirimPushNotifikasi;
 use App\Models\AbsensiMengajar;
+use App\Models\SesiEkskul;
 use App\Models\User;
 use App\Notifications\AkhiriSesiBelumDitekan;
+use App\Services\AturanSesiEkskul;
 use App\Services\PengingatAkhiriSesi;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -38,12 +40,15 @@ class IngatkanAkhiriSesi extends Command
 
     protected $description = 'Mengingatkan guru yang belum menekan "Akhiri Sesi" 5 menit sesudah KBM selesai.';
 
-    public function handle(PengingatAkhiriSesi $pengingat): int
+    public function handle(PengingatAkhiriSesi $pengingat, AturanSesiEkskul $ekskul): int
     {
         $daftar = $pengingat->jatuhTempo(now());
 
+        // Sesi EKSKUL diproses di perintah yang sama, dengan aturan yang sama.
+        $this->ingatkanEkskul($ekskul);
+
         if ($daftar->isEmpty()) {
-            $this->info('Tidak ada sesi yang perlu diingatkan.');
+            $this->info('Tidak ada sesi KBM yang perlu diingatkan.');
 
             return self::SUCCESS;
         }
@@ -134,6 +139,68 @@ class IngatkanAkhiriSesi extends Command
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /** Pengingat untuk sesi ekskul yang belum diakhiri pembinanya. */
+    private function ingatkanEkskul(AturanSesiEkskul $aturan): void
+    {
+        $daftar = $aturan->jatuhTempo(now());
+
+        if ($daftar->isEmpty()) {
+            return;
+        }
+
+        $pengguna = User::query()->whereIn('id', $daftar->pluck('user_id')->unique()->values())->get()->keyBy('id');
+
+        foreach ($daftar as $butir) {
+            /** @var SesiEkskul $sesi */
+            $sesi = $butir['sesi'];
+            $user = $pengguna->get($butir['user_id']);
+            $label = "Ekskul {$butir['jadwal']->nama_ekskul} — {$user?->name}";
+
+            if ($this->option('uji-coba')) {
+                $this->line("Akan diingatkan: {$label}, batas {$butir['batas']->format('H:i')}");
+
+                continue;
+            }
+
+            // Klaim atomik yang sama dengan sesi KBM (lihat catatan kelas).
+            $menang = SesiEkskul::query()->whereKey($sesi->id)
+                ->whereNull('pengingat_akhiri_pada')->whereNull('waktu_selesai')
+                ->update(['pengingat_akhiri_pada' => now()]) === 1;
+
+            if (! $user || ! $menang) {
+                continue;
+            }
+
+            $kalimat = AturanSesiEkskul::kalimat($butir['jadwal'], $butir['batas']);
+
+            try {
+                $user->notify(AkhiriSesiBelumDitekan::untukEkskul($butir['jadwal'], $butir['batas']));
+            } catch (Throwable $e) {
+                Log::warning('Pengingat Akhiri Sesi ekskul: gagal menulis lonceng.', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            }
+
+            if ($user->bisaMenerimaPush()) {
+                try {
+                    $prefix = $user->role?->routePrefix();
+                    KirimPushNotifikasi::dispatch(
+                        userId: (int) $user->id,
+                        judul: 'Sesi ekskul belum diakhiri',
+                        isi: $kalimat,
+                        data: [
+                            'jenis' => 'pengingat-akhiri-sesi',
+                            'url' => $prefix && Route::has("{$prefix}.ekskul.absensi")
+                                ? route("{$prefix}.ekskul.absensi", $butir['jadwal']->id) : url('/'),
+                        ],
+                    )->onConnection(config('firebase.queue_connection', 'sync'));
+                } catch (Throwable $e) {
+                    Log::warning('Pengingat Akhiri Sesi ekskul: gagal mengirim push.', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+            }
+
+            $this->line("Diingatkan: {$label}");
         }
     }
 

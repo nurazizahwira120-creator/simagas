@@ -4,9 +4,12 @@ namespace App\Livewire\WaliMurid;
 
 use App\Enums\AbsensiStatus;
 use App\Enums\StatusKbm;
+use App\Models\AbsensiEkskul;
 use App\Models\AbsensiKbmSiswa;
 use App\Models\AbsensiSiswa;
+use App\Models\JadwalEkskul;
 use App\Models\Siswa;
+use App\Services\RekapEkskulBulanan;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -197,6 +200,59 @@ class RekapAkademik extends Component
             ->whereIn('status', [StatusKbm::Alpa->value, StatusKbm::Bolos->value])
             ->orderByDesc('tanggal')
             ->get();
+    }
+
+    /**
+     * Kehadiran anak di EKSKUL bulan terpilih: satu baris per ekskul yang
+     * ia ikuti (atau pernah tercatat di bulan itu), misalnya "Pramuka:
+     * hadir 3 dari 4 pertemuan". Dua query: ekskul + rekap absensi.
+     *
+     * @return Collection<int, array{ekskul: JadwalEkskul, jumlah: array<string, int>, total: int, persen: ?int}>
+     */
+    #[Computed]
+    public function rekapEkskul(): Collection
+    {
+        $anak = $this->anak;
+
+        if (! $anak) {
+            return collect();
+        }
+
+        $awal = $this->awalBulan;
+        $akhir = $awal->copy()->endOfMonth();
+
+        $catatan = AbsensiEkskul::query()
+            ->where('siswa_id', $anak->id)
+            ->whereAntaraTanggal('tanggal', $awal, $akhir)
+            ->groupBy('jadwal_ekskul_id', 'status_kehadiran')
+            ->select('jadwal_ekskul_id', 'status_kehadiran')
+            ->selectRaw('COUNT(*) as jumlah')
+            ->toBase()
+            ->get()
+            ->groupBy('jadwal_ekskul_id');
+
+        $ekskul = JadwalEkskul::query()
+            ->where(fn ($q) => $q->whereIn('id', $catatan->keys())
+                ->orWhereHas('anggota', fn ($q) => $q->where('siswa.id', $anak->id)))
+            ->orderBy('nama_ekskul')
+            ->get();
+
+        return $ekskul->map(function (JadwalEkskul $e) use ($catatan) {
+            $jumlah = array_fill_keys(array_map(fn ($s) => $s->value, RekapEkskulBulanan::STATUS), 0);
+
+            foreach ($catatan->get($e->id, []) as $c) {
+                $jumlah[$c->status_kehadiran] = (int) $c->jumlah;
+            }
+
+            $total = array_sum($jumlah);
+
+            return [
+                'ekskul' => $e,
+                'jumlah' => $jumlah,
+                'total' => $total,
+                'persen' => $total > 0 ? (int) round($jumlah[AbsensiStatus::Hadir->value] / $total * 100) : null,
+            ];
+        })->values();
     }
 
     public function render()

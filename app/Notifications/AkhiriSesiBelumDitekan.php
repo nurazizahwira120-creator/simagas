@@ -20,7 +20,24 @@ class AkhiriSesiBelumDitekan extends Notification
     public function __construct(
         private readonly string $mapel,
         private readonly string $pesan,
+        private readonly string $judul = 'Sesi kelas belum diakhiri',
+        private readonly string $rute = '.jurnal-kelas',
     ) {}
+
+    /**
+     * Versi EKSKUL. Rutenya ke daftar Jadwal Ekskul: lonceng hanya
+     * menyimpan akhiran nama rute TANPA parameter, jadi halaman absensi
+     * satu ekskul tidak bisa dituju langsung dari sini.
+     */
+    public static function untukEkskul(\App\Models\JadwalEkskul $jadwal, Carbon $batas): self
+    {
+        return new self(
+            'Ekskul ' . $jadwal->nama_ekskul,
+            \App\Services\AturanSesiEkskul::kalimat($jadwal, $batas),
+            'Sesi ekskul belum diakhiri',
+            '.ekskul',
+        );
+    }
 
     public static function untuk(JadwalPelajaran $jadwal, Carbon $batas): self
     {
@@ -38,7 +55,7 @@ class AkhiriSesiBelumDitekan extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'judul' => 'Sesi kelas belum diakhiri',
+            'judul' => $this->judul,
             'pesan' => $this->pesan,
             'ikon' => 'clock',
             'warna' => 'danger',
@@ -46,7 +63,7 @@ class AkhiriSesiBelumDitekan extends Notification
 
             // Akhiran nama rute — prefix panel (guru/wali-kelas/kepsek)
             // ditambahkan NotificationBell sesuai peran pembacanya.
-            'rute' => '.jurnal-kelas',
+            'rute' => $this->rute,
         ];
     }
 }

@@ -5,6 +5,9 @@ namespace App\Livewire\Guru;
 use App\Enums\Hari;
 use App\Enums\StatusKbm;
 use App\Models\AbsensiMengajar;
+use App\Models\HonorMengajar;
+use App\Services\AturanHonor;
+use App\Services\PencatatHonor;
 use App\Services\PencatatAbsensiKbm;
 use App\Services\PencocokSesiMengajar;
 use App\Models\AbsensiPegawai;
@@ -568,6 +571,10 @@ class JurnalAbsenKelas extends Component
             return;
         }
 
+        // Diambil SEBELUM sesi ditutup: sesudahnya cache pemeriksaan
+        // disegarkan, dan jadwal ini yang menjadi dasar honor.
+        $jadwal = $this->jadwalAktif;
+
         try {
             $this->scanCocok->forceFill(['waktu_selesai' => now()])->save();
         } catch (\Throwable $e) {
@@ -582,7 +589,9 @@ class JurnalAbsenKelas extends Component
             return;
         }
 
-        $sesiId = $this->scanCocok->id;
+        $sesi = $this->scanCocok;
+        $sesiId = $sesi->id;
+        $honor = $jadwal ? $this->catatHonor($sesi, $jadwal) : null;
         $this->segarkanPemeriksaan();
 
         // Mematikan alarm pengingat "Akhiri Sesi" yang mungkin sedang
@@ -592,7 +601,29 @@ class JurnalAbsenKelas extends Component
         $this->dispatch('sesi-diakhiri', id: $sesiId);
 
         $this->pesan('ok', 'Sesi kelas diakhiri',
-            'Kehadiran mengajar Anda tercatat lengkap dengan bukti. Jurnal jam ini sekarang terkunci.');
+            'Kehadiran mengajar Anda tercatat lengkap dengan bukti. Jurnal jam ini sekarang terkunci.'
+                . ($honor ? ' Honor ' . AturanHonor::rupiah($honor->nominal) . " ({$honor->jp} JP) masuk ke Rincian Pendapatan." : ''));
+    }
+
+    /**
+     * Catat honor mengajar sesi yang baru diakhiri (null = fitur mati).
+     *
+     * Gagal mencatat honor TIDAK membatalkan "Akhiri Sesi" — sesi mengajar
+     * yang sudah sah tidak boleh ikut gagal karena fitur uji coba.
+     */
+    private function catatHonor(AbsensiMengajar $sesi, JadwalPelajaran $jadwal): ?HonorMengajar
+    {
+        try {
+            return app(PencatatHonor::class)->catatMengajar($sesi, $jadwal);
+        } catch (\Throwable $e) {
+            Log::error('Gagal mencatat honor mengajar.', [
+                'absensi_mengajar_id' => $sesi->id,
+                'jadwal_id' => $jadwal->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     /**

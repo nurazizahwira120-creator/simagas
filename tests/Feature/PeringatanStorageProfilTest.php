@@ -69,10 +69,10 @@ class PeringatanStorageProfilTest extends TestCase
     public function test_symlink_di_document_root_cpanel_dianggap_siap(): void
     {
         // Kondisi server simagas.online: public_html/storage ada,
-        // backend_simagas/public/storage tidak ada.
-        $tujuan = dirname($this->akarWeb) . '/storage-app-public';
-        File::ensureDirectoryExists($tujuan);
-        symlink($tujuan, $this->akarWeb . '/storage');
+        // backend_simagas/public/storage tidak ada. Dibuat sebagai FOLDER,
+        // bukan symlink: di Windows symlink() butuh hak administrator,
+        // sedangkan yang diuji hanyalah "ada atau tidak".
+        File::ensureDirectoryExists($this->akarWeb . '/storage');
 
         $this->buka()->assertDontSee(self::PESAN);
     }
@@ -80,7 +80,11 @@ class PeringatanStorageProfilTest extends TestCase
     public function test_symlink_yang_tujuannya_hilang_tetap_diperingatkan(): void
     {
         // Symlink "rusak": foto memang tidak akan tampil, jadi peringatan benar.
-        symlink(dirname($this->akarWeb) . '/tidak-ada', $this->akarWeb . '/storage');
+        // Di Windows tanpa hak administrator symlink tidak bisa dibuat —
+        // tes ini dilewati di sana, bukan dianggap gagal.
+        if (! @symlink(dirname($this->akarWeb) . '/tidak-ada', $this->akarWeb . '/storage')) {
+            $this->markTestSkipped('Sistem ini tidak mengizinkan membuat symlink.');
+        }
 
         $this->buka()->assertSee(self::PESAN);
     }

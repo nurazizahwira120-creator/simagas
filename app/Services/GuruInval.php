@@ -243,10 +243,20 @@ class GuruInval
 
     public function batalkan(int $jadwalId, Carbon $tanggal): bool
     {
-        return PenugasanInval::query()
-            ->where('jadwal_id', $jadwalId)
-            ->wherePadaTanggal('tanggal', $tanggal)
-            ->delete() > 0;
+        return DB::transaction(function () use ($jadwalId, $tanggal) {
+            $dihapus = PenugasanInval::query()
+                ->where('jadwal_id', $jadwalId)
+                ->wherePadaTanggal('tanggal', $tanggal)
+                ->delete() > 0;
+
+            // Honor inval (dan bagian guru asli) jam itu ikut batal — kalau
+            // dibiarkan, orang yang penunjukannya dicabut tetap dibayar.
+            if ($dihapus) {
+                app(PencatatHonor::class)->batalkanInval($jadwalId, $tanggal);
+            }
+
+            return $dihapus;
+        });
     }
 
     /** Lonceng + push ke inval. Gagal mengabari TIDAK membatalkan penunjukan. */

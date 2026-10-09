@@ -55,6 +55,39 @@ class JadwalEkskul extends Model
         return $this->hasMany(AbsensiEkskul::class, 'jadwal_ekskul_id');
     }
 
+    /** Sesi Mulai/Akhiri pembina — lihat App\Services\AturanSesiEkskul. */
+    public function sesi(): HasMany
+    {
+        return $this->hasMany(SesiEkskul::class, 'jadwal_ekskul_id');
+    }
+
+    /* ===================== KODE QR ===================== */
+
+    /**
+     * Setiap ekskul baru langsung mendapat kode QR. Kode lama yang dibuat
+     * migrasi 000046 memakai bentuk yang sama.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (self $jadwal) {
+            if (blank($jadwal->kode_qr)) {
+                $jadwal->forceFill(['kode_qr' => self::buatKodeQr($jadwal->id)])->saveQuietly();
+            }
+        });
+    }
+
+    /** "EKSKUL-12-K7Q2XW" — potongan acak supaya tidak bisa ditebak dari nomor urut. */
+    public static function buatKodeQr(int $id): string
+    {
+        return 'EKSKUL-' . $id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(6));
+    }
+
+    /** Bentuk kode yang terlihat seperti QR ekskul (dipakai halaman Absen Mengajar). */
+    public static function tampakKodeEkskul(?string $kode): bool
+    {
+        return is_string($kode) && preg_match('/^\s*EKSKUL-\d+-/i', $kode) === 1;
+    }
+
     /* ===================== TAMPILAN ===================== */
 
     /**

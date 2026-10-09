@@ -60,6 +60,26 @@
                     'catatan' => 'Anda dan Super Admin tetap bisa mengisi atau mengoreksi absensi kelas mana pun lewat tombol Isi absensi.',
                 ],
                 [
+                    'judul' => 'Rekap Absensi Ekskul',
+                    'isi' => 'Kehadiran anggota dan keterlaksanaan sesi setiap ekskul selama satu bulan.',
+                    'langkah' => [
+                        'Buka <strong>Rekap Absensi</strong> &rsaquo; <strong>Rekap Absensi Ekskul</strong>, pilih bulan.',
+                        'Ringkasan menampilkan semua ekskul: terjadwal, sesi terlaksana, dan % hadir. Angka terlaksana merah berarti ada pertemuan yang tidak dijalankan.',
+                        'Tekan <strong>Rincian</strong> untuk melihat per anggota dan daftar hadir per tanggal. Unduh PDF untuk arsip.',
+                    ],
+                    'catatan' => 'Pertemuan "Susulan" adalah absensi yang diisi tanpa scan QR (koreksi) — tidak dihitung sebagai sesi terlaksana.',
+                ],
+                [
+                    'judul' => 'Honor Guru (uji coba)',
+                    'isi' => 'Menentukan tarif honor per JP dan memantau honor semua guru per bulan. Honor dicatat otomatis — tidak ada yang perlu diinput manual.',
+                    'langkah' => [
+                        'Buka <strong>Honor Guru</strong> &rsaquo; <strong>Pengaturan Tarif</strong>. Centang <strong>Catat honor secara otomatis</strong>, isi tarif umum per JP dan bagian guru inval (%), lalu simpan.',
+                        'Guru tertentu bisa diberi <strong>tarif khusus</strong>. Kolom yang dikosongkan memakai tarif umum.',
+                        'Tab <strong>Rekap Bulanan</strong> menampilkan honor setiap guru; tekan <strong>Rincian</strong> untuk melihat per jam pelajaran.',
+                    ],
+                    'catatan' => 'Tarif terkunci saat mengajar: mengubah tarif hanya berlaku untuk jam berikutnya, honor yang sudah tercatat tidak berubah.',
+                ],
+                [
                     'judul' => 'Persetujuan Rapor',
                     'isi' => 'Nilai yang diinput guru tidak otomatis terlihat wali murid. Rapor baru muncul di akun orang tua setelah Anda menyetujuinya.',
                     'langkah' => [
@@ -164,6 +184,28 @@
                         'Jam yang Anda gantikan tercatat sebagai JP inval di Rekap Jam Mengajar.',
                     ],
                     'catatan' => 'Kelas yang tidak ditugaskan kepada Anda tidak bisa diisi. Hubungi kepala sekolah bila Anda diminta menggantikan tanpa penunjukan.',
+                ],
+                [
+                    'judul' => 'Sesi Ekskul (untuk pembina)',
+                    'isi' => 'Pembina ekskul memulai dan mengakhiri sesi seperti jam pelajaran. Sesinya tampil di Live Monitoring kepala sekolah.',
+                    'langkah' => [
+                        'Buka <strong>Jadwal Ekskul</strong> &rsaquo; <strong>Absensi</strong> ekskul Anda pada hari kegiatannya.',
+                        'Tekan <strong>Scan QR Ekskul</strong> dan arahkan kamera ke stiker QR ekskul (bisa mulai 15 menit sebelum jadwal).',
+                        'Isi absensi anggota lalu <strong>Simpan</strong>, unggah <strong>foto bukti</strong> kegiatan.',
+                        'Tekan <strong>Akhiri Sesi Ekskul</strong> paling lambat 15 menit setelah jadwal selesai. Alarm berbunyi 5 menit setelah jadwal selesai bila belum diakhiri.',
+                    ],
+                    'catatan' => 'Stiker QR dicetak dari tombol Cetak QR di halaman Absensi atau Jadwal Ekskul. Koreksi absensi tanggal lampau tetap bisa, tetapi tidak menambah honor. Tombol Rekap Bulanan di halaman yang sama menampilkan rekap kehadiran anggota per bulan.',
+                ],
+                [
+                    'judul' => 'Rincian Pendapatan',
+                    'isi' => 'Isinya honor mengajar Anda sendiri per bulan. Honor mulai tercatat setelah kepala sekolah menyalakan fitur honor.',
+                    'langkah' => [
+                        'Honor bertambah otomatis setiap Anda menekan <strong>Akhiri Sesi</strong>: jumlah JP jadwal × tarif per JP Anda.',
+                        'Saat menjadi guru inval, Anda mendapat persentase honor jam yang digantikan setelah absensinya disimpan.',
+                        'Kalau kelas Anda diajar guru inval, Anda tetap mendapat sisa persentasenya.',
+                        'Pembina ekskul mendapat honor setiap menekan <strong>Akhiri Sesi Ekskul</strong>.',
+                    ],
+                    'catatan' => 'Sesi yang tidak diakhiri (lewat batas 15 menit) tidak menambah honor.',
                 ],
             ],
         ],

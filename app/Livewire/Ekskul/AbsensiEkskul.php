@@ -6,11 +6,20 @@ use App\Enums\AbsensiStatus;
 use App\Livewire\Concerns\BisaSweetAlert;
 use App\Livewire\Ekskul\Concerns\PeranEkskul;
 use App\Models\AbsensiEkskul as AbsensiEkskulModel;
+use App\Models\HonorMengajar;
 use App\Models\JadwalEkskul;
+use App\Models\SesiEkskul;
+use App\Services\AturanHonor;
+use App\Services\AturanSesiEkskul;
+use App\Services\PencatatHonor;
+use App\Services\PenyimpanBuktiFoto;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 /**
  * Absensi & pantauan kehadiran satu ekskul — tampilannya berbeda per peran.
@@ -33,10 +42,25 @@ use Livewire\Component;
  * siswa lain sudah terlanjur ada di memori dan satu kesalahan kecil di view
  * cukup untuk membocorkannya.
  * =====================================================================
+ *
+ * ============ SESI EKSKUL (Mulai/Akhiri, seperti KBM) ============
+ * Khusus PEMBINA, pada hari ekskulnya: scan QR ekskul -> absensi anggota
+ * -> foto bukti -> Akhiri Sesi (+ honor). Aturannya di
+ * App\Services\AturanSesiEkskul. Koreksi absensi tanggal lampau tetap
+ * bisa seperti sebelumnya, tetapi tidak membuat sesi maupun honor.
+ * ==================================================================
  */
 class AbsensiEkskul extends Component
 {
-    use BisaSweetAlert, PeranEkskul;
+    use BisaSweetAlert, PeranEkskul, WithFileUploads;
+
+    /** Folder foto bukti ekskul di disk 'public'. */
+    public const FOLDER_BUKTI = 'bukti-ekskul';
+
+    private const MAKS_FOTO_KB = 4096;
+
+    /** Foto bukti kegiatan yang sedang dipilih (sebelum disimpan). */
+    public $fotoBukti = null;
 
     public int $jadwalId;
 
@@ -146,12 +170,19 @@ class AbsensiEkskul extends Component
             ->get();
     }
 
-    /** Rekap jumlah per status untuk seluruh ekskul (baca-saja). */
+    /**
+     * Rekap jumlah per status BULAN BERJALAN (baca-saja).
+     *
+     * Dulu dihitung sejak awal tanpa batas waktu — angkanya terus membesar
+     * dan tidak bisa dibandingkan dari bulan ke bulan. Rekap lengkap per
+     * bulan ada di halaman Rekap Absensi Ekskul.
+     */
     #[Computed]
     public function rekap(): array
     {
         $baris = AbsensiEkskulModel::query()
             ->where('jadwal_ekskul_id', $this->jadwalId)
+            ->whereAntaraTanggal('tanggal', now()->startOfMonth(), now()->endOfMonth())
             ->selectRaw('status_kehadiran, COUNT(*) as jumlah')
             ->groupBy('status_kehadiran')
             ->pluck('jumlah', 'status_kehadiran')
@@ -317,7 +348,7 @@ class AbsensiEkskul extends Component
             }
         });
 
-        unset($this->rekap, $this->tanggalTerisi, $this->sudahTerisi, $this->riwayatAnak);
+        unset($this->rekap, $this->tanggalTerisi, $this->sudahTerisi, $this->riwayatAnak, $this->sesiHariIni);
 
         $this->swalToast('Absensi tersimpan');
         $this->notif = ['tipe' => 'ok', 'judul' => 'Absensi tersimpan',
@@ -360,6 +391,180 @@ class AbsensiEkskul extends Component
         }
 
         return $tanggal;
+    }
+
+    /* ===================== SESI EKSKUL ===================== */
+
+    /** Pengguna ini pembina (pegawai tertaut) ekskul ini? Admin/Kepsek TIDAK termasuk. */
+    #[Computed]
+    public function sayaPembina(): bool
+    {
+        $jadwal = $this->jadwal;
+        $pegawai = $this->pegawaiSaya();
+
+        return $jadwal && $pegawai && $jadwal->pembina_id && (int) $jadwal->pembina_id === (int) $pegawai->id;
+    }
+
+    /**
+     * Keadaan sesi HARI INI untuk kartu sesi di layar pembina. null = hari
+     * ini bukan hari ekskulnya (kartu tidak ditampilkan).
+     *
+     * @return array{sesi: ?SesiEkskul, waktu: array, alasan: ?string, absensi: bool}|null
+     */
+    #[Computed]
+    public function sesiHariIni(): ?array
+    {
+        $jadwal = $this->jadwal;
+
+        if (! $jadwal || ! $this->sayaPembina || ! $this->aturanSesi()->hariCocok($jadwal, now())) {
+            return null;
+        }
+
+        $sesi = $this->aturanSesi()->sesiPada($jadwal, now());
+
+        return [
+            'sesi' => $sesi,
+            'waktu' => $this->aturanSesi()->waktu($jadwal, now()),
+            'alasan' => $sesi ? null : $this->aturanSesi()->alasanTidakBisaMulai($jadwal, auth()->user(), now()),
+            'absensi' => $this->aturanSesi()->absensiTerisi($jadwal, now()),
+        ];
+    }
+
+    /** Dipanggil kamera ($wire.mulaiSesi(kode)) atau isian kode manual. */
+    public function mulaiSesi($kode): void
+    {
+        $this->notif = null;
+        $jadwal = $this->jadwal;
+
+        if (! $jadwal) {
+            return;
+        }
+
+        $hasil = $this->aturanSesi()->mulai($jadwal, auth()->user(), (string) $kode);
+        unset($this->sesiHariIni);
+
+        // Nada & getar hasil scan (partials/scan-kamera), sama dengan Absen Mengajar.
+        $this->dispatch('hasil-scan', tipe: $hasil['tipe']);
+
+        if ($hasil['tipe'] !== 'error') {
+            $this->tanggal = now()->toDateString();
+            unset($this->sudahTerisi);
+            $this->muatIsian();
+        }
+
+        $this->notif = ['tipe' => $hasil['tipe'], 'judul' => $hasil['judul'], 'pesan' => $hasil['pesan']];
+    }
+
+    public function updatedFotoBukti(): void
+    {
+        $this->validateOnly('fotoBukti', $this->aturanFoto());
+    }
+
+    public function unggahBukti(): void
+    {
+        $this->notif = null;
+        unset($this->sesiHariIni);
+        $keadaan = $this->sesiHariIni;
+        $sesi = $keadaan['sesi'] ?? null;
+
+        if (! $sesi || $sesi->sudahSelesai() || now()->gt($keadaan['waktu']['batas'])) {
+            $this->notif = ['tipe' => 'error', 'judul' => 'Tidak bisa mengunggah',
+                'pesan' => 'Foto bukti hanya bisa diunggah selama sesi ekskul hari ini masih terbuka.'];
+
+            return;
+        }
+
+        $this->validate($this->aturanFoto());
+        $jalurLama = $sesi->foto_bukti;
+
+        try {
+            $jalur = PenyimpanBuktiFoto::simpan($this->fotoBukti, self::FOLDER_BUKTI);
+            $sesi->forceFill(['foto_bukti' => $jalur, 'bukti_dihapus_pada' => null])->save();
+        } catch (\Throwable $e) {
+            Log::error('Gagal menyimpan foto bukti ekskul.', ['sesi_ekskul_id' => $sesi->id, 'error' => $e->getMessage()]);
+            $this->notif = ['tipe' => 'error', 'judul' => 'Gagal mengunggah',
+                'pesan' => 'Foto tidak berhasil disimpan. Coba lagi, atau pakai foto dengan ukuran lebih kecil.'];
+
+            return;
+        }
+
+        // Bukti lama dihapus SESUDAH yang baru tersimpan (lihat JurnalAbsenKelas).
+        if ($jalurLama && $jalurLama !== $jalur) {
+            try {
+                Storage::disk('public')->delete($jalurLama);
+            } catch (\Throwable $e) {
+                Log::warning('Foto bukti ekskul lama gagal dihapus.', ['jalur' => $jalurLama]);
+            }
+        }
+
+        $this->reset('fotoBukti');
+        unset($this->sesiHariIni);
+        $this->notif = ['tipe' => 'ok', 'judul' => 'Bukti tersimpan', 'pesan' => 'Foto bukti kegiatan tersimpan.'];
+    }
+
+    public function akhiriSesi(): void
+    {
+        $this->notif = null;
+        unset($this->sesiHariIni);
+        $jadwal = $this->jadwal;
+        $sesi = $this->sesiHariIni['sesi'] ?? null;
+
+        if (! $jadwal || ! $sesi) {
+            $this->notif = ['tipe' => 'error', 'judul' => 'Belum ada sesi', 'pesan' => 'Mulai dulu sesinya dengan men-scan QR ekskul.'];
+
+            return;
+        }
+
+        if ($alasan = $this->aturanSesi()->alasanTidakBisaAkhiri($sesi, $jadwal, now())) {
+            $this->notif = ['tipe' => $sesi->sudahSelesai() ? 'warn' : 'error', 'judul' => 'Sesi belum bisa diakhiri', 'pesan' => $alasan];
+
+            return;
+        }
+
+        $sesi->forceFill(['waktu_selesai' => now()])->save();
+        $honor = $this->catatHonor($sesi, $jadwal);
+        unset($this->sesiHariIni);
+
+        // Mematikan alarm pengingat di layar ini (partials/pengingat-akhiri-sesi).
+        $this->dispatch('sesi-diakhiri', id: 'e' . $sesi->id);
+
+        $this->notif = ['tipe' => 'ok', 'judul' => 'Sesi ekskul diakhiri',
+            'pesan' => 'Kegiatan ' . $jadwal->nama_ekskul . ' tercatat lengkap dengan absensi dan bukti foto.'
+                . ($honor ? ' Honor ' . AturanHonor::rupiah($honor->nominal) . " ({$honor->jp} JP) masuk ke Rincian Pendapatan." : '')];
+    }
+
+    /** Gagal mencatat honor TIDAK membatalkan sesi yang sudah diakhiri. */
+    private function catatHonor(SesiEkskul $sesi, JadwalEkskul $jadwal): ?HonorMengajar
+    {
+        try {
+            return app(PencatatHonor::class)->catatEkskul($sesi, $jadwal);
+        } catch (\Throwable $e) {
+            Log::error('Gagal mencatat honor ekskul.', ['sesi_ekskul_id' => $sesi->id, 'error' => $e->getMessage()]);
+
+            return null;
+        }
+    }
+
+    /** @return array<string, array<int, string>> */
+    private function aturanFoto(): array
+    {
+        return ['fotoBukti' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . self::MAKS_FOTO_KB]];
+    }
+
+    /** @return array<string, string> */
+    protected function messages(): array
+    {
+        return [
+            'fotoBukti.required' => 'Pilih dulu foto bukti kegiatannya.',
+            'fotoBukti.image' => 'Berkas yang dipilih bukan gambar.',
+            'fotoBukti.mimes' => 'Format yang diterima hanya JPG, PNG, atau WEBP.',
+            'fotoBukti.max' => 'Ukuran foto maksimal 4 MB.',
+        ];
+    }
+
+    private function aturanSesi(): AturanSesiEkskul
+    {
+        return app(AturanSesiEkskul::class);
     }
 
     public function render()

@@ -17,6 +17,10 @@
     hanya kalau ada sesi terbuka hari ini — selain itu partial ini tidak
     mengeluarkan apa pun, termasuk skripnya.
 
+    SESI EKSKUL ikut diawasi dengan aturan waktu yang sama (lihat
+    App\Services\AturanSesiEkskul). Setiap butir membawa tautannya sendiri:
+    sesi KBM ke Jurnal & Absen Kelas, sesi ekskul ke Absensi Ekskul-nya.
+
     ============ BATASAN BROWSER YANG PERLU DIKETAHUI ============
     Browser MENOLAK bunyi dan getar sebelum pengguna pernah mengetuk halaman.
     Guru pasti sudah mengetuk (scan QR, unggah foto), jadi biasanya aman —
@@ -31,13 +35,40 @@
     $penggunaPengingat = auth()->user();
     $prefixPengingat = $penggunaPengingat?->role?->routePrefix();
 
-    if ($prefixPengingat && Route::has($prefixPengingat . '.jurnal-kelas') && $penggunaPengingat->pegawai) {
+    $adaJurnal = $prefixPengingat && Route::has($prefixPengingat . '.jurnal-kelas') && $penggunaPengingat->pegawai;
+    $adaEkskul = $prefixPengingat && Route::has($prefixPengingat . '.ekskul.absensi') && $penggunaPengingat->pegawai;
+
+    if ($adaJurnal || $adaEkskul) {
         try {
-            $pengingatSesi = app(\App\Services\PengingatAkhiriSesi::class)
-                ->sesiTerbuka($penggunaPengingat->pegawai->id)
+            $kbm = $adaJurnal
+                ? app(\App\Services\PengingatAkhiriSesi::class)->sesiTerbuka($penggunaPengingat->pegawai->id)
+                    ->map(fn (array $b) => $b + [
+                        'kunci' => 'k' . $b['sesi']->id,
+                        'teksJudul' => $b['jadwal']->mata_pelajaran . ' — ' . ($b['jadwal']->kelas?->nama_kelas ?? '-'),
+                        'url' => route($prefixPengingat . '.jurnal-kelas'),
+                        'tombol' => 'Akhiri Sesi Kelas',
+                        'buka' => 'Buka Jurnal & Akhiri Sesi',
+                    ])
+                : collect();
+
+            $ekskul = $adaEkskul
+                ? app(\App\Services\AturanSesiEkskul::class)->sesiTerbuka($penggunaPengingat->id)
+                    ->map(fn (array $b) => $b + [
+                        'kunci' => 'e' . $b['sesi']->id,
+                        'teksJudul' => 'Ekskul ' . $b['jadwal']->nama_ekskul,
+                        'url' => route($prefixPengingat . '.ekskul.absensi', $b['jadwal']->id),
+                        'tombol' => 'Akhiri Sesi Ekskul',
+                        'buka' => 'Buka Absensi Ekskul',
+                    ])
+                : collect();
+
+            $pengingatSesi = $kbm->concat($ekskul)
                 ->map(fn (array $b) => [
-                    'id' => $b['sesi']->id,
-                    'judul' => $b['jadwal']->mata_pelajaran . ' — ' . ($b['jadwal']->kelas?->nama_kelas ?? '-'),
+                    'id' => $b['kunci'],
+                    'judul' => $b['teksJudul'],
+                    'url' => $b['url'],
+                    'tombol' => $b['tombol'],
+                    'labelBuka' => $b['buka'],
                     'selesai' => $b['selesai']->format('H:i'),
                     'batasJam' => $b['batas']->format('H:i'),
                     'adaBukti' => $b['sesi']->adaBukti(),
@@ -73,7 +104,7 @@
                 <p class="mt-1 text-xs font-semibold text-error-600 dark:text-error-400" data-pengingat="sisa"></p>
 
                 <div class="mt-3 flex flex-wrap items-center gap-2">
-                    <a href="{{ route($prefixPengingat . '.jurnal-kelas') }}" data-pengingat="buka"
+                    <a href="{{ $pengingatSesi[0]['url'] }}" data-pengingat="buka"
                         class="inline-flex items-center rounded-lg bg-error-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-error-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500">
                         Buka Jurnal &amp; Akhiri Sesi
                     </a>
@@ -265,12 +296,17 @@
                 ditutup = false;
                 tampilkan(true);
                 el.tutup.hidden = true;
-                el.buka.hidden = diJurnal;
-                el.keTombol.hidden = ! diJurnal;
+                // Tautan & label mengikuti sesi yang paling mendesak: sesi
+                // KBM ke Jurnal, sesi ekskul ke Absensi Ekskul-nya.
+                var diSana = diHalaman(s.url);
+                el.buka.href = s.url;
+                el.buka.textContent = s.labelBuka;
+                el.buka.hidden = diSana;
+                el.keTombol.hidden = ! diSana;
                 el.senyap.hidden = disenyapkan(s.id);
                 el.teks.textContent = s.judul + ' selesai pukul ' + s.selesai
                     + (s.adaBukti ? '. Tekan' : '. Unggah foto bukti lalu tekan')
-                    + ' "Akhiri Sesi Kelas" sebelum pukul ' + s.batasJam + '.'
+                    + ' "' + s.tombol + '" sebelum pukul ' + s.batasJam + '.'
                     + (daftar.length > 1 ? ' (+' + (daftar.length - 1) + ' sesi lain)' : '');
                 el.sisa.textContent = 'Sisa waktu ' + format(s.batas - t);
 
@@ -331,13 +367,12 @@
             tampilkan(false);
         });
 
-        // Di halaman Jurnal sendiri, "Buka Jurnal" diganti tombol yang
-        // menggulir langsung ke tombol "Akhiri Sesi Kelas" (atau ke kotak
-        // unggah foto bila tombolnya belum aktif).
-        var diJurnal = false;
-        try {
-            diJurnal = new URL(el.buka.href).pathname === window.location.pathname;
-        } catch (e) {}
+        // Di halaman sesi itu sendiri (Jurnal / Absensi Ekskul), tombol
+        // "Buka ..." diganti tombol yang menggulir langsung ke tombol Akhiri
+        // Sesi (atau ke kotak unggah foto bila tombolnya belum aktif).
+        function diHalaman(url) {
+            try { return new URL(url, window.location.href).pathname === window.location.pathname; } catch (e) { return false; }
+        }
 
         el.keTombol.addEventListener('click', function () {
             var sasaran = document.querySelector('[wire\\:click="akhiriSesi"]')
@@ -348,10 +383,12 @@
             }
         });
 
-        // Dikirim JurnalAbsenKelas::akhiriSesi() begitu sesi berhasil ditutup.
+        // Dikirim JurnalAbsenKelas::akhiriSesi() (id angka = sesi KBM) dan
+        // AbsensiEkskul::akhiriSesi() (id 'e' + angka = sesi ekskul).
         function saatDiakhiri(e) {
-            var id = e && e.detail ? Number(e.detail.id) : NaN;
-            if (! isNaN(id)) { diakhiri[id] = true; }
+            var id = e && e.detail && e.detail.id !== undefined ? String(e.detail.id) : '';
+            if (/^[0-9]+$/.test(id)) { id = 'k' + id; }
+            if (id) { diakhiri[id] = true; }
             perbarui(false);
         }
         window.addEventListener('sesi-diakhiri', saatDiakhiri);

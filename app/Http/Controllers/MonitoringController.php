@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AbsensiStatus;
 use App\Enums\Hari;
 use App\Enums\StatusKbm;
+use App\Models\AbsensiEkskul;
 use App\Models\AbsensiKbmSiswa;
+use App\Models\JadwalEkskul;
 use App\Models\JadwalPelajaran;
+use App\Models\SesiEkskul;
+use App\Services\AturanSesiEkskul;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -105,12 +110,21 @@ class MonitoringController extends Controller
 
         $baris = $this->hitungStatus($jadwalBerlangsung, $sekarang);
 
+        // Ekskul yang sedang berjalan ikut tampil di grid yang SAMA, diberi
+        // label "Ekskul". Diurutkan bersama KBM menurut jam mulainya.
+        $baris = collect($baris)
+            ->concat($this->ekskulBerlangsung($sekarang, $hariIni, $jamSekarang))
+            ->sortBy('urut')
+            ->values()
+            ->all();
+
         return view('monitoring.live', [
             'baris' => $baris,
             'hariIni' => $hariIni,
             'sekarang' => $sekarang,
             'ringkas' => [
                 'total' => count($baris),
+                'ekskul' => collect($baris)->where('jenis', 'ekskul')->count(),
                 'aman' => collect($baris)->where('status', 'aman')->count(),
                 // Kelas yang gurunya berhalangan ikut "Perlu dilihat" (bukan
                 // "Belum ada jurnal"): kelasnya butuh tindakan — memastikan
@@ -227,12 +241,102 @@ class MonitoringController extends Controller
             };
 
             return [
+                'jenis' => 'kbm',
+                'urut' => $j->jam_mulai->format('H:i'),
                 'jadwal' => $j,
                 'status' => $status,
                 'jumlah_bolos' => $jumlahBolos,
                 'menit_berjalan' => $menitBerjalan,
                 'berhalangan' => $j->guru_id ? $berhalangan->get($j->guru_id) : null,
                 'gaya' => $this->gaya($status),
+            ];
+        })->all();
+    }
+
+    /**
+     * Ekskul yang SEDANG berlangsung beserta status sesinya.
+     *
+     * Statusnya mengikuti sesi Mulai/Akhiri pembina (scan QR ekskul), bukan
+     * jurnal kelas. Tiga query tetap — jadwal, sesi, rekap absensi — berapa
+     * pun jumlah ekskulnya. Hari libur (agenda Kalender Pendidikan) tidak
+     * menampilkan ekskul sama sekali.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function ekskulBerlangsung(Carbon $sekarang, Hari $hariIni, string $jamSekarang): array
+    {
+        $aturan = app(AturanSesiEkskul::class);
+
+        if ($aturan->libur($sekarang)) {
+            return [];
+        }
+
+        $ekskul = JadwalEkskul::query()
+            ->with('pembina:id,nama,user_id')
+            ->whereRaw('LOWER(TRIM(hari)) = ?', [$hariIni->value])
+            ->where('jam_mulai', '<=', $jamSekarang)
+            ->where('jam_selesai', '>', $jamSekarang)
+            ->orderBy('jam_mulai')
+            ->get();
+
+        if ($ekskul->isEmpty()) {
+            return [];
+        }
+
+        $tanggal = $sekarang->toDateString();
+
+        $sesi = SesiEkskul::query()
+            ->whereIn('jadwal_ekskul_id', $ekskul->pluck('id'))
+            ->wherePadaTanggal('tanggal', $tanggal)
+            ->get()
+            ->keyBy('jadwal_ekskul_id');
+
+        $absen = AbsensiEkskul::query()
+            ->whereIn('jadwal_ekskul_id', $ekskul->pluck('id'))
+            ->wherePadaTanggal('tanggal', $tanggal)
+            ->groupBy('jadwal_ekskul_id')
+            ->select('jadwal_ekskul_id')
+            ->selectRaw('COUNT(*) as jumlah')
+            ->selectRaw('SUM(CASE WHEN status_kehadiran = ? THEN 1 ELSE 0 END) as hadir', [AbsensiStatus::Hadir->value])
+            ->selectRaw('SUM(CASE WHEN status_kehadiran = ? THEN 1 ELSE 0 END) as alpa', [AbsensiStatus::Alpha->value])
+            ->get()
+            ->keyBy('jadwal_ekskul_id');
+
+        return $ekskul->map(function (JadwalEkskul $e) use ($sesi, $absen, $sekarang, $aturan) {
+            $s = $sesi->get($e->id);
+            $a = $absen->get($e->id);
+            $menitBerjalan = (int) $aturan->waktu($e, $sekarang)['mulai']->diffInMinutes($sekarang);
+            $tertaut = (bool) $e->pembina?->user_id;
+            $alpa = (int) ($a->alpa ?? 0);
+
+            $status = match (true) {
+                $s && $a && $alpa > 0 => 'perhatian',
+                $s !== null => 'aman',
+                ! $tertaut => 'kosong',
+                $menitBerjalan < self::TOLERANSI_MENIT => 'menunggu',
+                default => 'kosong',
+            };
+
+            $gaya = $this->gaya($status);
+            $gaya['label'] = match ($status) {
+                'aman' => 'Sesi berjalan',
+                'perhatian' => 'Ada anggota alpa',
+                'menunggu' => 'Baru dimulai',
+                default => 'Sesi belum dimulai',
+            };
+
+            return [
+                'jenis' => 'ekskul',
+                'urut' => JadwalEkskul::jam($e->jam_mulai),
+                'ekskul' => $e,
+                'sesi' => $s,
+                'status' => $status,
+                'pembina_tertaut' => $tertaut,
+                'absen_jumlah' => (int) ($a->jumlah ?? 0),
+                'absen_hadir' => (int) ($a->hadir ?? 0),
+                'jumlah_bolos' => $alpa,
+                'menit_berjalan' => $menitBerjalan,
+                'gaya' => $gaya,
             ];
         })->all();
     }

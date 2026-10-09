@@ -348,6 +348,17 @@ Route::middleware('auth')->group(function () {
 
         Route::view('/ekskul/{jadwal}/absensi', 'ekskul.absensi')
             ->whereNumber('jadwal')->name('ekskul.absensi');
+
+        // Rekap Absensi Ekskul — HANYA untuk pembina di grup ini; Kepsek &
+        // Super Admin mendapatkannya lewat $daftarkanRekapEkskul. Siapa boleh
+        // melihat ekskul mana diperiksa di controller.
+        Route::get('/rekap-ekskul', [\App\Http\Controllers\RekapEkskulController::class, 'index'])->name('rekap-ekskul');
+        Route::get('/rekap-ekskul/unduh', [\App\Http\Controllers\RekapEkskulController::class, 'unduh'])->name('rekap-ekskul.unduh');
+
+        // Stiker QR ekskul (Mulai Sesi). Admin/Kepsek & pembinanya saja —
+        // diperiksa di controller.
+        Route::get('/ekskul/{jadwal}/qr', [\App\Http\Controllers\EkskulQrController::class, 'show'])
+            ->whereNumber('jadwal')->name('ekskul.qr');
     };
 
     // Absen Mengajar (QR) — guru men-scan stiker QR ruangan saat masuk kelas.
@@ -399,6 +410,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/kelas-pengganti', fn (Request $request) => redirect(
             preg_replace('#/kelas-pengganti$#', '/guru-inval', $request->url())
         ));
+    };
+
+    /*
+    | HONOR MENGAJAR (uji coba)
+    |
+    | Rincian Pendapatan : guru & staf melihat honor MILIKNYA sendiri.
+    |                      Didaftarkan untuk semua peran yang bisa mengajar
+    |                      atau menjadi guru inval (GuruInval::PERAN_CALON).
+    | Honor Guru         : Kepsek & Super Admin mengatur tarif dan melihat
+    |                      honor semua guru.
+    | Peran diperiksa ULANG di dalam komponen, tidak hanya oleh grup rute.
+    */
+    $daftarkanRincianPendapatan = function () {
+        Route::view('/rincian-pendapatan', 'rincian-pendapatan')->name('rincian-pendapatan');
+    };
+    $daftarkanHonorGuru = function () {
+        Route::view('/honor-guru', 'honor-guru')->name('honor-guru');
     };
 
     // Halaman khusus wali murid: pantauan KBM harian & rekap akademik.
@@ -611,7 +639,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:kepsek')
         ->prefix('kepsek')
         ->name('kepsek.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanJadwalPelajaran, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanPersetujuanIzinGuru, $daftarkanPengumuman, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanPantauanKepsek, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanJadwalPelajaran, $daftarkanGuruInval, $daftarkanHonorGuru) {
             $daftarkanLiveMonitoring();
             $daftarkanPersetujuanIzinGuru();
             $daftarkanGerbang();
@@ -646,6 +674,11 @@ Route::middleware('auth')->group(function () {
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
             $daftarkanGuruInval();
+            $daftarkanHonorGuru();
+            // Rekap Absensi Ekskul — Kepsek tidak punya menu kelola ekskul
+            // ($daftarkanEkskul dicabut), tapi tetap perlu melihat rekapnya.
+            Route::get('/rekap-ekskul', [\App\Http\Controllers\RekapEkskulController::class, 'index'])->name('rekap-ekskul');
+            Route::get('/rekap-ekskul/unduh', [\App\Http\Controllers\RekapEkskulController::class, 'unduh'])->name('rekap-ekskul.unduh');
             $daftarkanProfil();
             $daftarkanPanduan();
             $daftarkanKalender();
@@ -664,13 +697,14 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')
         ->prefix('super-admin')
         ->name('super-admin.')
-        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanPanelAdminKesiswaan, $daftarkanPengumuman, $daftarkanEkskul, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanRppPengawas, $daftarkanLaporanBulanan, $daftarkanValidasiRapor, $daftarkanLiveMonitoring, $daftarkanGerbang, $daftarkanPersetujuanIzinGuru, $daftarkanGuruInval, $daftarkanHonorGuru) {
             $daftarkanLiveMonitoring();
             $daftarkanPersetujuanIzinGuru();
 
             // Super Admin ikut bisa mengisi absensi kelas yang gurunya
             // berhalangan (menggantikan / mewakili guru piket).
             $daftarkanGuruInval();
+            $daftarkanHonorGuru();
             $daftarkanGerbang();
             $daftarkanRppPengawas();
             $daftarkanValidasiRapor();
@@ -749,7 +783,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:wali_kelas')
         ->prefix('wali-kelas')
         ->name('wali-kelas.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanValidasiRapor, $daftarkanGerbang, $daftarkanGuruInval, $daftarkanRincianPendapatan) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
@@ -767,6 +801,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
             $daftarkanGuruInval();
+            $daftarkanRincianPendapatan();
             $daftarkanProfil();
             $daftarkanPanduan();
             $daftarkanKalender();
@@ -807,7 +842,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru')
         ->prefix('guru')
         ->name('guru.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanIzinGuru, $daftarkanAbsenMengajar, $daftarkanJurnalKelas, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanRppGuru, $daftarkanInputNilai, $daftarkanGerbang, $daftarkanGuruInval, $daftarkanRincianPendapatan) {
             $daftarkanEkskul();
             $daftarkanRppGuru();
             $daftarkanInputNilai();
@@ -829,6 +864,7 @@ Route::middleware('auth')->group(function () {
             $daftarkanAbsenMengajar();
             $daftarkanJurnalKelas();
             $daftarkanGuruInval();
+            $daftarkanRincianPendapatan();
             $daftarkanProfil();
             $daftarkanPanduan();
             $daftarkanKalender();
@@ -838,10 +874,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:staff')
         ->prefix('staff')
         ->name('staff.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanGerbang, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanAbsenMengajar, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanJadwalPelajaran, $daftarkanEkskul, $daftarkanGerbang, $daftarkanGuruInval, $daftarkanRincianPendapatan) {
             $daftarkanEkskul();
             $daftarkanGerbang();
             $daftarkanGuruInval();
+            $daftarkanRincianPendapatan();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
@@ -865,11 +902,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin_tu')
         ->prefix('admin-tu')
         ->name('admin-tu.')
-        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanEkskul, $daftarkanValidasiRapor, $daftarkanGerbang, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanAbsensiMandiri, $daftarkanPengajuanIzin, $daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanEkskul, $daftarkanValidasiRapor, $daftarkanGerbang, $daftarkanGuruInval, $daftarkanRincianPendapatan) {
             $daftarkanEkskul();
             $daftarkanValidasiRapor();
             $daftarkanGerbang();
             $daftarkanGuruInval();
+            $daftarkanRincianPendapatan();
             Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 
             $daftarkanAbsensiMandiri();
@@ -885,10 +923,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:guru_piket')
         ->prefix('piket')
         ->name('piket.')
-        ->group(function () use ($daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanEkskul, $daftarkanGerbang, $daftarkanGuruInval) {
+        ->group(function () use ($daftarkanProfil, $daftarkanPanduan, $daftarkanKalender, $daftarkanEkskul, $daftarkanGerbang, $daftarkanGuruInval, $daftarkanRincianPendapatan) {
             $daftarkanEkskul();
             $daftarkanGerbang();
             $daftarkanGuruInval();
+            $daftarkanRincianPendapatan();
 
 
             $daftarkanProfil();

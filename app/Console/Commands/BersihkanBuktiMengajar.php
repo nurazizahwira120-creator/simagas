@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AbsensiMengajar;
+use App\Models\SesiEkskul;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -101,13 +102,16 @@ class BersihkanBuktiMengajar extends Command
          | Syarat kedua yang membuat perintah ini murah kalau dijalankan
          | berulang: baris yang sudah dibersihkan tidak pernah disentuh lagi.
          */
-        AbsensiMengajar::query()
+        // Dua sumber foto bukti dengan aturan yang SAMA: sesi mengajar KBM
+        // dan sesi ekskul (App\Models\SesiEkskul, folder bukti-ekskul).
+        foreach ([AbsensiMengajar::class, SesiEkskul::class] as $model) {
+        $model::query()
             ->whereNotNull('foto_bukti')
             ->whereNull('bukti_dihapus_pada')
             ->where('waktu_mulai', '<', $batas)
             ->select(['id', 'foto_bukti', 'waktu_mulai'])
             ->chunkById(self::UKURAN_POTONGAN, function ($potongan) use (
-                $disk, $ujiCoba, &$jumlahBaris, &$jumlahBerkas, &$totalByte, &$hilangDuluan
+                $model, $disk, $ujiCoba, &$jumlahBaris, &$jumlahBerkas, &$totalByte, &$hilangDuluan
             ) {
                 $sudah = [];
 
@@ -135,8 +139,9 @@ class BersihkanBuktiMengajar extends Command
                     } catch (\Throwable $e) {
                         // Satu berkas yang bermasalah tidak boleh menghentikan
                         // pembersihan sepuluh ribu berkas lainnya.
-                        Log::warning('Gagal menghapus satu foto bukti mengajar.', [
-                            'absensi_mengajar_id' => $sesi->id,
+                        Log::warning('Gagal menghapus satu foto bukti.', [
+                            'model' => class_basename($model),
+                            'id' => $sesi->id,
                             'error' => $e->getMessage(),
                         ]);
                     }
@@ -152,10 +157,11 @@ class BersihkanBuktiMengajar extends Command
                  | akan mengacaukan urutan riwayat.
                  */
                 if (! $ujiCoba && $sudah !== []) {
-                    AbsensiMengajar::whereIn('id', $sudah)
+                    $model::whereIn('id', $sudah)
                         ->update(['bukti_dihapus_pada' => now()]);
                 }
             });
+        }
 
         $mb = round($totalByte / 1024 / 1024, 2);
 

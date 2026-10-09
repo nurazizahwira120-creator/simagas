@@ -116,7 +116,7 @@
      | Pemuat Leaflet sesuai permintaan (peta di Pengaturan Sistem & Absen
      | Radius). Ditaruh di sini, bersama skrip tema, karena alasan yang sama:
      | ini skrip KLASIK di <head>, jadi ia sudah ada sebelum Livewire maupun
-     | blok @script mana pun dijalankan. Kalau diletakkan di app.js (module,
+     | blok skrip Livewire mana pun dijalankan. Kalau diletakkan di app.js (module,
      | selalu ditunda), pemanggilnya bisa berjalan lebih dulu dan mendapat
      | undefined.
      |

@@ -62,10 +62,10 @@
         <div class="tampil-berurutan mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             @php
                 $kartuRingkas = [
-                    ['label' => 'Kelas berlangsung', 'nilai' => $ringkas['total'],      'warna' => 'text-brand-ink dark:text-white', 'ikon' => 'academic-cap'],
+                    ['label' => 'Sedang berlangsung', 'nilai' => $ringkas['total'],      'warna' => 'text-brand-ink dark:text-white', 'ikon' => 'academic-cap'],
                     ['label' => 'Berjalan normal',   'nilai' => $ringkas['aman'],       'warna' => 'text-emerald-600 dark:text-emerald-400', 'ikon' => 'check-circle'],
                     ['label' => 'Perlu dilihat',     'nilai' => $ringkas['perhatian'],  'warna' => 'text-amber-600 dark:text-amber-400', 'ikon' => 'exclamation-triangle'],
-                    ['label' => 'Belum ada jurnal',  'nilai' => $ringkas['kosong'],     'warna' => 'text-brand-danger-text', 'ikon' => 'x-circle'],
+                    ['label' => 'Belum ada jurnal/sesi', 'nilai' => $ringkas['kosong'],     'warna' => 'text-brand-danger-text', 'ikon' => 'x-circle'],
                 ];
             @endphp
 
@@ -88,10 +88,10 @@
             <span class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-surface-muted text-brand-muted">
                 <x-icon name="clock" class="h-6 w-6" />
             </span>
-            <p class="font-semibold text-brand-ink dark:text-white">Tidak ada kelas yang sedang berlangsung</p>
+            <p class="font-semibold text-brand-ink dark:text-white">Tidak ada kelas atau ekskul yang sedang berlangsung</p>
             <p class="max-w-md text-sm leading-relaxed text-brand-muted">
-                Pukul {{ $sekarang->format('H:i') }} hari {{ $hariIni->label() }} tidak ada jam pelajaran
-                yang jatuh pada rentang ini. Halaman akan terisi sendiri begitu jam berikutnya dimulai.
+                Pukul {{ $sekarang->format('H:i') }} hari {{ $hariIni->label() }} tidak ada jam pelajaran maupun
+                ekskul yang jatuh pada rentang ini. Tekan Perbarui setelah jam berikutnya dimulai.
             </p>
         </div>
 
@@ -99,6 +99,10 @@
 
         <div class="tampil-berurutan grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             @foreach ($baris as $b)
+                @if ($b['jenis'] === 'ekskul')
+                    @include('monitoring.partials.kartu-ekskul', ['b' => $b])
+                    @continue
+                @endif
                 @php
                     $j = $b['jadwal'];
                     $g = $b['gaya'];
@@ -225,6 +229,7 @@
                 <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-500"></span><strong>Kuning</strong> &mdash; jurnal terisi, tapi ada siswa alpa/bolos.</li>
                 <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-500"></span><strong>Merah</strong> &mdash; lewat {{ $toleransi }} menit dan jurnalnya masih kosong.</li>
                 <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-gray-400"></span><strong>Abu</strong> &mdash; jam baru dimulai, masih dalam masa toleransi.</li>
+                <li class="sm:col-span-2"><span class="mr-1.5 inline-block rounded bg-brand-500/10 px-1.5 text-[10px] font-bold uppercase text-brand-accent-text">Ekskul</span> kartu ekskul hijau bila pembina sudah scan QR ekskul (Mulai Sesi), merah bila belum.</li>
             </ul>
         </div>
 

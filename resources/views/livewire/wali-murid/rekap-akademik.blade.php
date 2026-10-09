@@ -142,6 +142,37 @@
             </div>
         </div>
 
+        {{-- ============ KEHADIRAN EKSKUL ============ --}}
+        @if ($this->rekapEkskul->isNotEmpty())
+            <div class="mb-6 rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+                    <h3 class="font-semibold text-brand-ink dark:text-white">Kehadiran Ekstrakurikuler</h3>
+                </div>
+                <div class="px-6 py-2">
+                    @foreach ($this->rekapEkskul as $r)
+                        @php $hadir = $r['jumlah'][\App\Enums\AbsensiStatus::Hadir->value]; @endphp
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 py-3 last:border-0 dark:border-gray-800">
+                            <div class="min-w-0">
+                                <p class="font-medium text-brand-ink dark:text-white">{{ $r['ekskul']->nama_ekskul }}</p>
+                                <p class="mt-0.5 text-xs text-brand-muted dark:text-brand-faint">
+                                    {{ $r['ekskul']->hari }} &middot; {{ $r['ekskul']->rentangJam() }}
+                                    &middot; Izin {{ $r['jumlah']['izin'] }} &middot; Sakit {{ $r['jumlah']['sakit'] }} &middot; Alpa {{ $r['jumlah']['alpha'] }}
+                                </p>
+                            </div>
+                            <p class="shrink-0 text-sm font-semibold text-brand-ink dark:text-white">
+                                @if ($r['total'] > 0)
+                                    Hadir {{ $hadir }} dari {{ $r['total'] }} pertemuan
+                                    <span class="ml-1 text-xs font-normal text-brand-muted">({{ $r['persen'] }}%)</span>
+                                @else
+                                    <span class="font-normal text-brand-muted">Belum ada pertemuan tercatat</span>
+                                @endif
+                            </p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- ============ DAFTAR ALPA / BOLOS ============ --}}
         @if ($this->daftarBolos->isNotEmpty())
             <div class="mb-6 rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">

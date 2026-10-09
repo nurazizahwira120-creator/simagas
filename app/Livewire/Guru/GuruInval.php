@@ -4,12 +4,15 @@ namespace App\Livewire\Guru;
 
 use App\Enums\StatusKbm;
 use App\Models\AbsensiKbmSiswa;
+use App\Models\HonorMengajar;
 use App\Models\JadwalPelajaran;
 use App\Models\PenugasanInval;
 use App\Models\User;
+use App\Services\AturanHonor;
 use App\Services\GuruInval as AturanInval;
 use App\Services\KalenderAkademik;
 use App\Services\PencatatAbsensiKbm;
+use App\Services\PencatatHonor;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -413,9 +416,17 @@ class GuruInval extends Component
             return;
         }
 
+        // Honor inval: diberikan kepada inval yang DITUNJUK. Kalau belum ada
+        // yang ditunjuk dan Kepsek/Admin sendiri yang masuk kelas, dialah
+        // yang tercatat menggantikan.
+        $honor = $this->catatHonorInval($item['jadwal'], $item['inval'] ?? auth()->user());
+
         $this->pesan('ok',
             'Absensi ' . ($item['jadwal']->kelas?->nama_kelas ?? 'kelas') . ' tersimpan',
             $this->pencatat()->kalimatHasil($hasil) . ' Tercatat diisi oleh Anda sebagai guru inval.'
+                . ($honor && $honor->user_id === auth()->id()
+                    ? ' Honor inval ' . AturanHonor::rupiah($honor->nominal) . ' masuk ke Rincian Pendapatan Anda.'
+                    : '')
         );
 
         $this->reset('jadwalId', 'status', 'keterangan');
@@ -491,6 +502,25 @@ class GuruInval extends Component
             $this->hadirDiGerbang,
             $this->izinDariGerbang,
         );
+    }
+
+    /**
+     * Gagal mencatat honor TIDAK membatalkan absensi yang sudah tersimpan —
+     * absensi siswa jauh lebih penting; honornya bisa ditelusuri dari log.
+     */
+    private function catatHonorInval(JadwalPelajaran $jadwal, User $inval): ?HonorMengajar
+    {
+        try {
+            return app(PencatatHonor::class)->catatInval($jadwal, today(), $inval)['inval'] ?? null;
+        } catch (\Throwable $e) {
+            Log::error('Gagal mencatat honor guru inval.', [
+                'jadwal_id' => $jadwal->id,
+                'inval_user_id' => $inval->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     private function aturan(): AturanInval
