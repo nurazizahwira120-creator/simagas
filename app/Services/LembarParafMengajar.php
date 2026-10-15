@@ -112,23 +112,19 @@ class LembarParafMengajar
 
         $sekarang = now();
 
-        // Sesi yang sudah dipasangkan ke satu jadwal tidak boleh dipakai
-        // jadwal lain. Diproses berurutan jam (urutan query di atas) supaya
-        // sesi pagi jatuh ke jadwal pagi lebih dulu.
-        $sesiDipakai = [];
+        // Sesi ↔ jadwal dipasangkan per guru untuk sehari penuh — satu sesi
+        // hanya untuk satu jadwal, aturan yang sama dengan Jurnal guru dan
+        // Monitoring KBM (PencocokSesiMengajar::pasangkan).
+        $pasangan = [];
+
+        foreach ($jadwal->filter(fn (JadwalPelajaran $j) => $j->guru?->user_id)->groupBy('guru.user_id') as $akun => $jadwalGuru) {
+            $pasangan += $this->pencocok->pasangkan($jadwalGuru, $sesiPerGuru->get($akun, collect()));
+        }
 
         $baris = $jadwal->map(function (JadwalPelajaran $j) use (
-            $tanggal, $sekarang, $berhalangan, $izinMenunggu, $sesiPerGuru, &$sesiDipakai
+            $tanggal, $sekarang, $berhalangan, $izinMenunggu, $pasangan
         ) {
-            $akun = $j->guru?->user_id;
-
-            $sesi = $akun
-                ? $this->pencocok->pilihDari($sesiPerGuru->get($akun, collect()), $j, $sesiDipakai)
-                : null;
-
-            if ($sesi) {
-                $sesiDipakai[] = $sesi->id;
-            }
+            $sesi = $pasangan[$j->id] ?? null;
 
             return [
                 'jadwal_id' => $j->id,

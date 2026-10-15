@@ -573,6 +573,13 @@ Route::middleware('auth')->group(function () {
     */
     $daftarkanLiveMonitoring = function () {
         Route::get('/live-monitoring', [MonitoringController::class, 'index'])->name('live-monitoring');
+
+        // "Bantu Akhiri Sesi" — HANYA grup kepsek & super-admin yang
+        // memanggil closure ini; perannya diperiksa ulang di controller.
+        Route::post('/live-monitoring/sesi/{jenis}/{id}/akhiri', [MonitoringController::class, 'akhiriSesi'])
+            ->whereIn('jenis', ['kbm', 'ekskul'])
+            ->whereNumber('id')
+            ->name('live-monitoring.akhiri');
     };
 
     $daftarkanValidasiRapor = function () {

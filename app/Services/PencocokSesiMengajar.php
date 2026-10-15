@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AbsensiMengajar;
 use App\Models\JadwalPelajaran;
+use App\Models\Pegawai;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -96,6 +98,8 @@ class PencocokSesiMengajar
             return null;
         }
 
+        $tanggal = $tanggal ? Carbon::parse($tanggal)->startOfDay() : today();
+
         /*
          | Disaring di PHP, bukan di SQL, dan itu disengaja.
          |
@@ -106,39 +110,100 @@ class PencocokSesiMengajar
          */
         $sesiGuru = AbsensiMengajar::query()
             ->where('user_id', $userId)
-            ->wherePadaTanggal('waktu_mulai', $tanggal ?: today())
+            ->wherePadaTanggal('waktu_mulai', $tanggal)
             ->orderBy('waktu_mulai')
             ->get();
 
-        return $this->pertamaDari($sesiGuru, $jadwal);
-    }
-
-    /**
-     * Versi TANPA QUERY dari untukJadwal(): sesi PALING AWAL yang kode
-     * ruangannya cocok, dipilih dari kumpulan sesi yang sudah diambil
-     * pemanggil (satu guru, satu hari).
-     *
-     * Dipakai pengingat "Akhiri Sesi" (App\Services\PengingatAkhiriSesi),
-     * yang memeriksa banyak guru sekaligus dalam satu query. Aturan
-     * pilihnya SENGAJA identik dengan untukJadwal() — untukJadwal() pun kini
-     * memanggil method ini — supaya pengingat selalu membicarakan sesi yang
-     * SAMA dengan yang dikunci/dibuka di layar Jurnal guru. Kalau keduanya
-     * berbeda, guru bisa diingatkan untuk sesi yang di layarnya justru
-     * sudah tertutup.
-     *
-     * @param  Collection<int, AbsensiMengajar>  $sesiGuru
-     */
-    public function pertamaDari(Collection $sesiGuru, JadwalPelajaran $jadwal): ?AbsensiMengajar
-    {
-        $sasaran = self::sasaran($jadwal);
-
-        if (! $sasaran) {
+        if ($sesiGuru->isEmpty()) {
             return null;
         }
 
-        return $sesiGuru
-            ->sortBy(fn (AbsensiMengajar $a) => $a->waktu_mulai?->getTimestamp() ?? 0)
-            ->first(fn (AbsensiMengajar $a) => in_array(self::normalkan($a->kode_kelas), $sasaran, true));
+        /*
+         | Sesi dipasangkan dengan SELURUH jadwal guru itu pada hari yang
+         | sama — bukan hanya jadwal ini — lewat pasangkan(). Tanpa itu, guru
+         | yang mengajar ruangan yang sama dua kali sehari (jam 1-2 dan jam
+         | 5-6) akan melihat sesi PAGI-nya (sudah diakhiri) di jadwal siang,
+         | sehingga jurnal siangnya terkunci padahal ia baru saja scan.
+         |
+         | Jadwal yang sedang dibuka ikut dimasukkan walau bukan miliknya
+         | (guru inval mengisi kelas guru lain).
+         */
+        $jadwalGuru = JadwalPelajaran::query()
+            ->with('kelas:id,nama_kelas')
+            ->where('hari', AturanSesiEkskul::hariDari($tanggal)->value)
+            ->whereIn('guru_id', Pegawai::query()->where('user_id', $userId)->select('id'))
+            ->get(['id', 'hari', 'jam_mulai', 'jam_selesai', 'ruangan', 'kelas_id', 'guru_id']);
+
+        if (! $jadwalGuru->contains('id', $jadwal->id)) {
+            $jadwalGuru->push($jadwal);
+        }
+
+        return $this->pasangkan($jadwalGuru, $sesiGuru)[$jadwal->id] ?? null;
+    }
+
+    /**
+     * Memasangkan sesi-sesi SATU guru pada SATU hari dengan jadwal-jadwalnya.
+     *
+     * Aturannya: dari semua pasangan (jadwal, sesi) yang ruangannya cocok,
+     * pasangan dengan selisih jam scan ↔ jam mulai jadwal TERKECIL dipasang
+     * lebih dulu; satu sesi hanya untuk satu jadwal dan sebaliknya.
+     *
+     * Contoh — Budi mengajar XI RPL 1 pukul 07.00 dan 12.00, tetapi hanya
+     * scan pukul 12.01: sesi itu milik jadwal 12.00 (selisih 1 menit), bukan
+     * jadwal 07.00 (selisih 5 jam). Memilih per jadwal secara berurutan akan
+     * memberikannya ke jadwal 07.00 hanya karena jadwal itu diproses duluan.
+     *
+     * Dipakai layar Jurnal guru (lewat untukJadwal), panel detail dan layar
+     * Monitoring KBM, serta pengingat Akhiri Sesi — sehingga semuanya selalu
+     * membicarakan sesi yang SAMA untuk jadwal yang sama.
+     *
+     * @param  Collection<int, JadwalPelajaran>  $jadwalGuru
+     * @param  Collection<int, AbsensiMengajar>  $sesiGuru
+     * @return array<int, AbsensiMengajar> kunci = id jadwal (yang tak berpasangan tidak ada)
+     */
+    public function pasangkan(Collection $jadwalGuru, Collection $sesiGuru): array
+    {
+        $menit = fn (\DateTimeInterface $w): int => (int) $w->format('G') * 60 + (int) $w->format('i');
+
+        $kodeSesi = $sesiGuru->mapWithKeys(fn (AbsensiMengajar $s) => [$s->id => self::normalkan($s->kode_kelas)]);
+        $kandidat = [];
+
+        foreach ($jadwalGuru as $j) {
+            $sasaran = self::sasaran($j);
+
+            if (! $sasaran || ! $j->jam_mulai) {
+                continue;
+            }
+
+            foreach ($sesiGuru as $s) {
+                if ($s->waktu_mulai && in_array($kodeSesi[$s->id], $sasaran, true)) {
+                    $kandidat[] = [
+                        abs($menit($s->waktu_mulai) - $menit($j->jam_mulai)),
+                        $menit($j->jam_mulai),
+                        $s->waktu_mulai->getTimestamp(),
+                        $j->id,
+                        $s,
+                    ];
+                }
+            }
+        }
+
+        // Urutan tetap (deterministik): selisih, lalu jam jadwal, jam scan, id.
+        usort($kandidat, fn ($a, $b) => [$a[0], $a[1], $a[2], $a[3]] <=> [$b[0], $b[1], $b[2], $b[3]]);
+
+        $hasil = [];
+        $dipakai = [];
+
+        foreach ($kandidat as [, , , $jadwalId, $sesi]) {
+            if (isset($hasil[$jadwalId]) || isset($dipakai[$sesi->id])) {
+                continue;
+            }
+
+            $hasil[$jadwalId] = $sesi;
+            $dipakai[$sesi->id] = true;
+        }
+
+        return $hasil;
     }
 
     /**
@@ -149,7 +214,7 @@ class PencocokSesiMengajar
      * memakai keduanya bergantian, dan menuntut salah satu saja akan
      * membuat separuh sesi tidak pernah cocok.
      *
-     * Dipisah jadi method sendiri supaya untukJadwal() dan pilihDari()
+     * Dipisah jadi method sendiri supaya untukJadwal() dan pasangkan()
      * memakai aturan yang PERSIS sama — lihat catatan di atas kelas.
      *
      * @return array<int, string>
@@ -160,50 +225,5 @@ class PencocokSesiMengajar
             self::normalkan($jadwal->kelas?->nama_kelas),
             self::normalkan($jadwal->ruangan),
         ]));
-    }
-
-    /**
-     * Versi MASSAL untuk lembar cetak: memilih satu sesi dari kumpulan sesi
-     * yang SUDAH diambil pemanggil (satu guru, satu hari).
-     *
-     * ============ BEDANYA DENGAN untukJadwal() ============
-     * 1. Tanpa query. Lembar paraf memuat puluhan jadwal sekaligus; memanggil
-     *    untukJadwal() per baris berarti satu query per baris (N+1). Di sini
-     *    pemanggil mengambil semua sesi hari itu dalam SATU query, lalu
-     *    method ini hanya menyaring di memori.
-     *
-     * 2. Memilih sesi yang jam mulainya PALING DEKAT dengan jadwal, dan
-     *    melewati sesi yang sudah dipasangkan ke jadwal lain ($sudahDipakai).
-     *    Tanpa ini, guru yang mengajar kelas yang sama dua kali sehari
-     *    (jam 1-2 dan jam 5-6) akan tercetak dengan jam scan PAGI di kedua
-     *    barisnya — dan lembar cadangan yang dibuat untuk membuktikan
-     *    kejadian justru mencetak keterangan yang keliru.
-     *
-     * untukJadwal() sengaja TIDAK diubah: perilakunya dipakai layar jurnal
-     * guru untuk mengunci sesi, dan mengubahnya bukan bagian dari fitur ini.
-     * ======================================================
-     *
-     * @param  Collection<int, AbsensiMengajar>  $sesiGuru
-     * @param  array<int, int>  $sudahDipakai  id sesi yang sudah dipasangkan
-     */
-    public function pilihDari(Collection $sesiGuru, JadwalPelajaran $jadwal, array $sudahDipakai = []): ?AbsensiMengajar
-    {
-        $sasaran = self::sasaran($jadwal);
-
-        if (! $sasaran || $sesiGuru->isEmpty() || ! $jadwal->jam_mulai) {
-            return null;
-        }
-
-        // Jam dibandingkan dalam "menit sejak tengah malam", bukan sebagai
-        // tanggal-waktu: jam_mulai jadwal di-cast ke Carbon HARI INI,
-        // sedangkan waktu_mulai sesi membawa tanggal aslinya. Membandingkan
-        // keduanya langsung akan selalu berselisih sekian hari.
-        $menitJadwal = $jadwal->jam_mulai->hour * 60 + $jadwal->jam_mulai->minute;
-
-        return $sesiGuru
-            ->reject(fn (AbsensiMengajar $a) => in_array($a->id, $sudahDipakai, true))
-            ->filter(fn (AbsensiMengajar $a) => in_array(self::normalkan($a->kode_kelas), $sasaran, true))
-            ->sortBy(fn (AbsensiMengajar $a) => abs(($a->waktu_mulai->hour * 60 + $a->waktu_mulai->minute) - $menitJadwal))
-            ->first();
     }
 }

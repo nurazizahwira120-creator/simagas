@@ -52,7 +52,7 @@ class PengingatAkhiriSesi
      *
      * Satu query jadwal + satu query sesi, berapa pun jumlah gurunya — tanpa
      * N+1. Pencocokan sesi <-> jadwal dikerjakan di memori lewat
-     * PencocokSesiMengajar::pertamaDari(), aturan yang sama persis dengan
+     * PencocokSesiMengajar::pasangkan(), aturan yang sama persis dengan
      * layar Jurnal guru.
      *
      * @param  int|null  $pegawaiId  batasi ke satu guru (dipakai layout);
@@ -63,17 +63,21 @@ class PengingatAkhiriSesi
     {
         $sekarang = ($sekarang ?? now())->copy();
 
-        $jadwalHariIni = JadwalPelajaran::query()
+        // Seluruh jadwal hari ini (yang gurunya punya akun) — dibutuhkan
+        // UTUH untuk memasangkan sesi, sebelum disaring per batas waktu.
+        $jadwalSehari = JadwalPelajaran::query()
             ->with(['kelas:id,nama_kelas', 'guru:id,user_id'])
             ->where('hari', $this->hariDari($sekarang)->value)
             ->when($pegawaiId, fn ($q) => $q->where('guru_id', $pegawaiId))
             ->orderBy('jam_selesai')
             ->get()
-            // Jadwal yang batasnya sudah lewat tidak perlu diproses sama sekali.
-            ->filter(fn (JadwalPelajaran $j) => $j->jam_selesai !== null
-                && $sekarang->lt($this->batasUntuk($j, $sekarang)))
             // Tanpa akun login, tidak ada siapa pun yang bisa diingatkan.
-            ->filter(fn (JadwalPelajaran $j) => $j->guru?->user_id !== null)
+            ->filter(fn (JadwalPelajaran $j) => $j->guru?->user_id !== null && $j->jam_selesai !== null)
+            ->values();
+
+        // Jadwal yang batasnya sudah lewat tidak perlu diingatkan lagi.
+        $jadwalHariIni = $jadwalSehari
+            ->filter(fn (JadwalPelajaran $j) => $sekarang->lt($this->batasUntuk($j, $sekarang)))
             ->values();
 
         if ($jadwalHariIni->isEmpty()) {
@@ -88,21 +92,32 @@ class PengingatAkhiriSesi
             ->get()
             ->groupBy('user_id');
 
+        /*
+         | Pemasangan sesi ↔ jadwal memakai pasangkan() atas jadwal SEHARI
+         | PENUH — aturan yang sama dengan layar Jurnal guru dan Monitoring
+         | KBM. Kalau dipasangkan hanya dengan jadwal yang belum lewat batas,
+         | sesi pagi yang lupa diakhiri bisa "pindah" ke jadwal siang di
+         | ruangan yang sama dan diingatkan dengan jam yang keliru.
+         */
+        $pasangan = [];
+
+        foreach ($jadwalSehari->groupBy(fn (JadwalPelajaran $j) => (int) $j->guru->user_id) as $userId => $jadwalGuru) {
+            $pasangan += $this->pencocok->pasangkan($jadwalGuru, $sesiPerUser->get($userId, collect()));
+        }
+
         $hasil = collect();
-        $sudahDipakai = [];
 
         foreach ($jadwalHariIni as $jadwal) {
             $userId = (int) $jadwal->guru->user_id;
-            $sesi = $this->pencocok->pertamaDari($sesiPerUser->get($userId, collect()), $jadwal);
+            $sesi = $pasangan[$jadwal->id] ?? null;
 
             // Belum scan QR (tidak ada sesi) atau sudah diakhiri: tidak ada
-            // yang perlu diingatkan. Satu sesi juga hanya diingatkan SEKALI
-            // walau cocok untuk dua jadwal berurutan di ruangan yang sama.
-            if (! $sesi || $sesi->sudahSelesai() || isset($sudahDipakai[$sesi->id])) {
+            // yang perlu diingatkan. Satu sesi hanya punya satu jadwal, jadi
+            // setiap sesi diingatkan paling banyak sekali.
+            if (! $sesi || $sesi->sudahSelesai()) {
                 continue;
             }
 
-            $sudahDipakai[$sesi->id] = true;
             $selesai = $this->jamPadaTanggal($jadwal->jam_selesai, $sekarang);
 
             $hasil->push([

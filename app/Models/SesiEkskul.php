@@ -24,6 +24,7 @@ class SesiEkskul extends Model
     protected $fillable = [
         'jadwal_ekskul_id', 'user_id', 'tanggal', 'waktu_mulai', 'waktu_selesai',
         'foto_bukti', 'bukti_dihapus_pada', 'pengingat_akhiri_pada',
+        'diakhiri_oleh', 'alasan_diakhiri',
     ];
 
     protected function casts(): array
@@ -45,6 +46,12 @@ class SesiEkskul extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Kepsek/Admin yang menekan "Bantu Akhiri Sesi" (null = pembina sendiri). */
+    public function pengakhir(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diakhiri_oleh');
     }
 
     public function sudahSelesai(): bool

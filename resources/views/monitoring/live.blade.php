@@ -1,6 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Live Monitoring KBM')
+@section('title', 'Monitoring KBM Hari Ini')
+
+{{--
+    Monitoring KBM HARI INI — App\Http\Controllers\MonitoringController.
+
+    Seluruh jadwal kelas & ekskul hari ini (bukan hanya jam yang sedang
+    berjalan), plus "Bantu Akhiri Sesi" untuk sesi yang lupa diakhiri.
+    Status & warnanya dari App\Services\MonitoringKbmHarian.
+
+    Saringan (Semua / Berjalan / Belum diakhiri / ...) bekerja di browser
+    dengan Alpine — tanpa memuat ulang halaman, tanpa query tambahan.
+--}}
 
 @section('content')
 
@@ -8,19 +19,9 @@
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2.5">
-                <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink dark:text-gray-100">Live Monitoring KBM</h1>
-
-                {{-- Lencana LIVE.
-
-                     Titik merahnya yang berdenyut (animate-ping), BUKAN
-                     seluruh lencananya. Tulisan yang ikut berkedip lebih
-                     sulit dibaca, dan pada halaman yang dibiarkan terbuka di
-                     layar ruang kepala sekolah seharian, kedipan sebesar itu
-                     berubah menjadi gangguan.
-
-                     motion-reduce:animate-none — untuk sebagian orang gerak
-                     berulang memicu pusing; titik merahnya tetap ada, hanya
-                     tidak bergerak. --}}
+                <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink dark:text-gray-100">Monitoring KBM Hari Ini</h1>
+                {{-- Titik merahnya saja yang berdenyut, bukan seluruh lencana;
+                     motion-reduce menghentikannya bagi yang sensitif gerak. --}}
                 <span class="inline-flex items-center gap-2 rounded-full border border-red-300 bg-red-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-danger-text">
                     <span class="relative flex h-2 w-2">
                         <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75 motion-reduce:animate-none"></span>
@@ -29,7 +30,6 @@
                     Live
                 </span>
             </div>
-
             <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-brand-muted dark:text-brand-faint">
                 <span class="inline-flex items-center gap-1.5">
                     <x-icon name="calendar" class="h-3.5 w-3.5" />
@@ -43,13 +43,8 @@
             </p>
         </div>
 
-        {{-- Muat ulang manual, bukan polling otomatis.
-
-             Halaman ini SENGAJA tidak menyegarkan dirinya sendiri. Auto-refresh
-             tiap beberapa detik berarti satu query penuh ke database setiap
-             kali, dari halaman yang biasanya dibiarkan terbuka berjam-jam di
-             hosting bersama. Kepala sekolah membukanya saat ingin tahu, dan
-             saat itulah datanya diambil. --}}
+        {{-- Muat ulang manual (bukan polling): halaman ini sering dibiarkan
+             terbuka berjam-jam di hosting bersama. --}}
         <a href="{{ url()->current() }}"
             class="kartu-angkat inline-flex items-center gap-2 rounded-lg border border-brand-border bg-brand-surface px-4 py-2 text-sm font-medium text-brand-ink dark:border-gray-800 dark:bg-gray-900 dark:text-white">
             <x-icon name="swap" class="h-4 w-4" />
@@ -57,187 +52,118 @@
         </a>
     </div>
 
-    {{-- ============ RINGKASAN ============ --}}
-    @if ($ringkas['total'] > 0)
-        <div class="tampil-berurutan mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            @php
-                $kartuRingkas = [
-                    ['label' => 'Sedang berlangsung', 'nilai' => $ringkas['total'],      'warna' => 'text-brand-ink dark:text-white', 'ikon' => 'academic-cap'],
-                    ['label' => 'Berjalan normal',   'nilai' => $ringkas['aman'],       'warna' => 'text-emerald-600 dark:text-emerald-400', 'ikon' => 'check-circle'],
-                    ['label' => 'Perlu dilihat',     'nilai' => $ringkas['perhatian'],  'warna' => 'text-amber-600 dark:text-amber-400', 'ikon' => 'exclamation-triangle'],
-                    ['label' => 'Belum ada jurnal/sesi', 'nilai' => $ringkas['kosong'],     'warna' => 'text-brand-danger-text', 'ikon' => 'x-circle'],
-                ];
-            @endphp
-
-            @foreach ($kartuRingkas as $k)
-                <div class="min-w-0 rounded-2xl border border-brand-border bg-brand-surface p-4 shadow-soft dark:border-gray-800 dark:bg-gray-900">
-                    <span class="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-brand-muted">
-                        <x-icon name="{{ $k['ikon'] }}" class="h-3.5 w-3.5 shrink-0" />
-                        <span class="truncate">{{ $k['label'] }}</span>
-                    </span>
-                    <x-angka-naik :nilai="$k['nilai']" class="mt-1.5 block text-3xl font-bold {{ $k['warna'] }}" />
-                </div>
-            @endforeach
+    {{-- ============ NOTIFIKASI HASIL "BANTU AKHIRI SESI" ============ --}}
+    @if ($notif = session('notif_monitoring'))
+        <div class="mb-5 flex w-full border-l-4 px-5 py-4 shadow-md {{ $notif['tipe'] === 'ok' ? 'border-success-500 bg-success-500/10' : 'border-warning-500 bg-warning-500/10' }}" role="status">
+            <x-icon name="{{ $notif['tipe'] === 'ok' ? 'check-circle' : 'exclamation-triangle' }}" class="mr-4 mt-0.5 h-5 w-5 shrink-0 {{ $notif['tipe'] === 'ok' ? 'text-success-500' : 'text-warning-500' }}" />
+            <div class="min-w-0">
+                <h5 class="mb-1 font-semibold text-brand-ink dark:text-white">{{ $notif['judul'] }}</h5>
+                <p class="text-sm leading-relaxed text-brand-muted">{{ $notif['pesan'] }}</p>
+            </div>
+        </div>
+    @endif
+    @if ($errors->any())
+        <div class="mb-5 border-l-4 border-error-500 bg-error-500/10 px-5 py-4 text-sm text-error-700 dark:text-error-400" role="alert">
+            {{ $errors->first() }}
         </div>
     @endif
 
-    {{-- ============ GRID KARTU KELAS ============ --}}
+    {{-- ============ SESI MENGGANTUNG HARI-HARI SEBELUMNYA ============ --}}
+    @if ($menggantung->isNotEmpty())
+        <div class="mb-6 rounded-2xl border-2 border-orange-300 bg-brand-surface shadow-soft dark:border-orange-500/50 dark:bg-gray-900">
+            <div class="border-b border-orange-200 px-5 py-4 dark:border-orange-500/30">
+                <h2 class="font-semibold text-orange-800 dark:text-orange-300">
+                    Sesi belum diakhiri dari hari sebelumnya ({{ $menggantung->count() }})
+                </h2>
+                <p class="mt-0.5 text-xs text-brand-muted">7 hari terakhir. Honor sesi ini belum tercatat sampai sesinya diakhiri.</p>
+            </div>
+            <ul class="divide-y divide-brand-border dark:divide-gray-800">
+                @foreach ($menggantung as $m)
+                    <li class="grid gap-3 px-5 py-4 sm:grid-cols-[1fr_20rem] sm:items-start">
+                        <div class="min-w-0">
+                            <p class="font-semibold text-brand-ink dark:text-white">{{ $m['judul'] }}</p>
+                            <p class="mt-0.5 text-xs text-brand-muted">
+                                {{ $m['tanggal']->translatedFormat('l, d M') }} &middot; {{ $m['jam'] }} &middot; {{ $m['orang'] }} &middot; scan {{ $m['scan'] }}
+                            </p>
+                        </div>
+                        @if ($bolehAkhiri)
+                            <div class="-mt-4">
+                                @include('monitoring.partials.form-akhiri', ['jenis' => $m['jenis'], 'idSesi' => $m['id'], 'nama' => $m['judul']])
+                            </div>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     @if (empty($baris))
 
         <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-brand-border bg-brand-surface p-12 text-center dark:border-gray-800 dark:bg-gray-900">
             <span class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-surface-muted text-brand-muted">
-                <x-icon name="clock" class="h-6 w-6" />
+                <x-icon name="calendar" class="h-6 w-6" />
             </span>
-            <p class="font-semibold text-brand-ink dark:text-white">Tidak ada kelas atau ekskul yang sedang berlangsung</p>
-            <p class="max-w-md text-sm leading-relaxed text-brand-muted">
-                Pukul {{ $sekarang->format('H:i') }} hari {{ $hariIni->label() }} tidak ada jam pelajaran maupun
-                ekskul yang jatuh pada rentang ini. Tekan Perbarui setelah jam berikutnya dimulai.
-            </p>
+            <p class="font-semibold text-brand-ink dark:text-white">Tidak ada jadwal kelas maupun ekskul hari ini</p>
+            <p class="max-w-md text-sm leading-relaxed text-brand-muted">Hari {{ $hariIni->label() }} tidak punya jadwal pelajaran atau ekskul.</p>
         </div>
 
     @else
 
-        <div class="tampil-berurutan grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            @foreach ($baris as $b)
-                @if ($b['jenis'] === 'ekskul')
-                    @include('monitoring.partials.kartu-ekskul', ['b' => $b])
-                    @continue
-                @endif
-                @php
-                    $j = $b['jadwal'];
-                    $g = $b['gaya'];
-                @endphp
+        @php
+            $saringan = [
+                'semua' => ['Semua', $ringkas['total'], 'text-brand-ink dark:text-white'],
+                'berjalan' => ['Sedang berjalan', $ringkas['berjalan'], 'text-brand-accent-text'],
+                'belum_diakhiri' => ['Belum diakhiri', $ringkas['belum_diakhiri'], 'text-orange-600 dark:text-orange-400'],
+                'selesai' => ['Selesai', $ringkas['selesai'], 'text-emerald-600 dark:text-emerald-400'],
+                'belum_mulai' => ['Belum mulai', $ringkas['belum_mulai'], 'text-brand-muted'],
+                'bermasalah' => ['Bermasalah', $ringkas['bermasalah'], 'text-brand-danger-text'],
+            ];
+        @endphp
 
-                {{-- Warna status disampaikan lewat TIGA hal sekaligus: warna
-                     bingkai, pita di tepi atas, DAN lencana bertuliskan
-                     artinya. Mengandalkan warna saja menutup halaman ini bagi
-                     pembaca yang buta warna — dan merah vs hijau justru
-                     pasangan yang paling sering tidak terbedakan. --}}
-                <article class="kartu-angkat relative min-w-0 overflow-hidden rounded-2xl border-2 bg-brand-surface shadow-soft dark:bg-gray-900 {{ $g['kartu'] }}">
+        <div x-data="{ saring: '{{ $ringkas['belum_diakhiri'] > 0 ? 'belum_diakhiri' : 'semua' }}', jumlah: @js(collect($saringan)->map(fn ($s) => $s[1])) }">
 
-                    {{-- ============ TOMBOL MEMBENTANG, BUKAN <article> YANG DIJADIKAN <button> ============
-                         Kartunya berisi <h3>, <dl>, dan <p> — semuanya flow content,
-                         yang TIDAK SAH berada di dalam <button> (isinya harus phrasing
-                         content). Browser memang tetap menggambarnya, tapi HTML yang
-                         tidak sah adalah utang yang ditagih di tempat tak terduga:
-                         pembaca layar membacakan seluruh isi kartu sebagai satu label
-                         tombol yang panjangnya satu paragraf.
+            {{-- ============ RINGKASAN = SARINGAN ============
+                 Setiap kotak angka sekaligus tombol saringan: satu ketukan
+                 langsung menampilkan kelompok itu saja. --}}
+            <div class="mb-6 grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-3">
+                @foreach ($saringan as $kunci => [$label, $nilai, $warna])
+                    <button type="button" x-on:click="saring = '{{ $kunci }}'"
+                        x-bind:class="saring === '{{ $kunci }}' ? 'ring-2 ring-brand-500' : ''"
+                        x-bind:aria-pressed="saring === '{{ $kunci }}'"
+                        class="flex min-w-0 flex-col justify-between rounded-2xl border border-brand-border bg-brand-surface p-3 text-left shadow-soft transition hover:bg-brand-surface-muted dark:border-gray-800 dark:bg-gray-900">
+                        {{-- Label boleh dua baris di HP (bukan dipotong "…"). --}}
+                        <span class="block text-[11px] font-medium uppercase leading-tight tracking-wide text-brand-muted">{{ $label }}</span>
+                        <span class="mt-1 block text-2xl font-bold {{ $warna }}">{{ $nilai }}</span>
+                    </button>
+                @endforeach
+            </div>
 
-                         Lapisan tembus pandang ini membuat seluruh kartu bisa diklik
-                         tanpa merusak strukturnya, dan aria-label-nya ringkas. --}}
-                    <button type="button"
-                        class="absolute inset-0 z-10 h-full w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-accent"
-                        aria-label="Lihat detail {{ $j->kelas?->nama_kelas ?? 'kelas' }} — {{ $j->mata_pelajaran }}"
-                        x-data
-                        @click="Livewire.dispatch('buka-detail-sesi', { jadwal: {{ $j->id }} })"></button>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                @foreach ($baris as $b)
+                    @include('monitoring.partials.kartu', ['b' => $b])
+                @endforeach
+            </div>
 
-                    <div class="h-1.5 w-full {{ $g['pita'] }}"></div>
-
-                    <div class="p-5">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <h3 class="truncate text-lg font-bold text-brand-ink dark:text-white">{{ $j->kelas?->nama_kelas ?? 'Kelas —' }}</h3>
-                                <p class="mt-0.5 truncate text-sm font-medium text-brand-accent-text">{{ $j->mata_pelajaran }}</p>
-                            </div>
-
-                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $g['chip'] }}">
-                                <x-icon name="{{ $g['ikon'] }}" class="h-3 w-3" />
-                                {{ $g['label'] }}
-                            </span>
-                        </div>
-
-                        <dl class="mt-4 space-y-2 text-sm">
-                            <div class="flex min-w-0 items-center gap-2">
-                                <dt class="sr-only">Guru pengampu</dt>
-                                <x-icon name="briefcase" class="h-4 w-4 shrink-0 text-brand-muted" />
-                                <dd class="truncate text-brand-ink dark:text-gray-200">{{ $j->guru?->nama ?? '— belum ditetapkan —' }}</dd>
-                            </div>
-
-                            <div class="flex min-w-0 items-center gap-2">
-                                <dt class="sr-only">Waktu</dt>
-                                <x-icon name="clock" class="h-4 w-4 shrink-0 text-brand-muted" />
-                                {{-- rentangJam() dari model, BUKAN memotong string sendiri.
-
-                                     Kolom jam_mulai di-cast ke Carbon (lihat
-                                     JadwalPelajaran::casts), jadi memperlakukannya
-                                     sebagai teks '07:00:00' dan memotong 5 huruf
-                                     pertama menghasilkan '2026-' — tanggalnya,
-                                     bukan jamnya. Itu sudah sempat terjadi dan
-                                     hanya ketahuan saat halamannya dilihat. --}}
-                                <dd class="tabular-nums text-brand-muted">
-                                    {{ $j->rentangJam() }}
-                                    <span class="text-xs">&middot; berjalan {{ $b['menit_berjalan'] }} menit</span>
-                                </dd>
-                            </div>
-
-                            @if ($j->ruangan)
-                                <div class="flex min-w-0 items-center gap-2">
-                                    <dt class="sr-only">Ruangan</dt>
-                                    <x-icon name="building" class="h-4 w-4 shrink-0 text-brand-muted" />
-                                    <dd class="truncate text-brand-muted">{{ $j->ruangan }}</dd>
-                                </div>
-                            @endif
-                        </dl>
-
-                        @if ($b['status'] === 'kosong')
-                            <p class="mt-4 rounded-lg bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-brand-danger-text">
-                                Sudah {{ $b['menit_berjalan'] }} menit berjalan dan belum ada jurnal yang tersimpan
-                                untuk jam ini.
-                            </p>
-                        @elseif ($b['status'] === 'perhatian')
-                            <p class="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
-                                Jurnal sudah diisi &mdash; ada {{ $b['jumlah_bolos'] }} siswa berstatus alpa atau bolos.
-                            </p>
-                        @elseif ($b['status'] === 'berhalangan')
-                            {{-- Bukan kelas mangkir: gurunya tercatat berhalangan.
-                                 Tindakannya memastikan ada pengganti yang mengisi
-                                 absensi lewat halaman Guru Inval. --}}
-                            <p class="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-800 dark:text-amber-400">
-                                {{ $b['berhalangan']['label'] ?? 'Guru berhalangan' }}
-                                @if (! empty($b['berhalangan']['rinci']))
-                                    ({{ $b['berhalangan']['rinci'] }})
-                                @endif
-                                &mdash; absensi siswa belum diisi guru inval.
-                                @if (Route::has($panelPrefix . '.guru-inval'))
-                                    {{-- relative z-20: kartu ini ditutup tombol tembus pandang z-10
-                                         (lihat catatan di atas), tautan harus berada di atasnya. --}}
-                                    <a href="{{ route($panelPrefix . '.guru-inval') }}" class="relative z-20 font-semibold underline">Buka Guru Inval</a>
-                                @endif
-                            </p>
-                        @elseif ($b['status'] === 'menunggu')
-                            <p class="mt-4 rounded-lg bg-brand-surface-muted px-3 py-2 text-xs leading-relaxed text-brand-muted">
-                                Baru dimulai. Belum dihitung terlambat sebelum {{ $toleransi }} menit.
-                            </p>
-                        @endif
-                        <p class="mt-4 flex items-center gap-1.5 text-xs font-medium text-brand-muted">
-                            <x-icon name="eye" class="h-3.5 w-3.5 shrink-0" />
-                            Klik kartu untuk melihat detail
-                        </p>
-                    </div>
-                </article>
-            @endforeach
+            <p x-show="jumlah[saring] === 0" style="display: none"
+                class="rounded-2xl border border-dashed border-brand-border bg-brand-surface p-8 text-center text-sm text-brand-muted dark:border-gray-800 dark:bg-gray-900">
+                Tidak ada jadwal dengan status ini.
+            </p>
         </div>
 
-        {{-- ============ KETERANGAN WARNA ============
-             Ditaruh di bawah, bukan di atas: pembaca yang sudah terbiasa tidak
-             perlu melewatinya setiap kali membuka halaman, sementara yang baru
-             tetap menemukannya tanpa mencari. --}}
+        {{-- ============ KETERANGAN ============ --}}
         <div class="mt-6 rounded-2xl border border-brand-border bg-brand-surface px-5 py-4 text-xs leading-relaxed text-brand-muted shadow-soft dark:border-gray-800 dark:bg-gray-900">
-            <p class="mb-2 font-semibold uppercase tracking-wide">Arti warna</p>
+            <p class="mb-2 font-semibold uppercase tracking-wide">Arti status</p>
             <ul class="grid gap-1.5 sm:grid-cols-2">
-                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500"></span><strong>Hijau</strong> &mdash; guru sudah mengisi jurnal &amp; absensi jam ini.</li>
-                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-500"></span><strong>Kuning</strong> &mdash; jurnal terisi, tapi ada siswa alpa/bolos.</li>
-                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-500"></span><strong>Merah</strong> &mdash; lewat {{ $toleransi }} menit dan jurnalnya masih kosong.</li>
-                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-gray-400"></span><strong>Abu</strong> &mdash; jam baru dimulai, masih dalam masa toleransi.</li>
-                <li class="sm:col-span-2"><span class="mr-1.5 inline-block rounded bg-brand-500/10 px-1.5 text-[10px] font-bold uppercase text-brand-accent-text">Ekskul</span> kartu ekskul hijau bila pembina sudah scan QR ekskul (Mulai Sesi), merah bila belum.</li>
+                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-brand-500"></span><strong>Sedang berjalan</strong> &mdash; guru/pembina sudah scan QR, jadwal belum selesai.</li>
+                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-orange-500"></span><strong>Belum diakhiri</strong> &mdash; jadwal selesai, tombol Akhiri Sesi belum ditekan; bisa dibantu dengan tombol oranye.</li>
+                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500"></span><strong>Selesai</strong> &mdash; sesi diakhiri; honor JP sudah dihitung.</li>
+                <li><span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-red-500"></span><strong>Bermasalah</strong> &mdash; lewat {{ $toleransi }} menit tanpa scan QR, atau jam sudah habis tanpa sesi.</li>
             </ul>
+            <p class="mt-2">"Bantu Akhiri Sesi" mencatat waktu selesai sesuai jam selesai jadwal (atau jam sekarang bila jadwal belum selesai), menghitung JP dari panjang jadwal seperti saat guru mengakhiri sendiri, dan mencatat nama Anda beserta alasannya.</p>
         </div>
 
-    {{-- Panel detail. Dirender sekali di luar perulangan kartu dan menunggu
-         peristiwa 'buka-detail-sesi'; datanya baru diambil saat ada kartu yang
-         benar-benar diklik. --}}
-    @livewire('monitoring.detail-sesi')
-
+        {{-- Panel detail kartu kelas (dibuka lewat klik kartu). --}}
+        @livewire('monitoring.detail-sesi')
     @endif
 
 @endsection

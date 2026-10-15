@@ -296,18 +296,21 @@ class SesiEkskulTest extends TestCase
 
         $this->actingAs($kepsek)->get('/kepsek/live-monitoring')->assertOk()
             ->assertSee('Pramuka')->assertSee('Rohis')
-            ->assertSee('Sesi belum dimulai')
-            ->assertSee('pembina belum men-scan QR ekskul');
+            ->assertSee('Belum scan QR')
+            ->assertSee('pembina belum men-scan QR');
 
         $this->halaman()->call('mulaiSesi', $this->pramuka->fresh()->kode_qr);
 
         $this->actingAs($kepsek)->get('/kepsek/live-monitoring')->assertOk()
-            ->assertSee('Sesi berjalan')
-            ->assertSee('Scan QR 14:00');
+            ->assertSee('Sedang berjalan')
+            ->assertSee('Scan 14:00');
 
-        // Di luar jamnya, ekskul tidak tampil.
+        // Sesudah jamnya ekskul TETAP tampil (monitoring seharian): Pramuka
+        // belum diakhiri, Rohis tanpa sesi sama sekali.
         $this->pada('16:00');
-        $this->actingAs($kepsek)->get('/kepsek/live-monitoring')->assertOk()->assertDontSee('Pramuka');
+        $this->actingAs($kepsek)->get('/kepsek/live-monitoring')->assertOk()
+            ->assertSee('Pramuka')->assertSee('Belum diakhiri')
+            ->assertSee('Tidak ada sesi');
     }
 
     // ===================== PENGINGAT AKHIRI SESI =====================

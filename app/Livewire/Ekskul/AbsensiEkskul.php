@@ -6,12 +6,11 @@ use App\Enums\AbsensiStatus;
 use App\Livewire\Concerns\BisaSweetAlert;
 use App\Livewire\Ekskul\Concerns\PeranEkskul;
 use App\Models\AbsensiEkskul as AbsensiEkskulModel;
-use App\Models\HonorMengajar;
 use App\Models\JadwalEkskul;
 use App\Models\SesiEkskul;
 use App\Services\AturanHonor;
 use App\Services\AturanSesiEkskul;
-use App\Services\PencatatHonor;
+use App\Services\PenutupSesi;
 use App\Services\PenyimpanBuktiFoto;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -521,9 +520,17 @@ class AbsensiEkskul extends Component
             return;
         }
 
-        $sesi->forceFill(['waktu_selesai' => now()])->save();
-        $honor = $this->catatHonor($sesi, $jadwal);
+        // Jalur yang SAMA dengan "Bantu Akhiri Sesi" Kepsek/Admin (PenutupSesi).
+        $hasil = app(PenutupSesi::class)->akhiriEkskul($sesi, $jadwal);
         unset($this->sesiHariIni);
+
+        if (! $hasil['berhasil']) {
+            $this->notif = ['tipe' => 'warn', 'judul' => 'Sudah diakhiri', 'pesan' => 'Sesi ekskul ini baru saja ditutup.'];
+
+            return;
+        }
+
+        $honor = $hasil['honor'];
 
         // Mematikan alarm pengingat di layar ini (partials/pengingat-akhiri-sesi).
         $this->dispatch('sesi-diakhiri', id: 'e' . $sesi->id);
@@ -531,18 +538,6 @@ class AbsensiEkskul extends Component
         $this->notif = ['tipe' => 'ok', 'judul' => 'Sesi ekskul diakhiri',
             'pesan' => 'Kegiatan ' . $jadwal->nama_ekskul . ' tercatat lengkap dengan absensi dan bukti foto.'
                 . ($honor ? ' Honor ' . AturanHonor::rupiah($honor->nominal) . " ({$honor->jp} JP) masuk ke Rincian Pendapatan." : '')];
-    }
-
-    /** Gagal mencatat honor TIDAK membatalkan sesi yang sudah diakhiri. */
-    private function catatHonor(SesiEkskul $sesi, JadwalEkskul $jadwal): ?HonorMengajar
-    {
-        try {
-            return app(PencatatHonor::class)->catatEkskul($sesi, $jadwal);
-        } catch (\Throwable $e) {
-            Log::error('Gagal mencatat honor ekskul.', ['sesi_ekskul_id' => $sesi->id, 'error' => $e->getMessage()]);
-
-            return null;
-        }
     }
 
     /** @return array<string, array<int, string>> */

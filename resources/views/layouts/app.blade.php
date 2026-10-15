@@ -159,7 +159,7 @@
      | dikenal bukan error. Pernah terjadi dan butuh berjam-jam untuk
      | ditelusuri; sekarang aplikasinya yang memberi tahu sendiri.
      */
-    $versiAset = '2026-10-09d';
+    $versiAset = '2026-10-09e';
 
     $pengguna = auth()->user();
     $inisial = $pengguna

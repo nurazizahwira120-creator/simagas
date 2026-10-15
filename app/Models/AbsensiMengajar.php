@@ -41,6 +41,8 @@ class AbsensiMengajar extends Model
         'waktu_selesai',
         'bukti_dihapus_pada',
         'pengingat_akhiri_pada',
+        'diakhiri_oleh',
+        'alasan_diakhiri',
     ];
 
     protected function casts(): array
@@ -53,6 +55,12 @@ class AbsensiMengajar extends Model
             // App\Services\PengingatAkhiriSesi.
             'pengingat_akhiri_pada' => 'datetime',
         ];
+    }
+
+    /** Kepsek/Admin yang menekan "Bantu Akhiri Sesi" (null = guru sendiri). */
+    public function pengakhir(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diakhiri_oleh');
     }
 
     public function user(): BelongsTo

@@ -5,9 +5,8 @@ namespace App\Livewire\Guru;
 use App\Enums\Hari;
 use App\Enums\StatusKbm;
 use App\Models\AbsensiMengajar;
-use App\Models\HonorMengajar;
 use App\Services\AturanHonor;
-use App\Services\PencatatHonor;
+use App\Services\PenutupSesi;
 use App\Services\PencatatAbsensiKbm;
 use App\Services\PencocokSesiMengajar;
 use App\Models\AbsensiPegawai;
@@ -575,8 +574,10 @@ class JurnalAbsenKelas extends Component
         // disegarkan, dan jadwal ini yang menjadi dasar honor.
         $jadwal = $this->jadwalAktif;
 
+        // Penutupan + honor lewat App\Services\PenutupSesi — jalur yang SAMA
+        // dengan "Bantu Akhiri Sesi" Kepsek/Admin di Live Monitoring.
         try {
-            $this->scanCocok->forceFill(['waktu_selesai' => now()])->save();
+            $hasil = app(PenutupSesi::class)->akhiriKbm($this->scanCocok, $jadwal);
         } catch (\Throwable $e) {
             Log::error('Gagal menutup sesi mengajar.', [
                 'absensi_mengajar_id' => $this->scanCocok->id,
@@ -589,9 +590,17 @@ class JurnalAbsenKelas extends Component
             return;
         }
 
-        $sesi = $this->scanCocok;
-        $sesiId = $sesi->id;
-        $honor = $jadwal ? $this->catatHonor($sesi, $jadwal) : null;
+        // Kalah balapan: sesi ini baru saja ditutup dari tempat lain
+        // (mis. Kepsek menekan "Bantu Akhiri Sesi" pada detik yang sama).
+        if (! $hasil['berhasil']) {
+            $this->segarkanPemeriksaan();
+            $this->pesan('warn', 'Sudah diakhiri', 'Sesi kelas ini baru saja ditutup.');
+
+            return;
+        }
+
+        $sesiId = $this->scanCocok->id;
+        $honor = $hasil['honor'];
         $this->segarkanPemeriksaan();
 
         // Mematikan alarm pengingat "Akhiri Sesi" yang mungkin sedang
@@ -603,27 +612,6 @@ class JurnalAbsenKelas extends Component
         $this->pesan('ok', 'Sesi kelas diakhiri',
             'Kehadiran mengajar Anda tercatat lengkap dengan bukti. Jurnal jam ini sekarang terkunci.'
                 . ($honor ? ' Honor ' . AturanHonor::rupiah($honor->nominal) . " ({$honor->jp} JP) masuk ke Rincian Pendapatan." : ''));
-    }
-
-    /**
-     * Catat honor mengajar sesi yang baru diakhiri (null = fitur mati).
-     *
-     * Gagal mencatat honor TIDAK membatalkan "Akhiri Sesi" — sesi mengajar
-     * yang sudah sah tidak boleh ikut gagal karena fitur uji coba.
-     */
-    private function catatHonor(AbsensiMengajar $sesi, JadwalPelajaran $jadwal): ?HonorMengajar
-    {
-        try {
-            return app(PencatatHonor::class)->catatMengajar($sesi, $jadwal);
-        } catch (\Throwable $e) {
-            Log::error('Gagal mencatat honor mengajar.', [
-                'absensi_mengajar_id' => $sesi->id,
-                'jadwal_id' => $jadwal->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
     }
 
     /**

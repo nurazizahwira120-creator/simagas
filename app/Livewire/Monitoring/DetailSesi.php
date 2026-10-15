@@ -231,12 +231,18 @@ class DetailSesi extends Component
         }
 
         if ($sesi->waktu_selesai) {
+            // Ditutup lewat "Bantu Akhiri Sesi": sebutkan siapa & alasannya.
+            $dibantu = $sesi->diakhiri_oleh
+                ? ' Dibantu diakhiri oleh ' . ($sesi->pengakhir?->name ?? 'pimpinan')
+                    . ($sesi->alasan_diakhiri ? ' — "' . $sesi->alasan_diakhiri . '"' : '') . '.'
+                : '';
+
             return [
                 'kunci' => 'selesai',
                 'label' => 'Sesi sudah diakhiri',
                 'rincian' => 'Dimulai ' . $sesi->waktu_mulai->format('H:i')
                     . ', diakhiri ' . $sesi->waktu_selesai->format('H:i')
-                    . '. Jurnalnya terkunci dan tidak bisa diubah lagi.',
+                    . '.' . $dibantu . ' Jurnalnya terkunci dan tidak bisa diubah lagi.',
             ];
         }
 

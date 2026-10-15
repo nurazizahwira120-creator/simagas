@@ -130,12 +130,16 @@ class RekapJamMengajar
                 $sesiHariIni = $p->user_id ? $sesi->get($p->user_id . '|' . $tanggal, collect()) : collect();
                 $halanganHariIni = $halangan[$idPegawai . '|' . $tanggal] ?? null;
 
+                // Pemasangan sesi ↔ jadwal sehari penuh — aturan yang sama
+                // dengan Jurnal guru & Monitoring KBM.
+                $pasangan = $this->pencocok->pasangkan($hariIni, $sesiHariIni);
+                $sesiDipakai = [...$sesiDipakai, ...array_map(fn (AbsensiMengajar $a) => $a->id, array_values($pasangan))];
+
                 foreach ($hariIni as $j) {
                     $nilai = $this->jp->untukJadwal($j);
-                    $cocok = $this->pencocok->pilihDari($sesiHariIni, $j, $sesiDipakai);
+                    $cocok = $pasangan[$j->id] ?? null;
 
                     if ($cocok) {
-                        $sesiDipakai[] = $cocok->id;
                         $terjadwal += $nilai;
                         $terlaksana += $nilai;
 

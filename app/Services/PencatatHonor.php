@@ -54,8 +54,12 @@ class PencatatHonor
 
     /* ===================== MENCATAT ===================== */
 
-    /** Dipanggil SESUDAH sesi berhasil diakhiri. null = fitur mati. */
-    public function catatMengajar(AbsensiMengajar $sesi, JadwalPelajaran $jadwal): ?HonorMengajar
+    /**
+     * Dipanggil SESUDAH sesi berhasil diakhiri. null = fitur mati.
+     *
+     * @param  string|null  $catatan  mis. "diakhiri oleh Kepsek" — ditempel di rincian
+     */
+    public function catatMengajar(AbsensiMengajar $sesi, JadwalPelajaran $jadwal, ?string $catatan = null): ?HonorMengajar
     {
         $umum = $this->aturan->umum();
 
@@ -72,7 +76,7 @@ class PencatatHonor
             'tarif_per_jp' => $tarif,
             'persen' => 100,
             'nominal' => $jp * $tarif,
-            'rincian' => $this->rincianJadwal($jadwal),
+            'rincian' => $this->potong($this->rincianJadwal($jadwal) . ($catatan ? ' — ' . $catatan : '')),
             'absensi_mengajar_id' => $sesi->id,
         ]);
     }
@@ -143,7 +147,7 @@ class PencatatHonor
      * dihitung dari panjang jadwal dengan rumus yang sama seperti KBM.
      * Tarif: "tarif ekskul per JP" di Pengaturan; kosong = tarif pembinanya.
      */
-    public function catatEkskul(SesiEkskul $sesi, JadwalEkskul $jadwal): ?HonorMengajar
+    public function catatEkskul(SesiEkskul $sesi, JadwalEkskul $jadwal, ?string $catatan = null): ?HonorMengajar
     {
         $umum = $this->aturan->umum();
 
@@ -155,7 +159,7 @@ class PencatatHonor
         $tarif = $umum['tarif_ekskul'] ?? $this->aturan->tarifUntuk($sesi->user_id, $umum['tarif']);
         $tanggal = $sesi->tanggal->copy()->startOfDay();
 
-        return DB::transaction(function () use ($sesi, $jadwal, $jp, $tarif, $tanggal) {
+        return DB::transaction(function () use ($sesi, $jadwal, $jp, $tarif, $tanggal, $catatan) {
             $isi = [
                 'user_id' => $sesi->user_id,
                 'jadwal_id' => null,
@@ -163,7 +167,8 @@ class PencatatHonor
                 'tarif_per_jp' => $tarif,
                 'persen' => 100,
                 'nominal' => $jp * $tarif,
-                'rincian' => $this->potong('Ekskul ' . $jadwal->nama_ekskul . ' · ' . $jadwal->hari . ' · ' . $jadwal->rentangJam()),
+                'rincian' => $this->potong('Ekskul ' . $jadwal->nama_ekskul . ' · ' . $jadwal->hari . ' · ' . $jadwal->rentangJam()
+                    . ($catatan ? ' — ' . $catatan : '')),
                 'absensi_mengajar_id' => null,
             ];
 

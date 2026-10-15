@@ -27,15 +27,16 @@
             'bagian' => [
                 [
                     'judul' => 'Live Monitoring KBM',
-                    'isi' => 'Menampilkan kelas yang SEDANG berlangsung pada jam ini juga — bukan rekap kemarin. Halaman ini tidak menyegarkan dirinya sendiri; muat ulang halaman untuk melihat keadaan terbaru.',
+                    'isi' => 'Menampilkan SELURUH jadwal hari ini — kelas dan ekskul — lengkap dengan statusnya, dari jam pertama sampai jam terakhir. Halaman ini tidak menyegarkan dirinya sendiri; tekan <strong>Perbarui</strong> untuk melihat keadaan terbaru.',
                     'langkah' => [
-                        'Buka menu <strong>Live Monitoring KBM</strong>. Yang tampil hanya jadwal yang jam mulainya sudah lewat dan jam selesainya belum tiba.',
-                        'Baca warnanya: <strong>Aman</strong> berarti gurunya sudah absen mengajar. <strong>Menunggu</strong> berarti jamnya baru mulai dan masih dalam toleransi 10 menit.',
-                        '<strong>Perhatian</strong> berarti sudah lewat 10 menit sejak jam masuk tetapi belum ada absen mengajar — inilah yang perlu ditindak.',
-                        '<strong>Kosong</strong> berarti tidak ada jadwal untuk ruang itu pada jam ini.',
-                        '<strong>Klik kartunya</strong> untuk melihat detail: status sesi (sudah diakhiri atau belum), daftar hadir, siapa saja yang tidak masuk beserta surat izinnya, dan foto bukti mengajar.',
+                        'Buka menu <strong>Live Monitoring KBM</strong>. Kotak ringkasan di atas sekaligus tombol saring: tekan <strong>Belum diakhiri</strong>, <strong>Sedang berjalan</strong>, <strong>Selesai</strong>, dan seterusnya untuk menampilkan kelompok itu saja.',
+                        'Baca warnanya: <strong>Sedang berjalan</strong> (biru) berarti guru sudah scan QR dan jamnya belum habis. <strong>Selesai</strong> (hijau) berarti sesi sudah diakhiri. <strong>Belum mulai</strong> (abu-abu) berarti jamnya belum tiba.',
+                        '<strong>Belum diakhiri</strong> (oranye) berarti jam pelajaran sudah habis tetapi guru lupa menekan Akhiri Sesi. <strong>Belum scan QR / Tidak ada sesi</strong> (merah) berarti sudah lewat 10 menit dari jam masuk tetapi gurunya belum scan — inilah yang perlu ditindak. <strong>Guru berhalangan</strong> (kuning) berarti izinnya sudah disetujui.',
+                        '<strong>Klik kartu kelas</strong> untuk melihat detail: status sesi, daftar hadir, siapa saja yang tidak masuk beserta surat izinnya, dan foto bukti mengajar.',
+                        '<strong>Bantu Akhiri Sesi</strong> (tombol oranye): muncul pada sesi yang sudah di-scan tetapi belum diakhiri. Tulis alasan singkat (wajib), tekan <strong>Akhiri Sekarang</strong>, lalu konfirmasi. Sesi ditutup pada jam selesai jadwalnya (atau jam sekarang bila jadwalnya belum habis), honor JP tercatat seperti biasa, dan guru/pembina menerima notifikasi.',
+                        'Sesi yang lupa diakhiri pada hari-hari sebelumnya (s.d. 7 hari ke belakang) tampil di kotak oranye paling atas dan bisa ditutup dengan cara yang sama.',
                     ],
-                    'catatan' => 'Toleransi 10 menit itu disengaja. Tanpa jeda, setiap kelas akan berwarna merah di menit pertama hanya karena gurunya sedang berjalan dari ruang guru.',
+                    'catatan' => 'Nama Anda dan alasannya tercatat pada sesi yang dibantu diakhiri — tampil sebagai "dibantu ...". Sesi yang tidak cocok dengan jadwal mana pun ditutup tanpa honor. Toleransi 10 menit disengaja: tanpa jeda, setiap kelas akan merah di menit pertama hanya karena gurunya sedang berjalan dari ruang guru.',
                 ],
                 [
                     'judul' => 'Persetujuan Izin Guru (ITT/IDT)',
