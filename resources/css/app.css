@@ -1101,7 +1101,7 @@ pre[class*="language-"] {
    secara berarti, naikkan keduanya bersamaan.
    ===================================================================== */
 :root {
-  --simagas-versi: "2026-10-16b";
+  --simagas-versi: "2026-10-16c";
 }
 
 /* =====================================================================
@@ -1723,6 +1723,8 @@ pre[class*="language-"] {
   .tabel-kartu td[data-label]::before {
     content: attr(data-label);
     flex-shrink: 0;
+    /* Label selalu huruf biasa, walau selnya font-mono (NIS, jam). */
+    font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
     font-size: 0.75rem;
     font-weight: 400;
     line-height: 1.25rem;
