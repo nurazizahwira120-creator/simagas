@@ -53,7 +53,7 @@ class StatusBerhalanganGuru
      * Keadaan berhalangan per guru pada SATU tanggal.
      *
      * @param  iterable<Pegawai>  $pegawai
-     * @return Collection<int, array{label:string, rinci:string|null, jenis:string, sah:bool}> dikunci pegawai.id
+     * @return Collection<int, array{label:string, rinci:string|null, jenis:string, sah:bool, izin_id:int|null}> dikunci pegawai.id
      */
     public function pada(iterable $pegawai, CarbonInterface $tanggal): Collection
     {
@@ -67,7 +67,7 @@ class StatusBerhalanganGuru
      * Keadaan berhalangan untuk RENTANG tanggal — dipakai rekap.
      *
      * @param  iterable<Pegawai>  $pegawai
-     * @return array<string, array{label:string, rinci:string|null, jenis:string, sah:bool}>
+     * @return array<string, array{label:string, rinci:string|null, jenis:string, sah:bool, izin_id:int|null}>
      *         dikunci "pegawai_id|Y-m-d"
      */
     public function rentang(iterable $pegawai, CarbonInterface $dari, CarbonInterface $sampai): array
@@ -101,9 +101,9 @@ class StatusBerhalanganGuru
 
         foreach ($harian as $a) {
             $info = match ($a->status) {
-                AbsensiStatus::Izin => ['label' => 'GURU IZIN', 'rinci' => null, 'jenis' => 'izin', 'sah' => true],
-                AbsensiStatus::Sakit => ['label' => 'GURU SAKIT', 'rinci' => null, 'jenis' => 'sakit', 'sah' => true],
-                default => ['label' => 'GURU ALPA', 'rinci' => null, 'jenis' => 'alpa', 'sah' => false],
+                AbsensiStatus::Izin => ['label' => 'GURU IZIN', 'rinci' => null, 'jenis' => 'izin', 'sah' => true, 'izin_id' => null],
+                AbsensiStatus::Sakit => ['label' => 'GURU SAKIT', 'rinci' => null, 'jenis' => 'sakit', 'sah' => true, 'izin_id' => null],
+                default => ['label' => 'GURU ALPA', 'rinci' => null, 'jenis' => 'alpa', 'sah' => false, 'izin_id' => null],
             };
 
             $hasil[$a->pegawai_id . '|' . $a->tanggal->toDateString()] = $info;
@@ -140,6 +140,9 @@ class StatusBerhalanganGuru
                         'rinci' => $p->jenis_izin->label(),
                         'jenis' => 'izin',
                         'sah' => true,
+                        // Id pengajuan — dipakai Guru Inval untuk menampilkan
+                        // tugas IDT (deskripsi + lampiran) kepada penggantinya.
+                        'izin_id' => $p->id,
                     ];
                     $hari->addDay();
                 }

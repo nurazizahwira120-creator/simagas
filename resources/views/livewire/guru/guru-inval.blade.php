@@ -4,7 +4,9 @@
     Tiga keadaan:
       1. Penunjuk (Kepsek / Super Admin): jam berhalangan per guru, dengan
          pilihan inval per jam atau satu inval untuk semua jam.
-      2. Inval: kartu tugas inval hari ini (+ daftar tugas mendatang).
+      2. Inval: kartu tugas inval hari ini (+ daftar tugas mendatang),
+         lengkap dengan tugas IDT dari guru & catatan penunjuk
+         (partial tugas-inval).
       3. Satu kelas sedang dibuka -> daftar hadir siswa (tabel bersama dengan
          halaman Jurnal & Absen Kelas, lihat partial tabel-hadir-siswa).
 --}}
@@ -60,6 +62,11 @@
                     class="shrink-0 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
                     Kembali ke daftar
                 </button>
+            </div>
+
+            {{-- Tugas yang ditinggalkan guru — tetap terlihat selama inval di kelas. --}}
+            <div class="border-t border-gray-200 px-6 pb-4 dark:border-gray-800">
+                @include('livewire.guru.partials.tugas-inval', ['tugas' => $item['tugas'], 'namaGuru' => $jadwal->guru?->nama, 'prefix' => $this->prefixPanel])
             </div>
 
             <p class="border-t border-gray-200 px-6 py-3 text-xs text-brand-muted dark:border-gray-800 dark:text-brand-faint">
@@ -160,7 +167,7 @@
                             {{-- Satu orang untuk SEMUA jam guru ini --}}
                             <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                                 <select wire:model="pilihanSemua.{{ $guruId }}" aria-label="Inval untuk semua jam {{ $kelompok['guru']?->nama }}"
-                                    class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-56">
+                                    class="h-10 w-full rounded-lg border border-gray-300 bg-transparent pl-3 pr-9 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-56">
                                     <option value="">— Satu inval untuk semua jam —</option>
                                     @foreach ($this->calon as $c)
                                         <option value="{{ $c['user']->id }}">{{ $c['user']->name }} ({{ $c['user']->role->label() }})</option>
@@ -170,6 +177,39 @@
                                     class="h-10 w-full rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60 sm:w-auto">
                                     Tunjuk semua jam
                                 </button>
+                            </div>
+                        </div>
+
+                        {{-- ===== Tugas IDT + catatan untuk inval ===== --}}
+                        <div class="grid gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800 lg:grid-cols-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-brand-muted">Yang diterima guru inval</p>
+                                @include('livewire.guru.partials.tugas-inval', [
+                                    'tugas' => ['catatan' => null] + $kelompok['tugas'],
+                                    'namaGuru' => $kelompok['guru']?->nama,
+                                    'prefix' => $this->prefixPanel,
+                                ])
+                            </div>
+
+                            <div class="min-w-0">
+                                <label for="catatan-{{ $guruId }}" class="text-xs font-semibold text-brand-muted">
+                                    Catatan untuk inval <span class="font-normal">(opsional — tugas susulan, halaman buku, dsb.)</span>
+                                </label>
+                                <textarea id="catatan-{{ $guruId }}" wire:model="catatanInval.{{ $guruId }}" rows="3"
+                                    maxlength="{{ \App\Services\TugasInval::MAKS_CATATAN }}"
+                                    placeholder="Mis. Kerjakan LKS hal. 20–25, kumpulkan ke ketua kelas."
+                                    class="mt-1.5 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-brand-ink focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+                                <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                                    <p class="text-[11px] leading-snug text-brand-muted">
+                                        Ikut tersimpan saat menekan <span class="font-semibold">Tunjuk</span>.
+                                    </p>
+                                    @if ($kelompok['ada_inval'])
+                                        <button type="button" wire:click="simpanCatatan({{ $guruId }})" wire:loading.attr="disabled"
+                                            class="inline-flex min-h-10 items-center rounded-lg border border-gray-300 px-3.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/[0.05]">
+                                            Simpan catatan &amp; kabari inval
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
@@ -197,7 +237,7 @@
 
                                     <div class="flex flex-wrap items-center gap-2">
                                         <select wire:model="pilihan.{{ $j->id }}" aria-label="Inval {{ $j->rentangJam() }}"
-                                            class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-64">
+                                            class="h-10 w-full rounded-lg border border-gray-300 bg-transparent pl-3 pr-9 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-64">
                                             <option value="">— Pilih guru / staf —</option>
                                             @foreach ($this->calon as $c)
                                                 @php $bentrok = \App\Services\GuruInval::bentrok($c, $j); @endphp
@@ -255,7 +295,11 @@
                             ({{ strtolower($item['alasan']['label']) }})
                         </p>
 
-                        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+                        <div class="mb-4">
+                            @include('livewire.guru.partials.tugas-inval', ['tugas' => $item['tugas'], 'namaGuru' => $j->guru?->nama, 'prefix' => $this->prefixPanel])
+                        </div>
+
+                        <div class="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
                             @if ($item['terisi'])
                                 <p class="text-xs font-medium text-success-500">
                                     Sudah diisi {{ $item['jumlah'] }} siswa @if ($item['diisi_pada']) pukul {{ $item['diisi_pada'] }} @endif
@@ -280,13 +324,16 @@
         @if (! $this->penunjuk && $this->tugasMendatang->isNotEmpty())
             <div class="mt-6 rounded-sm border border-gray-200 bg-brand-surface p-5 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
                 <h3 class="text-sm font-semibold text-brand-ink dark:text-white">Tugas inval mendatang</h3>
-                <ul class="mt-3 space-y-2 text-sm">
+                <ul class="mt-3 space-y-3 text-sm">
                     @foreach ($this->tugasMendatang as $t)
                         <li wire:key="mendatang-{{ $t->id }}" class="text-brand-muted">
                             <span class="font-semibold text-brand-ink dark:text-white">{{ $t->tanggal->translatedFormat('D, d M') }}</span>
                             &middot; <span class="font-mono">{{ $t->jadwal->rentangJam() }}</span>
                             &middot; {{ $t->jadwal->mata_pelajaran }} ({{ $t->jadwal->kelas?->nama_kelas ?? '—' }})
                             &middot; menggantikan {{ $t->jadwal->guru?->nama ?? '—' }}
+                            @if ($t->ringkasTugas['ada'])
+                                @include('livewire.guru.partials.tugas-inval', ['tugas' => $t->ringkasTugas, 'namaGuru' => $t->jadwal->guru?->nama, 'prefix' => $this->prefixPanel, 'ringkas' => true])
+                            @endif
                         </li>
                     @endforeach
                 </ul>

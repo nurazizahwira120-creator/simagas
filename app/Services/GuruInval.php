@@ -14,6 +14,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -46,8 +47,10 @@ class GuruInval
     /** Penunjukan bisa direncanakan sampai sekian hari ke depan. */
     public const MAKS_HARI_KE_DEPAN = 14;
 
-    public function __construct(private readonly StatusBerhalanganGuru $berhalangan)
-    {
+    public function __construct(
+        private readonly StatusBerhalanganGuru $berhalangan,
+        private readonly TugasInval $tugas,
+    ) {
     }
 
     public static function bolehMenunjuk(?User $user): bool
@@ -84,7 +87,7 @@ class GuruInval
     public function penugasanPada(Carbon $tanggal, ?int $invalUserId = null): Collection
     {
         return PenugasanInval::query()
-            ->with('inval:id,name,role')
+            ->with(['inval:id,name,role', 'penunjuk:id,name'])
             ->wherePadaTanggal('tanggal', $tanggal)
             ->when($invalUserId, fn ($q) => $q->where('inval_user_id', $invalUserId))
             ->get()
@@ -176,9 +179,11 @@ class GuruInval
      * dilewati dan dilaporkan; satu notifikasi ringkasan dikirim ke inval.
      *
      * @param  iterable<JadwalPelajaran>  $daftarJadwal
+     * @param  string|false|null  $catatan  catatan penunjuk untuk inval;
+     *                                      false = biarkan catatan yang sudah ada.
      * @return array{ditunjuk: array<int, JadwalPelajaran>, dilewati: array<int, string>}
      */
-    public function tunjuk(iterable $daftarJadwal, Carbon $tanggal, User $inval, User $penunjuk): array
+    public function tunjuk(iterable $daftarJadwal, Carbon $tanggal, User $inval, User $penunjuk, string|false|null $catatan = false): array
     {
         $calon = $this->calon($tanggal)->get($inval->id);
         $ditunjuk = [];
@@ -194,7 +199,7 @@ class GuruInval
                 continue;
             }
 
-            $berubah = DB::transaction(function () use ($jadwal, $tanggal, $inval, $penunjuk) {
+            $berubah = DB::transaction(function () use ($jadwal, $tanggal, $inval, $penunjuk, $catatan) {
                 // Dicari dengan wherePadaTanggal, BUKAN updateOrCreate(['tanggal' => ...]):
                 // bentuk simpanan tanggal berbeda antar-database (lihat
                 // QueryTanggalServiceProvider), dan updateOrCreate yang gagal
@@ -206,6 +211,10 @@ class GuruInval
                     ->first();
 
                 $isi = ['inval_user_id' => $inval->id, 'ditunjuk_oleh' => $penunjuk->id];
+
+                if ($catatan !== false) {
+                    $isi['catatan'] = TugasInval::bersihkanCatatan($catatan);
+                }
 
                 if ($lama) {
                     $sudahOrangItu = $lama->inval_user_id === $inval->id;
@@ -241,6 +250,57 @@ class GuruInval
         return ['ditunjuk' => $ditunjuk, 'dilewati' => $dilewati];
     }
 
+    /**
+     * Simpan catatan penunjuk untuk SEMUA jam guru $guruPegawaiId pada
+     * $tanggal yang sudah punya inval. Inval yang catatannya berubah diberi
+     * notifikasi supaya tidak ketinggalan tugas susulan.
+     *
+     * @return int jumlah jam pelajaran yang catatannya berubah
+     */
+    public function simpanCatatan(int $guruPegawaiId, Carbon $tanggal, ?string $catatan): int
+    {
+        $catatan = TugasInval::bersihkanCatatan($catatan);
+
+        $penugasan = PenugasanInval::query()
+            ->with(['jadwal.kelas:id,nama_kelas', 'jadwal.guru:id,nama,user_id', 'inval'])
+            ->wherePadaTanggal('tanggal', $tanggal)
+            ->whereHas('jadwal', fn ($q) => $q->where('guru_id', $guruPegawaiId))
+            ->get()
+            // Catatan yang sama persis tidak ditulis ulang (dan tidak dikabarkan).
+            ->filter(fn (PenugasanInval $p) => $p->catatan !== $catatan);
+
+        if ($penugasan->isEmpty()) {
+            return 0;
+        }
+
+        PenugasanInval::query()->whereIn('id', $penugasan->pluck('id'))->update(['catatan' => $catatan]);
+
+        foreach ($penugasan->groupBy('inval_user_id') as $milikInval) {
+            $inval = $milikInval->first()->inval;
+
+            if (! $inval) {
+                continue;
+            }
+
+            $jam = $milikInval->map(fn (PenugasanInval $p) => $p->jadwal?->rentangJam() . ' ' . ($p->jadwal?->kelas?->nama_kelas ?? ''))->implode('; ');
+            $hari = $tanggal->isToday() ? 'hari ini' : $tanggal->translatedFormat('l, d M');
+
+            try {
+                $inval->notify(new DitunjukJadiInval(
+                    $catatan
+                        ? "Catatan untuk inval {$hari}: " . Str::limit(preg_replace('/\s+/', ' ', $catatan), 160)
+                        : "Catatan untuk inval {$hari} dihapus Kepala Sekolah/Admin.",
+                    $jam,
+                    'Catatan tugas inval diperbarui',
+                ));
+            } catch (Throwable $e) {
+                Log::warning('Guru inval: gagal mengabari perubahan catatan.', ['user_id' => $inval->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $penugasan->count();
+    }
+
     public function batalkan(int $jadwalId, Carbon $tanggal): bool
     {
         return DB::transaction(function () use ($jadwalId, $tanggal) {
@@ -266,11 +326,23 @@ class GuruInval
         $pertama = $jadwal->first();
         $hari = $tanggal->isToday() ? 'hari ini' : $tanggal->translatedFormat('l, d M');
 
+        // rtrim: nama bergelar sering diakhiri titik ("S.Pd.") — tanpa ini
+        // kalimatnya berakhir dengan dua titik.
+        $guruAsli = rtrim((string) $pertama->guru?->nama, '.');
+
         $pesan = $jadwal->count() === 1
-            ? "{$pertama->mata_pelajaran} ({$pertama->kelas?->nama_kelas}) {$hari}, {$pertama->rentangJam()} — menggantikan {$pertama->guru?->nama}."
-            : "{$jadwal->count()} jam pelajaran {$hari}, menggantikan {$pertama->guru?->nama}.";
+            ? "{$pertama->mata_pelajaran} ({$pertama->kelas?->nama_kelas}) {$hari}, {$pertama->rentangJam()} — menggantikan {$guruAsli}."
+            : "{$jadwal->count()} jam pelajaran {$hari}, menggantikan {$guruAsli}.";
 
         $cuplikan = $jadwal->map(fn (JadwalPelajaran $j) => $j->rentangJam() . ' ' . $j->mata_pelajaran . ' (' . ($j->kelas?->nama_kelas ?? '-') . ')')->implode('; ');
+
+        // Tugas IDT dari guru + catatan penunjuk ikut dikabarkan, supaya inval
+        // tahu apa yang harus dibagikan sebelum masuk kelas.
+        $kalimatTugas = $this->kalimatTugas($pertama, $tanggal);
+
+        if ($kalimatTugas) {
+            $cuplikan .= ' — ' . $kalimatTugas;
+        }
 
         try {
             $inval->notify(new DitunjukJadiInval($pesan, $cuplikan));
@@ -288,7 +360,7 @@ class GuruInval
             KirimPushNotifikasi::dispatch(
                 userId: (int) $inval->id,
                 judul: 'Anda ditunjuk menjadi guru inval',
-                isi: $pesan,
+                isi: $pesan . ($kalimatTugas ? ' Ada tugas untuk kelas ini — buka menu Guru Inval.' : ''),
                 data: [
                     'jenis' => 'guru-inval',
                     'url' => $prefix && Route::has("{$prefix}.guru-inval") ? route("{$prefix}.guru-inval") : url('/'),
@@ -296,6 +368,25 @@ class GuruInval
             )->onConnection(config('firebase.queue_connection', 'sync'));
         } catch (Throwable $e) {
             Log::warning('Guru inval: gagal mengirim push.', ['user_id' => $inval->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Ringkasan tugas (IDT + catatan) untuk notifikasi, atau null.
+     * Gagal membacanya tidak boleh menggagalkan notifikasi penunjukan.
+     */
+    private function kalimatTugas(JadwalPelajaran $jadwal, Carbon $tanggal): ?string
+    {
+        try {
+            $alasan = $jadwal->guru ? $this->berhalangan->pada([$jadwal->guru], $tanggal)->get($jadwal->guru_id) : null;
+            $izin = $this->tugas->izinUntuk([$alasan['izin_id'] ?? null])->first();
+            $penugasan = PenugasanInval::query()->where('jadwal_id', $jadwal->id)->wherePadaTanggal('tanggal', $tanggal)->first();
+
+            return TugasInval::kalimatNotifikasi(TugasInval::ringkas($izin, $penugasan));
+        } catch (Throwable $e) {
+            Log::warning('Guru inval: gagal membaca tugas untuk notifikasi.', ['jadwal_id' => $jadwal->id, 'error' => $e->getMessage()]);
+
+            return null;
         }
     }
 

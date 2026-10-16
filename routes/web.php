@@ -3,6 +3,7 @@
 use App\Http\Controllers\AbsensiGerbangController;
 use App\Http\Controllers\DeployController;
 use App\Http\Controllers\FcmTokenController;
+use App\Http\Controllers\GuruInvalLampiranController;
 use App\Http\Controllers\LaporanBulananController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\PanduanController;
@@ -407,6 +408,12 @@ Route::middleware('auth')->group(function () {
     */
     $daftarkanGuruInval = function () {
         Route::view('/guru-inval', 'guru-inval')->name('guru-inval');
+
+        // Lampiran tugas IDT untuk inval yang ditunjuk (hak akses diperiksa
+        // ulang di controller — lihat GuruInvalLampiranController).
+        Route::get('/guru-inval/tugas/{izin}/lampiran', GuruInvalLampiranController::class)
+            ->whereNumber('izin')
+            ->name('guru-inval.lampiran');
         Route::get('/kelas-pengganti', fn (Request $request) => redirect(
             preg_replace('#/kelas-pengganti$#', '/guru-inval', $request->url())
         ));

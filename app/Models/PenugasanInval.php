@@ -13,7 +13,8 @@ class PenugasanInval extends Model
 {
     protected $table = 'penugasan_inval';
 
-    protected $fillable = ['jadwal_id', 'tanggal', 'inval_user_id', 'ditunjuk_oleh'];
+    /** catatan: pesan tambahan dari penunjuk untuk inval (lihat migrasi 000048). */
+    protected $fillable = ['jadwal_id', 'tanggal', 'inval_user_id', 'ditunjuk_oleh', 'catatan'];
 
     protected function casts(): array
     {

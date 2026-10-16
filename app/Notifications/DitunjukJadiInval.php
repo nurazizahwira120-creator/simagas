@@ -15,6 +15,8 @@ class DitunjukJadiInval extends Notification
     public function __construct(
         private readonly string $pesan,
         private readonly string $cuplikan,
+        // Dipakai juga saat catatan tugas inval diperbarui penunjuk.
+        private readonly string $judul = 'Anda ditunjuk menjadi guru inval',
     ) {}
 
     public function via(object $notifiable): array
@@ -25,7 +27,7 @@ class DitunjukJadiInval extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'judul' => 'Anda ditunjuk menjadi guru inval',
+            'judul' => $this->judul,
             'pesan' => $this->pesan,
             'cuplikan' => $this->cuplikan,
             'ikon' => 'swap',

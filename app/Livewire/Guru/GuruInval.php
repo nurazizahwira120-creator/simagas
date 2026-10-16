@@ -13,6 +13,7 @@ use App\Services\GuruInval as AturanInval;
 use App\Services\KalenderAkademik;
 use App\Services\PencatatAbsensiKbm;
 use App\Services\PencatatHonor;
+use App\Services\TugasInval;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -68,6 +69,9 @@ class GuruInval extends Component
     /** @var array<int|string, string> */
     public array $keterangan = [];
 
+    /** @var array<int|string, string|null> guru_id (pegawai) => catatan penunjuk untuk inval */
+    public array $catatanInval = [];
+
     public ?array $notif = null;
 
     public function mount(): void
@@ -79,7 +83,7 @@ class GuruInval extends Component
 
     public function updatedTanggal(): void
     {
-        $this->reset('jadwalId', 'status', 'keterangan', 'pilihanSemua', 'notif');
+        $this->reset('jadwalId', 'status', 'keterangan', 'pilihanSemua', 'catatanInval', 'notif');
         $this->segarkan();
         $this->isiPilihan();
     }
@@ -173,9 +177,13 @@ class GuruInval extends Component
             ->whereIn('id', $rekap->pluck('pengisi')->filter()->unique())
             ->pluck('name', 'id');
 
+        // Tugas IDT (deskripsi + lampiran) dari pengajuan izin gurunya —
+        // SATU query untuk semua jam di halaman ini.
+        $izin = app(TugasInval::class)->izinUntuk($berhalangan->pluck('alasan.izin_id'));
+
         $sekarang = now();
 
-        return $berhalangan->map(function (array $b) use ($penugasan, $rekap, $namaPengisi, $sekarang, $tanggal) {
+        return $berhalangan->map(function (array $b) use ($penugasan, $rekap, $namaPengisi, $sekarang, $tanggal, $izin) {
             /** @var JadwalPelajaran $j */
             $j = $b['jadwal'];
             $r = $rekap->get($j->id);
@@ -185,6 +193,7 @@ class GuruInval extends Component
 
             return $b + [
                 'inval' => $tugas?->inval,
+                'tugas' => TugasInval::ringkas($izin->get($b['alasan']['izin_id'] ?? null), $tugas),
                 'terisi' => $r !== null && (int) $r->jumlah > 0,
                 'jumlah' => (int) ($r->jumlah ?? 0),
                 'pengisi' => $r?->pengisi ? ($namaPengisi[$r->pengisi] ?? 'Akun terhapus') : ($r ? $j->guru?->nama : null),
@@ -211,6 +220,11 @@ class GuruInval extends Component
                 'guru' => $kelas->first()['jadwal']->guru,
                 'alasan' => $kelas->first()['alasan'],
                 'kelas' => $kelas,
+                // Tugas IDT berlaku untuk semua jam guru itu (satu pengajuan).
+                'tugas' => $kelas->first()['tugas'],
+                // Catatan penunjuk: diambil dari jam mana pun yang sudah berisi.
+                'catatan' => $kelas->map(fn (array $i) => $i['tugas']['catatan'])->filter()->first(),
+                'ada_inval' => $kelas->contains(fn (array $i) => $i['inval'] !== null),
             ]);
     }
 
@@ -233,8 +247,8 @@ class GuruInval extends Component
             return collect();
         }
 
-        return PenugasanInval::query()
-            ->with(['jadwal.kelas:id,nama_kelas', 'jadwal.guru:id,nama'])
+        $daftar = PenugasanInval::query()
+            ->with(['jadwal.kelas:id,nama_kelas', 'jadwal.guru:id,nama,user_id'])
             ->where('inval_user_id', auth()->id())
             ->whereAntaraTanggal('tanggal', today()->addDay(), today()->addDays(AturanInval::MAKS_HARI_KE_DEPAN))
             ->orderBy('tanggal')
@@ -242,6 +256,11 @@ class GuruInval extends Component
             ->filter(fn (PenugasanInval $p) => $p->jadwal !== null)
             ->sortBy(fn (PenugasanInval $p) => $p->tanggal->format('Y-m-d') . $p->jadwal->jam_mulai->format('H:i'))
             ->values();
+
+        // Tugas IDT ikut ditampilkan supaya inval bisa bersiap sejak jauh hari.
+        $izin = app(TugasInval::class)->izinUntukPenugasan($daftar);
+
+        return $daftar->each(fn (PenugasanInval $p) => $p->setAttribute('ringkasTugas', TugasInval::ringkas($izin->get($p->id), $p)));
     }
 
     /** Jam yang sedang dibuka formnya — selalu divalidasi ulang. */
@@ -302,7 +321,11 @@ class GuruInval extends Component
             return;
         }
 
-        $this->laporkanHasil($this->aturan()->tunjuk([$item['jadwal']], $this->tanggalDipakai, $inval, auth()->user()), $inval);
+        if (! $this->catatanSah($item['jadwal']->guru_id)) {
+            return;
+        }
+
+        $this->laporkanHasil($this->aturan()->tunjuk([$item['jadwal']], $this->tanggalDipakai, $inval, auth()->user(), $this->catatanInval[$item['jadwal']->guru_id] ?? null), $inval);
     }
 
     /** Tunjuk SATU orang untuk semua jam seorang guru yang berhalangan. */
@@ -320,10 +343,47 @@ class GuruInval extends Component
             return;
         }
 
+        if (! $this->catatanSah($guruId)) {
+            return;
+        }
+
         $jadwal = $kelompok['kelas']->map(fn (array $i) => $i['jadwal'])->values();
 
-        $this->laporkanHasil($this->aturan()->tunjuk($jadwal, $this->tanggalDipakai, $inval, auth()->user()), $inval);
+        $this->laporkanHasil($this->aturan()->tunjuk($jadwal, $this->tanggalDipakai, $inval, auth()->user(), $this->catatanInval[$guruId] ?? null), $inval);
         $this->pilihanSemua[$guruId] = null;
+    }
+
+    /**
+     * Simpan catatan untuk inval tanpa menunjuk ulang — untuk tugas susulan.
+     * Berlaku bagi semua jam guru itu yang sudah punya inval.
+     */
+    public function simpanCatatan(int $guruId): void
+    {
+        $this->pastikanPenunjuk();
+        $this->segarkan();
+
+        if (! $this->perGuru->has($guruId) || ! $this->catatanSah($guruId)) {
+            if (! $this->notif) {
+                $this->pesan('error', 'Catatan belum disimpan', 'Guru ini tidak lagi berhalangan. Muat ulang halaman.');
+            }
+
+            return;
+        }
+
+        if (! $this->perGuru->get($guruId)['ada_inval']) {
+            $this->pesan('warn', 'Belum ada inval', 'Tunjuk guru inval lebih dulu; catatan ikut tersimpan saat menunjuk.');
+
+            return;
+        }
+
+        $jumlah = $this->aturan()->simpanCatatan($guruId, $this->tanggalDipakai, $this->catatanInval[$guruId] ?? null);
+
+        $jumlah > 0
+            ? $this->pesan('ok', 'Catatan untuk inval disimpan', "Berlaku untuk {$jumlah} jam pelajaran. Guru inval sudah diberi tahu.")
+            : $this->pesan('warn', 'Tidak ada perubahan', 'Catatannya sama dengan yang sudah tersimpan.');
+
+        $this->segarkan();
+        $this->isiPilihan();
     }
 
     public function batalkan(int $jadwalId): void
@@ -465,6 +525,31 @@ class GuruInval extends Component
         $this->pilihan = $this->daftarKelas
             ->map(fn (array $i) => $i['inval']?->id)
             ->all();
+
+        $this->catatanInval = $this->perGuru
+            ->map(fn (array $k) => $k['catatan'])
+            ->all();
+    }
+
+    /** Catatan penunjuk tidak boleh melebihi batas — divalidasi di server. */
+    private function catatanSah(int $guruId): bool
+    {
+        $catatan = (string) ($this->catatanInval[$guruId] ?? '');
+
+        if (mb_strlen(trim($catatan)) > TugasInval::MAKS_CATATAN) {
+            $this->pesan('error', 'Catatan terlalu panjang', 'Catatan untuk inval maksimal ' . TugasInval::MAKS_CATATAN . ' karakter.');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Awalan rute panel pengguna — untuk tautan lampiran tugas. */
+    #[Computed]
+    public function prefixPanel(): string
+    {
+        return (string) auth()->user()?->role?->routePrefix();
     }
 
     private function laporkanHasil(array $hasil, User $inval): void
