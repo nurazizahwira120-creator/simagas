@@ -81,4 +81,15 @@ class TampilanResponsifTest extends TestCase
             ->assertDontSee('/wali-murid/dashboard?anak=' . $a->id, false)
             ->assertSee('aria-current="page"', false);
     }
+
+    public function test_unduh_kartu_memakai_html2canvas_pro_yang_mengenal_oklch(): void
+    {
+        // html2canvas 1.4.1 gagal total pada warna oklch() Tailwind v4:
+        // "Attempting to parse an unsupported color function "oklch"".
+        $admin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($admin)->get('/super-admin/siswa')->assertOk()
+            ->assertSee('html2canvas-pro@1.5.13/dist/html2canvas-pro.min.js', false)
+            ->assertDontSee('html2canvas/1.4.1', false);
+    }
 }

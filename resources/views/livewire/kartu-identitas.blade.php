@@ -30,10 +30,24 @@
 
 @once
     @push('scripts')
-        {{-- html2canvas untuk "Unduh Kartu HD". Dimuat dari CDN; kalau gagal
-             dimuat (internet sekolah mati), tombolnya memberi tahu dan
-             menawarkan Cetak — lihat unduh() di bawah. --}}
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        {{-- Pengubah kartu menjadi gambar untuk "Unduh Kartu HD". Dimuat dari
+             CDN; kalau gagal dimuat (internet sekolah mati), tombolnya memberi
+             tahu dan menawarkan Cetak — lihat unduh() di bawah.
+
+             ============ KENAPA html2canvas-pro, BUKAN html2canvas ============
+             html2canvas 1.4.1 (rilis terakhirnya, 2022) tidak mengenal fungsi
+             warna CSS modern. Tailwind v4 menulis palet bawaannya (teal-400,
+             slate-200, …) dalam oklch(), dan warna transparan (teal-400/50)
+             dalam oklab() — html2canvas lama langsung berhenti dengan galat
+             "Attempting to parse an unsupported color function "oklch"".
+
+             html2canvas-pro adalah turunan yang mendukung oklch/oklab/lab/
+             color(), dengan API yang sama persis (window.html2canvas).
+             Versinya SENGAJA dikunci di 1.5.13: seri 2.x yang lebih baru
+             (diuji 2.4.5) menghilangkan spasi antarkata pada teks kartu
+             ("Alamatbelumdiisi"). Uji ulang tampilan kartu sebelum menaikkan
+             versi ini. --}}
+        <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.13/dist/html2canvas-pro.min.js"></script>
 
         {{-- Pembuat QR. Pustaka yang sama sudah dipakai halaman Kartu QR yang
              lebih dulu ada, jadi tidak menambah dependensi baru. --}}
