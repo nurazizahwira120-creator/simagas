@@ -136,7 +136,8 @@
             </div>
         @else
             <div class="overflow-x-auto rounded-2xl border border-brand-border bg-brand-surface shadow-soft">
-                <table class="w-full min-w-[520px] text-left text-sm">
+                {{-- .tabel-kartu: kartu per kelas di HP; batang persentase tidak lagi terpotong. --}}
+                <table class="tabel-kartu w-full text-left text-sm md:min-w-[520px]">
                     <thead>
                         <tr class="border-b border-brand-border bg-brand-surface-muted text-xs uppercase tracking-wide text-brand-muted">
                             <th class="px-4 py-3 font-medium">Kelas</th>
@@ -155,11 +156,11 @@
                                 };
                             @endphp
                             <tr class="hover:bg-brand-surface-muted/60">
-                                <td class="px-4 py-3 font-medium">{{ $kelas->nama_kelas }}</td>
-                                <td class="whitespace-nowrap px-4 py-3 tabular-nums text-brand-muted">
+                                <td data-utama class="px-4 py-3 font-medium">{{ $kelas->nama_kelas }}</td>
+                                <td data-label="Hadir / total" class="whitespace-nowrap px-4 py-3 tabular-nums text-brand-muted">
                                     {{ $kelas->hadir_count }} / {{ $kelas->siswa_count }}
                                 </td>
-                                <td class="px-4 py-3">
+                                <td data-label="Persentase" class="px-4 py-3">
                                     <div class="flex items-center gap-2">
                                         <span class="w-12 tabular-nums font-semibold">{{ number_format($kelas->persentase_hadir, 1) }}%</span>
                                         <div class="h-1.5 w-24 overflow-hidden rounded-full bg-brand-surface-muted">
@@ -168,8 +169,8 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium {{ $urgen['chip'] }}">
+                                <td data-label="Status" class="px-4 py-3">
+                                    <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium {{ $urgen['chip'] }}">
                                         <x-icon name="{{ $urgen['icon'] }}" class="h-3.5 w-3.5" />
                                         {{ $urgen['label'] }}
                                     </span>

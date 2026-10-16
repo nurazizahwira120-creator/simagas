@@ -12,9 +12,12 @@
 
     {{-- ============ KARTU FILTER ============ --}}
     <div class="rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-end gap-4 px-6 py-5">
+        {{-- Tanggal & saringan berdampingan sejak HP (2 kolom); teks bantuan
+             turun ke baris sendiri (basis-full). Sebelumnya teks bantuan ikut
+             flex-1 di baris yang sama dan tampil satu kata per baris. --}}
+        <div class="grid grid-cols-2 items-end gap-3 px-4 py-5 sm:flex sm:flex-wrap sm:gap-4 sm:px-6">
 
-            <div class="min-w-[190px] flex-1">
+            <div class="min-w-0 sm:min-w-[190px] sm:flex-1">
                 <label for="pp-tanggal" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">Tanggal</label>
 
                 {{-- Memakai input tanggal BAWAAN BROWSER, bukan Flatpickr.
@@ -27,13 +30,13 @@
                      memakai input waktu bawaan, jadi ini konsisten. --}}
                 <input id="pp-tanggal" type="date" wire:model.live="tanggal"
                     max="{{ today()->toDateString() }}"
-                    class="w-full rounded-md border border-gray-200 bg-transparent px-4 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white">
+                    class="w-full rounded-md border border-gray-200 bg-transparent px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white sm:px-4">
             </div>
 
-            <div class="min-w-[190px] flex-1">
+            <div class="min-w-0 sm:min-w-[190px] sm:flex-1">
                 <label for="pp-status" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">Status</label>
                 <select id="pp-status" wire:model.live="status"
-                    class="w-full rounded-md border border-gray-200 bg-transparent px-4 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white">
+                    class="w-full rounded-md border border-gray-200 bg-transparent py-2.5 pl-3 pr-9 sm:pl-4 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white">
                     <option value="semua">Semua</option>
                     <option value="hadir">Hadir</option>
                     <option value="belum">Belum Hadir</option>
@@ -41,7 +44,7 @@
                 </select>
             </div>
 
-            <div class="flex-1 pb-1 text-xs leading-relaxed text-brand-muted dark:text-brand-faint">
+            <div class="col-span-2 pb-1 text-xs leading-relaxed sm:col-span-1 sm:flex-1 text-brand-muted dark:text-brand-faint">
                 Batas terlambat pegawai: <span class="font-semibold">{{ $this->batasTerlambat }}</span>.
                 Diatur di Pengaturan Sistem oleh Super Admin.
             </div>
@@ -98,7 +101,7 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[820px] table-auto" wire:loading.class="opacity-50" wire:target="tanggal,status">
+            <table class="tabel-kartu w-full table-auto md:min-w-[820px]" wire:loading.class="opacity-50" wire:target="tanggal,status">
                 <thead>
                     <tr class="bg-gray-50 text-left dark:bg-gray-800">
                         <th class="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-brand-ink dark:text-white">Nama &amp; Jabatan</th>
@@ -110,12 +113,14 @@
                 <tbody>
                     @forelse ($this->barisTersaring as $b)
                         <tr wire:key="pegawai-{{ $b['pegawai']->id }}">
-                            <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                            <td data-utama class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
                                 <p class="font-medium text-brand-ink dark:text-white">{{ $b['pegawai']->nama }}</p>
                                 <p class="mt-0.5 text-xs text-brand-muted dark:text-brand-faint">{{ $b['pegawai']->jabatan }}</p>
                             </td>
 
-                            <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                            <td data-label="Waktu hadir" class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                                {{-- Dibungkus satu <div>: di mode kartu HP, sel berlabel adalah flex dua kolom (label | nilai). --}}
+                                <div class="min-w-0">
                                 @if ($b['jam'])
                                     <span class="font-mono text-sm text-brand-ink dark:text-white">{{ $b['jam'] }}</span>
                                     @if ($b['absen']?->keterangan)
@@ -124,9 +129,10 @@
                                 @else
                                     <span class="text-sm text-brand-muted dark:text-brand-faint">&mdash;</span>
                                 @endif
+                                </div>
                             </td>
 
-                            <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                            <td data-label="Kehadiran" class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
                                 @php
                                     $badge = match ($b['kategori']) {
                                         'hadir' => ['kelas' => 'bg-success-500/10 text-success-500', 'teks' => 'Tepat Waktu'],
@@ -141,7 +147,9 @@
                                 </span>
                             </td>
 
-                            <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                            <td data-label="Mengajar" class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                                {{-- Dibungkus satu <div>: di mode kartu HP, sel berlabel adalah flex dua kolom (label | nilai). --}}
+                                <div class="min-w-0">
                                 @if (! $this->melihatHariIni)
                                     {{-- "Saat ini" tidak punya arti untuk tanggal lampau.
                                          Lebih jujur mengosongkannya daripada menampilkan
@@ -158,6 +166,7 @@
                                 @else
                                     <span class="text-sm text-brand-muted dark:text-brand-faint">&mdash;</span>
                                 @endif
+                                </div>
                             </td>
                         </tr>
                     @empty

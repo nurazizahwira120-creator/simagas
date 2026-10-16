@@ -198,8 +198,10 @@
                                 </td>
 
                                 <td class="px-5 py-4 align-top">
-                                    <p class="font-semibold text-gray-800 dark:text-gray-100">{{ $p->judul }}</p>
-                                    <p class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                                    {{-- [overflow-wrap:anywhere]: URL panjang (tautan Drive) tidak
+                                         punya spasi; tanpa ini ia memaksa tabel melebar. --}}
+                                    <p class="font-semibold text-gray-800 [overflow-wrap:anywhere] dark:text-gray-100">{{ $p->judul }}</p>
+                                    <p class="mt-0.5 text-xs leading-relaxed text-gray-500 [overflow-wrap:anywhere] dark:text-gray-400">
                                         {{ \Illuminate\Support\Str::limit($p->isi_pesan, 140) }}
                                     </p>
                                 </td>

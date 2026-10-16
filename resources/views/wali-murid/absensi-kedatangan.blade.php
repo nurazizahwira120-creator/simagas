@@ -26,11 +26,15 @@
         @else
 
             @if ($anakAnak->count() > 1)
+                {{-- Pemilih anak. Tautannya ke halaman INI (dulu ke Dashboard, sehingga
+                     memilih anak lain malah memindahkan orang tua ke halaman lain).
+                     Nama panjang dibatasi 14rem + title, dan barisnya bisa digeser. --}}
                 <div class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                     @foreach ($anakAnak as $a)
-                        <a href="{{ route($panelPrefix . '.dashboard', ['anak' => $a->id]) }}"
-                            class="shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors {{ $a->id === $anak->id ? 'border-brand-accent bg-brand-accent text-white shadow-soft' : 'border-brand-border bg-brand-surface text-brand-muted' }}">
-                            {{ $a->nama }}
+                        <a href="{{ route($panelPrefix . '.absensi-kedatangan', ['anak' => $a->id]) }}"
+                            title="{{ $a->nama }}" @if ($a->id === $anak->id) aria-current="page" @endif
+                            class="inline-flex min-h-11 max-w-[14rem] shrink-0 items-center rounded-full border px-4 py-2 text-sm font-medium transition-colors {{ $a->id === $anak->id ? 'border-brand-accent bg-brand-accent text-white shadow-soft' : 'border-brand-border bg-brand-surface text-brand-muted' }}">
+                            <span class="truncate">{{ $a->nama }}</span>
                         </a>
                     @endforeach
                 </div>

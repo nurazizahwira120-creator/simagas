@@ -27,19 +27,21 @@
     </div>
 
     {{-- ============ SARINGAN ============ --}}
-    <div class="mb-6 rounded-sm border border-gray-200 bg-brand-surface px-6 py-5 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
-        <form method="GET" action="{{ route($panelPrefix . '.rekap-jam-mengajar') }}" class="flex flex-wrap items-end gap-4">
-            <div>
+    {{-- Di HP setiap kolom saringan selebar kartu. Tanpa w-full, <select>
+         Guru selebar nama bergelar terpanjang dan terpotong di tepi layar. --}}
+    <div class="mb-6 rounded-sm border border-gray-200 bg-brand-surface px-4 py-5 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900 sm:px-6">
+        <form method="GET" action="{{ route($panelPrefix . '.rekap-jam-mengajar') }}" class="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap sm:gap-4">
+            <div class="min-w-0">
                 <label for="f-dari" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Dari tanggal</label>
-                <input id="f-dari" type="date" name="dari" value="{{ $dari->format('Y-m-d') }}" class="{{ $kelasInput }}">
+                <input id="f-dari" type="date" name="dari" value="{{ $dari->format('Y-m-d') }}" class="{{ $kelasInput }} w-full">
             </div>
-            <div>
+            <div class="min-w-0">
                 <label for="f-sampai" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Sampai tanggal</label>
-                <input id="f-sampai" type="date" name="sampai" value="{{ $sampai->format('Y-m-d') }}" class="{{ $kelasInput }}">
+                <input id="f-sampai" type="date" name="sampai" value="{{ $sampai->format('Y-m-d') }}" class="{{ $kelasInput }} w-full">
             </div>
-            <div>
+            <div class="col-span-2 min-w-0 sm:col-span-1">
                 <label for="f-guru" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Guru</label>
-                <select id="f-guru" name="guru" class="{{ $kelasInput }} pr-10">
+                <select id="f-guru" name="guru" class="{{ $kelasInput }} w-full max-w-full pr-10 sm:w-72">
                     <option value="">Semua guru</option>
                     @foreach ($daftarGuru as $g)
                         <option value="{{ $g->id }}" @selected($guruId === $g->id)>{{ $g->nama }}</option>
@@ -48,13 +50,13 @@
             </div>
 
             <button type="submit"
-                class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
+                class="min-h-11 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
                 Tampilkan
             </button>
 
             @if ($data)
                 <a href="{{ route($panelPrefix . '.rekap-jam-mengajar.unduh', $param) }}"
-                    class="ms-auto inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600">
+                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand-500 sm:ms-auto px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600">
                     <x-icon name="download" class="h-4 w-4" />
                     Unduh PDF
                 </a>
@@ -73,20 +75,21 @@
         @php $r = $data['ringkas']; @endphp
 
         {{-- ============ KARTU RINGKASAN ============ --}}
-        <div class="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {{-- Dua kolom sejak HP: empat kartu bertumpuk satu kolom memakan ±800 px gulir. --}}
+        <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
             @foreach ([
                 ['JP terjadwal', $r['jp_terjadwal'], 'calendar', 'bg-brand-500/10 text-brand-500', $data['hari_kbm'] . ' hari KBM · ' . $data['label_periode']],
                 ['JP terlaksana', $r['jp_terlaksana'], 'check-circle', 'bg-success-500/10 text-success-500', $r['persen'] === null ? 'belum ada jadwal' : $r['persen'] . '% keterlaksanaan'],
                 ['JP berhalangan', $r['jp_berhalangan'], 'clipboard-check', 'bg-warning-500/10 text-warning-500', 'guru izin / sakit / alpa'],
                 ['JP tidak terlaksana', $r['jp_tidak_terlaksana'], 'x-circle', 'bg-error-500/10 text-error-500', 'tanpa sesi tuntas & tanpa izin'],
             ] as [$label, $nilai, $ikon, $warna, $sub])
-                <div class="rounded-sm border border-gray-200 bg-brand-surface px-6 py-5 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
-                    <span class="flex h-11 w-11 items-center justify-center rounded-full {{ $warna }}">
+                <div class="min-w-0 rounded-sm border border-gray-200 bg-brand-surface px-4 py-4 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900 sm:px-6 sm:py-5">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-full sm:h-11 sm:w-11 {{ $warna }}">
                         <x-icon name="{{ $ikon }}" class="h-5 w-5" />
                     </span>
-                    <p class="mt-4 text-2xl font-bold text-brand-ink dark:text-white">{{ number_format($nilai, 0, ',', '.') }} <span class="text-sm font-semibold text-brand-muted">JP</span></p>
+                    <p class="mt-3 text-xl font-bold sm:mt-4 sm:text-2xl text-brand-ink dark:text-white">{{ number_format($nilai, 0, ',', '.') }} <span class="text-sm font-semibold text-brand-muted">JP</span></p>
                     <p class="mt-1 text-sm text-brand-muted dark:text-brand-faint">{{ $label }}</p>
-                    <p class="mt-0.5 text-xs text-brand-muted dark:text-brand-faint">{{ $sub }}</p>
+                    <p class="mt-0.5 break-words text-xs text-brand-muted dark:text-brand-faint">{{ $sub }}</p>
                 </div>
             @endforeach
         </div>
@@ -107,7 +110,7 @@
             </div>
 
             <div class="max-w-full overflow-x-auto">
-                <table class="w-full table-auto">
+                <table class="tabel-kartu w-full table-auto">
                     <thead>
                         <tr class="bg-gray-100 text-left dark:bg-gray-800">
                             <th class="px-6 py-4 text-sm font-semibold text-brand-ink dark:text-white">Guru</th>
@@ -123,7 +126,7 @@
                     <tbody>
                         @forelse ($data['baris'] as $b)
                             <tr class="border-b border-gray-200 last:border-0 dark:border-gray-800">
-                                <td class="px-6 py-4">
+                                <td data-utama class="px-6 py-4">
                                     <p class="font-semibold text-brand-ink dark:text-white">{{ $b['nama'] }}</p>
                                     @if ($b['nip'])
                                         <p class="mt-0.5 text-xs text-brand-muted dark:text-brand-faint">NIP {{ $b['nip'] }}</p>
@@ -134,13 +137,13 @@
                                         </p>
                                     @endif
                                 </td>
-                                <td class="px-3 py-4 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['jp_per_minggu'] }}</td>
-                                <td class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">{{ $b['jp_terjadwal'] }}</td>
-                                <td class="px-3 py-4 text-center text-sm font-semibold text-success-500">{{ $b['jp_terlaksana'] }}</td>
-                                <td class="px-3 py-4 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['jp_berhalangan'] }}</td>
-                                <td class="px-3 py-4 text-center text-sm {{ $b['jp_tidak_terlaksana'] > 0 ? 'font-semibold text-error-600' : 'text-brand-muted dark:text-brand-faint' }}">{{ $b['jp_tidak_terlaksana'] }}</td>
-                                <td class="px-3 py-4 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['jp_pengganti'] ?: '—' }}</td>
-                                <td class="px-6 py-4 text-right">
+                                <td data-label="JP/minggu" class="px-3 py-4 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['jp_per_minggu'] }}</td>
+                                <td data-label="Terjadwal" class="px-3 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">{{ $b['jp_terjadwal'] }}</td>
+                                <td data-label="Terlaksana" class="px-3 py-4 text-center text-sm font-semibold text-success-500">{{ $b['jp_terlaksana'] }}</td>
+                                <td data-label="Berhalangan" class="px-3 py-4 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['jp_berhalangan'] }}</td>
+                                <td data-label="Tidak terlaksana" class="px-3 py-4 text-center text-sm {{ $b['jp_tidak_terlaksana'] > 0 ? 'font-semibold text-error-600' : 'text-brand-muted dark:text-brand-faint' }}">{{ $b['jp_tidak_terlaksana'] }}</td>
+                                <td data-label="Inval" class="px-3 py-4 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['jp_pengganti'] ?: '—' }}</td>
+                                <td data-label="Keterlaksanaan" class="px-6 py-4 text-right">
                                     @if ($b['persen'] === null)
                                         <span class="text-sm text-brand-muted dark:text-brand-faint">—</span>
                                     @else

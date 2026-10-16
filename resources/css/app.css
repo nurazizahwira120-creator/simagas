@@ -406,6 +406,11 @@
   }
   body {
     @apply font-outfit relative z-1 bg-gray-50 font-normal;
+    /* Jaring pengaman teks panjang tanpa spasi (URL Drive, email,
+       nama berulang): kata dipatahkan HANYA bila akan keluar dari
+       kotaknya. break-word (bukan anywhere) tidak mengubah lebar
+       minimum kolom, jadi tata letak yang sudah rapi tidak bergeser. */
+    overflow-wrap: break-word;
   }
 }
 @layer utilities {
@@ -1096,7 +1101,7 @@ pre[class*="language-"] {
    secara berarti, naikkan keduanya bersamaan.
    ===================================================================== */
 :root {
-  --simagas-versi: "2026-10-09e";
+  --simagas-versi: "2026-10-16a";
 }
 
 /* =====================================================================
@@ -1657,6 +1662,91 @@ pre[class*="language-"] {
    membuat dashboard terasa goyah. */
 .angka-naik {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 6b. TABEL JADI KARTU DI HP (.tabel-kartu) ----------
+   Tabel lebar di layar 360 px memaksa geser ke samping dan kolom kanan
+   (email, aksi) terpotong tanpa tanda. Di bawah 768 px, tabel berkelas
+   .tabel-kartu ditampilkan sebagai tumpukan kartu dari MARKUP YANG SAMA —
+   tidak ada salinan kedua yang bisa lupa diperbarui (tombol hapus, form,
+   izin akses tetap satu sumber).
+
+   Cara pakai pada <td>:
+     data-label="Email"  -> label kecil di kiri, nilai rata kanan
+     data-utama          -> baris judul kartu (nama), tanpa label
+     data-aksi           -> deretan tombol di bawah kartu
+   Sel tanpa data-label/data-utama/data-aksi ditampilkan apa adanya
+   (dipakai untuk baris "belum ada data" yang colspan). */
+@media (max-width: 767.98px) {
+  .tabel-kartu {
+    min-width: 0 !important;
+  }
+  .tabel-kartu thead {
+    display: none;
+  }
+  .tabel-kartu,
+  .tabel-kartu tbody,
+  .tabel-kartu tr,
+  .tabel-kartu td {
+    display: block;
+    width: 100%;
+  }
+  /* flex kolom supaya sel data-utama bisa dipindah ke atas (order) walau
+     di markup tabel ia bukan kolom pertama (misal NIS lebih dulu). */
+  .tabel-kartu tr {
+    display: flex;
+    flex-direction: column;
+    padding: 0.875rem 1rem;
+  }
+  /* Tabel yang garis barisnya dipasang di <td> (border-b) kehilangan garis
+     itu di mode kartu; gantinya garis di antara <tr>. Tbody divide-y
+     sudah punya garis sendiri, jadi dilewati agar tidak dobel. */
+  .tabel-kartu tbody:not([class*="divide-y"]) > tr + tr {
+    border-top: 1px solid var(--color-brand-border);
+  }
+  .dark .tabel-kartu tbody:not([class*="divide-y"]) > tr + tr {
+    border-top-color: var(--color-gray-800);
+  }
+  .tabel-kartu td {
+    padding: 0.25rem 0 !important;
+    border: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+  .tabel-kartu td[data-label] {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-align: right;
+  }
+  .tabel-kartu td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--color-brand-muted);
+    text-align: left;
+  }
+  .dark .tabel-kartu td[data-label]::before {
+    color: var(--color-gray-400);
+  }
+  .tabel-kartu td[data-utama] {
+    order: -1;
+    padding-bottom: 0.5rem !important;
+    text-align: left;
+  }
+  .tabel-kartu td[data-aksi] {
+    order: 99;
+    padding-top: 0.75rem !important;
+  }
+  .tabel-kartu td[data-aksi] > div {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
 /* ---------- 7. HORMATI PERMINTAAN HEMAT GERAK ----------

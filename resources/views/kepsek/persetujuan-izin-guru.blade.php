@@ -189,7 +189,8 @@
             </p>
         @else
             <div class="overflow-x-auto rounded-2xl border border-brand-border bg-brand-surface shadow-soft dark:border-gray-800 dark:bg-gray-900">
-                <table class="w-full min-w-[42rem] text-sm">
+                {{-- .tabel-kartu: kartu per keputusan di HP (app.css bagian 6b). --}}
+                <table class="tabel-kartu w-full text-sm md:min-w-[42rem]">
                     <thead class="border-b border-brand-border text-left text-xs uppercase tracking-wide text-brand-muted dark:border-gray-800">
                         <tr>
                             <th class="px-4 py-3 font-semibold">Guru</th>
@@ -202,24 +203,26 @@
                     <tbody class="divide-y divide-brand-border dark:divide-gray-800">
                         @foreach ($riwayat as $izin)
                             <tr>
-                                <td class="px-4 py-3 font-medium text-brand-ink dark:text-white">{{ $izin->guru?->name ?? '—' }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-brand-muted">{{ $izin->rentangTanggal() }}</td>
-                                <td class="px-4 py-3">
+                                <td data-utama class="px-4 py-3 font-medium text-brand-ink dark:text-white">{{ $izin->guru?->name ?? '—' }}</td>
+                                <td data-label="Tanggal" class="px-4 py-3 whitespace-nowrap text-brand-muted">{{ $izin->rentangTanggal() }}</td>
+                                <td data-label="Jenis" class="px-4 py-3">
                                     <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold {{ $izin->jenis_izin->kelasBadge() }}">
                                         {{ $izin->jenis_izin->kode() }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $izin->status_approval->kelasBadge() }}">
+                                <td data-label="Status" class="px-4 py-3">
+                                    <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $izin->status_approval->kelasBadge() }}">
                                         <x-icon name="{{ $izin->status_approval->ikon() }}" class="h-3 w-3" />
                                         {{ $izin->status_approval->label() }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-xs text-brand-muted">
+                                <td data-label="Diputuskan" class="px-4 py-3 text-xs text-brand-muted">
+                                    <div>
                                     {{ $izin->penyetuju?->name ?? '—' }}
                                     @if ($izin->diputuskan_pada)
                                         <span class="block">{{ $izin->diputuskan_pada->translatedFormat('d M Y, H:i') }}</span>
                                     @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

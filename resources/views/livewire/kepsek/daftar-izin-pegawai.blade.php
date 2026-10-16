@@ -136,7 +136,7 @@
                                          mengklik untuk tahu isinya — padahal itulah
                                          satu-satunya informasi yang ia cari di
                                          halaman ini. --}}
-                                    <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                                    <p class="text-sm leading-relaxed text-gray-500 [overflow-wrap:anywhere] dark:text-gray-400">
                                         {{ $baris->alasan ?: '—' }}
                                     </p>
                                 </td>

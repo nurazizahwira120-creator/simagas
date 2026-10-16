@@ -70,8 +70,10 @@
         {{-- ============ RINGKASAN SEMUA EKSKUL ============ --}}
         <div class="mb-4 grid grid-cols-3 gap-3">
             @foreach ([['Ekskul', $ringkasan['total']['ekskul']], ['Pertemuan terjadwal', $ringkasan['total']['terjadwal']], ['Sesi terlaksana', $ringkasan['total']['terlaksana']]] as [$judul, $nilai])
-                <div class="{{ $kartu }} p-4">
-                    <p class="text-[11px] font-semibold uppercase tracking-wide text-brand-muted sm:text-xs">{{ $judul }}</p>
+                {{-- p-3 & tanpa tracking di HP: label "SESI TERLAKSANA" dulu
+                     melebihi kotaknya 8 px pada layar 360. --}}
+                <div class="{{ $kartu }} min-w-0 p-3 sm:p-4">
+                    <p class="break-words text-[10px] font-semibold uppercase leading-tight text-brand-muted sm:text-xs sm:tracking-wide">{{ $judul }}</p>
                     <p class="mt-1 text-2xl font-extrabold text-brand-ink dark:text-white">{{ $nilai }}</p>
                 </div>
             @endforeach
@@ -94,7 +96,9 @@
                     @forelse ($ringkasan['baris'] as $b)
                         @php $e = $b['ekskul']; @endphp
                         <tr>
-                            <td class="px-5 py-3">
+                            {{-- Lebar minimum: tanpa ini kolom pertama menyempit dan nama
+                                 ekskul tampil satu kata per baris di HP. --}}
+                            <td class="min-w-[11rem] px-5 py-3">
                                 <p class="font-semibold text-brand-ink dark:text-white">{{ $e->nama_ekskul }}</p>
                                 <p class="text-xs text-brand-muted">{{ $e->hari }} &middot; {{ $e->rentangJam() }}</p>
                             </td>
@@ -110,7 +114,7 @@
                             <td class="px-3 py-3 text-center">{{ $b['persen_hadir'] !== null ? $b['persen_hadir'] . '%' : '—' }}</td>
                             <td class="px-5 py-2 text-right">
                                 <a href="{{ route($rute, ['bulan' => $bulan->format('Y-m'), 'ekskul' => $e->id]) }}"
-                                    class="inline-flex items-center rounded-lg border border-brand-border px-3 py-1.5 text-xs font-semibold text-brand-ink hover:bg-brand-surface-muted dark:text-white">Rincian</a>
+                                    class="inline-flex min-h-10 items-center rounded-lg border border-brand-border px-3.5 py-2 text-xs font-semibold text-brand-ink hover:bg-brand-surface-muted md:min-h-0 md:px-3 md:py-1.5 dark:text-white">Rincian</a>
                             </td>
                         </tr>
                     @empty
@@ -144,8 +148,10 @@
 
         <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             @foreach ([['Terjadwal', $t['terjadwal']], ['Sesi terlaksana', $t['terlaksana']], ['Pertemuan diisi', $t['pertemuan']], ['% Hadir', $t['persen_hadir'] !== null ? $t['persen_hadir'] . '%' : '—']] as [$judul, $nilai])
-                <div class="{{ $kartu }} p-4">
-                    <p class="text-[11px] font-semibold uppercase tracking-wide text-brand-muted sm:text-xs">{{ $judul }}</p>
+                {{-- p-3 & tanpa tracking di HP: label "SESI TERLAKSANA" dulu
+                     melebihi kotaknya 8 px pada layar 360. --}}
+                <div class="{{ $kartu }} min-w-0 p-3 sm:p-4">
+                    <p class="break-words text-[10px] font-semibold uppercase leading-tight text-brand-muted sm:text-xs sm:tracking-wide">{{ $judul }}</p>
                     <p class="mt-1 text-2xl font-extrabold text-brand-ink dark:text-white">{{ $nilai }}</p>
                 </div>
             @endforeach

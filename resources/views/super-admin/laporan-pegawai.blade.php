@@ -21,10 +21,11 @@
         <hr class="mt-3 border-brand-border">
     </div>
 
-    {{-- Form filter --}}
+    {{-- Form filter. Di HP setiap saringan selebar kartu: tanpa w-full, <select>
+         selebar pilihan terpanjang (jabatan/kelas) dan terpotong di tepi layar. --}}
     <form method="GET" action="{{ route($panelPrefix . '.laporan-pegawai') }}"
-        class="mb-6 flex flex-wrap items-end gap-3 rounded-2xl border border-brand-border bg-brand-surface p-4 shadow-soft print:hidden">
-        <div>
+        class="mb-6 flex flex-col gap-3 rounded-2xl sm:flex-row sm:flex-wrap sm:items-end border border-brand-border bg-brand-surface p-4 shadow-soft print:hidden">
+        <div class="w-full min-w-0 sm:w-auto">
             <label for="bulan" class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-brand-muted">
                 <x-icon name="calendar" class="h-3.5 w-3.5" />
                 Pilih Bulan
@@ -33,13 +34,13 @@
                 class="rounded-lg border border-brand-border px-3 py-2 text-sm focus:border-brand-accent focus:outline-none">
         </div>
 
-        <div>
+        <div class="w-full min-w-0 sm:w-auto">
             <label for="jabatan" class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-brand-muted">
                 <x-icon name="briefcase" class="h-3.5 w-3.5" />
                 Pilih Jabatan
             </label>
             <select id="jabatan" name="jabatan"
-                class="rounded-lg border border-brand-border px-3 py-2 text-sm focus:border-brand-accent focus:outline-none">
+                class="w-full max-w-full rounded-lg border border-brand-border py-2.5 pl-3 pr-9 text-sm sm:w-56 focus:border-brand-accent focus:outline-none">
                 <option value="">Semua Jabatan</option>
                 @foreach ($daftarJabatan as $jabatan)
                     <option value="{{ $jabatan }}" @selected($jabatanTerpilih === $jabatan)>
@@ -49,7 +50,7 @@
             </select>
         </div>
 
-        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent-dark">
+        <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-brand-accent px-4 py-2.5 text-sm sm:w-auto font-semibold text-white hover:bg-brand-accent-dark">
             <x-icon name="funnel" class="h-4 w-4" />
             Terapkan Filter
         </button>

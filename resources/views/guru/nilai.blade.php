@@ -43,11 +43,14 @@
     <form method="GET" action="{{ route($panelPrefix . '.nilai') }}"
         class="mb-6 rounded-2xl border border-gray-200 bg-brand-surface p-5 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
 
+        {{-- Kolom saringan: basis-full di HP supaya turun ke baris baru. Dengan
+             flex-1 saja (basis 0) kolom TIDAK PERNAH turun baris dan dropdown
+             menyempit sampai ±60 px ("XI RPL", "Pem"). --}}
         <div class="flex flex-wrap items-end gap-4">
-            <div class="min-w-0 flex-1 sm:max-w-xs">
+            <div class="min-w-0 grow basis-full sm:basis-0 sm:max-w-xs">
                 <label for="f-kelas" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Kelas</label>
                 <select id="f-kelas" name="kelas_id" onchange="this.form.submit()"
-                    class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                    class="w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-3 pr-9 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
                     @forelse ($daftarKelas as $k)
                         <option value="{{ $k->id }}" @selected($kelas && $kelas->id === $k->id)>{{ $k->nama_kelas }}</option>
                     @empty
@@ -56,10 +59,10 @@
                 </select>
             </div>
 
-            <div class="min-w-0 flex-1 sm:max-w-xs">
+            <div class="min-w-0 grow basis-full sm:basis-0 sm:max-w-xs">
                 <label for="f-mapel" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Mata Pelajaran</label>
                 <select id="f-mapel" name="mapel_id" onchange="this.form.submit()"
-                    class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                    class="w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-3 pr-9 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
                     @forelse ($daftarMapel as $m)
                         <option value="{{ $m->id }}" @selected($mapel && $mapel->id === $m->id)>{{ $m->nama }}</option>
                     @empty

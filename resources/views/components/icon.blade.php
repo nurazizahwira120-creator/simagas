@@ -68,6 +68,10 @@
 
         'chevron-down' => '<path d="M6 9l6 6 6-6" />',
 
+        'chevron-left' => '<path d="M15 6l-6 6 6 6" />',
+
+        'chevron-right' => '<path d="M9 6l6 6-6 6" />',
+
         'funnel' => '<path d="M3.5 4h17l-6.5 8v6l-4 2v-8L3.5 4Z" />',
 
         'phone' => '<path d="M6 3.5h3l1.5 4-2 1.6a11 11 0 0 0 5.4 5.4l1.6-2 4 1.5v3a1.5 1.5 0 0 1-1.6 1.5A16.5 16.5 0 0 1 4.5 5.1 1.5 1.5 0 0 1 6 3.5Z" />',

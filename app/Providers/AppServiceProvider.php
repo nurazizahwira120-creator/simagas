@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\AbsensiPegawai;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+         | Pagination memakai template SIMAGAS sendiri (bahasa Indonesia,
+         | nomor halaman, tombol 44 px di HP). Template bawaan Laravel ada di
+         | vendor/ yang tidak dipindai Tailwind, sehingga kelas responsifnya
+         | tidak pernah ter-build dan nomor halaman tak pernah tampil.
+         | Komponen Livewire memakai resources/views/vendor/livewire/tailwind.
+         */
+        Paginator::defaultView('vendor.pagination.simagas');
+
         /*
          | Nama hari & bulan dalam bahasa Indonesia.
          |

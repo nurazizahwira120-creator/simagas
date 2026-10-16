@@ -159,7 +159,7 @@
      | dikenal bukan error. Pernah terjadi dan butuh berjam-jam untuk
      | ditelusuri; sekarang aplikasinya yang memberi tahu sendiri.
      */
-    $versiAset = '2026-10-09e';
+    $versiAset = '2026-10-16a';
 
     $pengguna = auth()->user();
     $inisial = $pengguna
@@ -287,7 +287,7 @@
                                     @endif
                                 </span>
                                 <span class="hidden min-w-0 md:block">
-                                    <span class="block max-w-[9rem] truncate text-sm font-medium text-gray-700 dark:text-gray-200">{{ $pengguna->name }}</span>
+                                    <span class="block max-w-[9rem] truncate text-sm font-medium text-gray-700 dark:text-gray-200" title="{{ $pengguna->name }}">{{ $pengguna->name }}</span>
                                     <span class="block text-xs text-gray-400 dark:text-gray-500">{{ $pengguna->role->label() }}</span>
                                 </span>
                                 <x-icon name="chevron-down" class="hidden h-4 w-4 text-gray-400 md:block" />
@@ -296,8 +296,9 @@
                             <div data-dropdown-panel hidden
                                 class="shadow-theme-lg absolute right-0 mt-2 w-60 rounded-2xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
                                 <div class="border-b border-gray-200 px-2 pb-3 dark:border-gray-800">
-                                    <p class="truncate text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $pengguna->name }}</p>
-                                    <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $pengguna->email }}</p>
+                                    {{-- Nama di panel menu boleh dua baris (bukan "…") — inilah tempat nama lengkap dibaca. --}}
+                                    <p class="line-clamp-2 break-words text-sm font-semibold text-gray-800 dark:text-gray-200">{{ $pengguna->name }}</p>
+                                    <p class="truncate text-xs text-gray-500 dark:text-gray-400" title="{{ $pengguna->email }}">{{ $pengguna->email }}</p>
                                 </div>
 
                                 @if ($adaProfil)

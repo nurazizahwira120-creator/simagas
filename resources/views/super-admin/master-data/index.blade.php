@@ -48,12 +48,12 @@
 
                 <div class="mt-4 flex flex-wrap gap-2">
                     <a href="{{ route($panelPrefix . '.master-data.' . $entitas['kunci'] . '.template') }}"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-brand-border px-3 py-1.5 text-xs font-medium hover:bg-brand-surface-muted">
+                        class="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-brand-border px-3.5 py-2 text-xs sm:min-h-0 sm:px-3 sm:py-1.5 font-medium hover:bg-brand-surface-muted">
                         <x-icon name="download" class="h-3.5 w-3.5" />
                         Unduh Template
                     </a>
                     <a href="{{ route($panelPrefix . '.master-data.' . $entitas['kunci'] . '.export') }}"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-brand-border px-3 py-1.5 text-xs font-medium hover:bg-brand-surface-muted">
+                        class="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-brand-border px-3.5 py-2 text-xs sm:min-h-0 sm:px-3 sm:py-1.5 font-medium hover:bg-brand-surface-muted">
                         <x-icon name="download" class="h-3.5 w-3.5" />
                         Export Data
                     </a>

@@ -203,7 +203,11 @@
         </div>
 
         <div class="overflow-x-auto rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
-            <table class="w-full min-w-[900px] text-left text-sm">
+            {{-- HP (< 768 px): .tabel-kartu, satu kartu per orang (app.css bagian 6b).
+                 Tablet/desktop: tabel 10 kolom tetap bisa digeser, tetapi kolom
+                 "Rincian" dibuat sticky di kanan — sebelumnya tombol itu terpotong
+                 bahkan di layar 1280 px karena tabel lebih lebar dari kontennya. --}}
+            <table class="tabel-kartu w-full text-left text-sm md:min-w-[900px]">
                 <thead class="bg-gray-50 text-xs uppercase text-brand-muted dark:bg-white/[0.03]">
                     <tr>
                         <th class="px-5 py-3 font-semibold">Nama</th>
@@ -215,30 +219,32 @@
                         <th class="whitespace-nowrap px-3 py-3 text-right font-semibold">Saat Diinval</th>
                         <th class="whitespace-nowrap px-3 py-3 text-right font-semibold">Ekskul</th>
                         <th class="whitespace-nowrap px-3 py-3 text-right font-semibold">Total</th>
-                        <th class="px-5 py-3"></th>
+                        <th class="bg-gray-50 px-5 py-3 md:sticky md:right-0 dark:bg-gray-900"><span class="sr-only">Aksi</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @forelse ($rekap['baris'] as $b)
                         <tr wire:key="rekap-{{ $b['user']->id }}" class="{{ $b['total'] === 0 ? 'text-brand-faint' : '' }}">
-                            <td class="px-5 py-3 font-medium text-brand-ink dark:text-white">{{ $b['nama'] }}</td>
-                            <td class="whitespace-nowrap px-3 py-3 text-right font-mono text-xs">
+                            <td data-utama class="min-w-[11rem] px-5 py-3 font-medium text-brand-ink dark:text-white">{{ $b['nama'] }}</td>
+                            <td data-label="Tarif/JP" class="whitespace-nowrap px-3 py-3 text-right font-mono text-xs">
                                 {{ AturanHonor::rupiah($b['tarif']) }}
                                 @if ($b['tarif_khusus']) <span class="ml-1 rounded bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600">khusus</span> @endif
                             </td>
-                            <td class="px-3 py-3 text-center">{{ $b['jp_mengajar'] }}</td>
-                            <td class="px-3 py-3 text-center">{{ $b['jp_inval'] }}</td>
-                            <td class="whitespace-nowrap px-3 py-3 text-right">{{ AturanHonor::rupiah($b['honor_mengajar']) }}</td>
-                            <td class="whitespace-nowrap px-3 py-3 text-right">{{ AturanHonor::rupiah($b['honor_inval']) }}</td>
-                            <td class="whitespace-nowrap px-3 py-3 text-right">{{ AturanHonor::rupiah($b['honor_guru_asli']) }}</td>
-                            <td class="whitespace-nowrap px-3 py-3 text-right">
+                            <td data-label="JP ajar" class="px-3 py-3 text-center">{{ $b['jp_mengajar'] }}</td>
+                            <td data-label="JP inval" class="px-3 py-3 text-center">{{ $b['jp_inval'] }}</td>
+                            <td data-label="Mengajar" class="whitespace-nowrap px-3 py-3 text-right">{{ AturanHonor::rupiah($b['honor_mengajar']) }}</td>
+                            <td data-label="Inval" class="whitespace-nowrap px-3 py-3 text-right">{{ AturanHonor::rupiah($b['honor_inval']) }}</td>
+                            <td data-label="Saat diinval" class="whitespace-nowrap px-3 py-3 text-right">{{ AturanHonor::rupiah($b['honor_guru_asli']) }}</td>
+                            <td data-label="Ekskul" class="whitespace-nowrap px-3 py-3 text-right">
+                                <div>
                                 {{ AturanHonor::rupiah($b['honor_ekskul']) }}
                                 @if ($b['jp_ekskul']) <span class="block text-[11px] text-brand-muted">{{ $b['jp_ekskul'] }} JP</span> @endif
+                                </div>
                             </td>
-                            <td class="whitespace-nowrap px-3 py-3 text-right font-bold text-brand-ink dark:text-white">{{ AturanHonor::rupiah($b['total']) }}</td>
-                            <td class="px-5 py-2 text-right">
+                            <td data-label="Total" class="whitespace-nowrap px-3 py-3 text-right font-bold text-brand-ink dark:text-white">{{ AturanHonor::rupiah($b['total']) }}</td>
+                            <td data-aksi class="bg-brand-surface px-5 py-2 text-right md:sticky md:right-0 md:shadow-[-8px_0_8px_-8px_rgba(16,24,40,0.18)] dark:bg-gray-900">
                                 <button type="button" wire:click="lihat({{ $b['user']->id }})"
-                                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
+                                    class="min-h-10 w-full rounded-lg border border-gray-300 px-3.5 py-2 text-xs font-semibold text-gray-600 transition md:min-h-0 md:w-auto md:px-3 md:py-1.5 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.05]">
                                     Rincian
                                 </button>
                             </td>

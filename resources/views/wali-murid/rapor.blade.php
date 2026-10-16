@@ -28,12 +28,15 @@
         <form method="GET" action="{{ route($panelPrefix . '.rapor') }}"
             class="mb-6 rounded-2xl border border-gray-200 bg-brand-surface p-5 shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
 
+            {{-- Kolom saringan: basis-full di HP supaya turun ke baris baru. Dengan
+                 flex-1 saja (basis 0) kolom TIDAK PERNAH turun baris dan dropdown
+                 menyempit sampai ±60 px ("XI RPL", "Pem"). --}}
             <div class="flex flex-wrap items-end gap-4">
                 @if ($daftarAnak->count() > 1)
-                    <div class="min-w-0 flex-1 sm:max-w-xs">
+                    <div class="min-w-0 grow basis-full sm:basis-0 sm:max-w-xs">
                         <label for="f-anak" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Anak</label>
                         <select id="f-anak" name="anak" onchange="this.form.submit()"
-                            class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                            class="w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-3 pr-9 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
                             @foreach ($daftarAnak as $a)
                                 <option value="{{ $a->id }}" @selected($anak && $anak->id === $a->id)>
                                     {{ $a->nama }} — {{ $a->kelas?->nama_kelas ?? 'tanpa kelas' }}
@@ -45,10 +48,10 @@
                     <input type="hidden" name="anak" value="{{ $anak?->id }}">
                 @endif
 
-                <div class="min-w-0 flex-1 sm:max-w-xs">
+                <div class="min-w-0 grow basis-full sm:basis-0 sm:max-w-xs">
                     <label for="f-periode" class="mb-1.5 block text-xs font-medium text-brand-muted dark:text-brand-faint">Semester</label>
                     <select id="f-periode" name="periode" onchange="this.form.submit()"
-                        class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
+                        class="w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-3 pr-9 text-sm text-brand-ink outline-none transition focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white">
                         @forelse ($daftarPeriode as $p)
                             <option value="{{ $p->id }}" @selected($periode && $periode->id === $p->id)>{{ $p->label() }}</option>
                         @empty

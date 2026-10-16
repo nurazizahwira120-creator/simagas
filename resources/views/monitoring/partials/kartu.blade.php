@@ -30,9 +30,9 @@
                 @unless ($kbm)
                     <span class="inline-block rounded bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-accent-text">Ekskul</span>
                 @endunless
-                <h3 class="truncate text-base font-bold text-brand-ink dark:text-white sm:text-lg">{{ $b['judul'] }}</h3>
+                <h3 class="truncate text-base font-bold text-brand-ink dark:text-white sm:text-lg" title="{{ $b['judul'] }}">{{ $b['judul'] }}</h3>
                 @if ($kbm)
-                    <p class="mt-0.5 truncate text-sm font-medium text-brand-accent-text">{{ $b['subjudul'] }}</p>
+                    <p class="mt-0.5 line-clamp-2 break-words text-sm font-medium text-brand-accent-text">{{ $b['subjudul'] }}</p>
                 @endif
             </div>
             <span class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold {{ $g['chip'] }}">
@@ -45,7 +45,7 @@
             <div class="flex min-w-0 items-center gap-2">
                 <dt class="sr-only">{{ $kbm ? 'Guru' : 'Pembina' }}</dt>
                 <x-icon name="briefcase" class="h-4 w-4 shrink-0 text-brand-muted" />
-                <dd class="truncate text-brand-ink dark:text-gray-200">{{ $b['orang'] }}</dd>
+                <dd class="truncate text-brand-ink dark:text-gray-200" title="{{ $b['orang'] }}">{{ $b['orang'] }}</dd>
             </div>
             <div class="flex min-w-0 items-center gap-2">
                 <dt class="sr-only">Waktu</dt>

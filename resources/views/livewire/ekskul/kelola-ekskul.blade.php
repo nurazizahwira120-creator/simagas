@@ -244,7 +244,8 @@
                             <tr wire:key="ekskul-{{ $item->id }}"
                                 class="transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] {{ $ekskulId === $item->id ? 'bg-brand-500/5' : '' }}">
 
-                                <td class="px-5 py-4 align-top">
+                                {{-- min-w: nama ekskul tidak pecah satu kata per baris di HP. --}}
+                                <td class="min-w-[11rem] px-5 py-4 align-top">
                                     <p class="font-semibold text-gray-800 dark:text-gray-100">{{ $item->nama_ekskul }}</p>
                                 </td>
 
@@ -278,7 +279,7 @@
                                     <span class="text-gray-500 dark:text-gray-400">siswa</span>
                                 </td>
 
-                                <td class="px-5 py-4 align-top text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                                <td class="min-w-[12rem] px-5 py-4 align-top text-xs leading-relaxed text-gray-500 [overflow-wrap:anywhere] dark:text-gray-400">
                                     {{ $item->keterangan ?: '—' }}
                                 </td>
 

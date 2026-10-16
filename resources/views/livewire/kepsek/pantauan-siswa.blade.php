@@ -10,22 +10,25 @@
 
     {{-- ============ KARTU FILTER ============ --}}
     <div class="rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-end gap-4 px-6 py-5">
+        {{-- Tanggal & saringan berdampingan sejak HP (2 kolom); teks bantuan
+             turun ke baris sendiri (basis-full). Sebelumnya teks bantuan ikut
+             flex-1 di baris yang sama dan tampil satu kata per baris. --}}
+        <div class="grid grid-cols-2 items-end gap-3 px-4 py-5 sm:flex sm:flex-wrap sm:gap-4 sm:px-6">
 
-            <div class="min-w-[190px] flex-1">
+            <div class="min-w-0 sm:min-w-[190px] sm:flex-1">
                 <label for="ps-tanggal" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">Tanggal</label>
 
                 {{-- Input tanggal bawaan browser, bukan Flatpickr — lihat
                      alasan lengkapnya di pantauan-pegawai.blade.php. --}}
                 <input id="ps-tanggal" type="date" wire:model.live="tanggal"
                     max="{{ today()->toDateString() }}"
-                    class="w-full rounded-md border border-gray-200 bg-transparent px-4 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white">
+                    class="w-full rounded-md border border-gray-200 bg-transparent px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white sm:px-4">
             </div>
 
-            <div class="min-w-[190px] flex-1">
+            <div class="min-w-0 sm:min-w-[190px] sm:flex-1">
                 <label for="ps-kelas" class="mb-1.5 block text-sm font-medium text-brand-ink dark:text-white">Kelas</label>
                 <select id="ps-kelas" wire:model.live="kelas_id"
-                    class="w-full rounded-md border border-gray-200 bg-transparent px-4 py-2.5 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white">
+                    class="w-full rounded-md border border-gray-200 bg-transparent py-2.5 pl-3 pr-9 sm:pl-4 text-sm text-brand-ink outline-none focus:border-brand-500 dark:border-gray-800 dark:text-white">
                     @forelse ($this->daftarKelas as $k)
                         <option value="{{ $k->id }}">{{ $k->nama_kelas }}</option>
                     @empty
@@ -34,7 +37,7 @@
                 </select>
             </div>
 
-            <div class="flex-1 pb-1 text-xs leading-relaxed text-brand-muted dark:text-brand-faint">
+            <div class="col-span-2 pb-1 text-xs leading-relaxed sm:col-span-1 sm:flex-1 text-brand-muted dark:text-brand-faint">
                 Kolom Pantauan KBM diisi guru mata pelajaran lewat menu
                 Jurnal &amp; Absen Kelas.
             </div>
@@ -186,7 +189,7 @@
 
         {{-- Tabel per kelas: pertanyaan "kelas mana yang bermasalah hari ini". --}}
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[40rem] text-sm">
+            <table class="tabel-kartu w-full text-sm md:min-w-[40rem]">
                 <thead class="border-y border-brand-border bg-brand-surface-muted text-left text-xs uppercase tracking-wide text-brand-muted dark:border-gray-800 dark:bg-gray-800/50">
                     <tr>
                         <th class="px-6 py-3 font-semibold">Kelas</th>
@@ -202,14 +205,14 @@
                 <tbody class="divide-y divide-brand-border dark:divide-gray-800">
                     @foreach ($this->rekapSekolah as $r)
                         <tr @class(['bg-red-500/5' => $r['alpa'] > 0])>
-                            <td class="px-6 py-3 font-medium text-brand-ink dark:text-white">{{ $r['kelas']->nama_kelas }}</td>
-                            <td class="px-3 py-3 text-center text-brand-muted">{{ $r['total'] }}</td>
-                            <td class="px-3 py-3 text-center font-semibold text-emerald-600">{{ $r['hadir'] }}</td>
-                            <td class="px-3 py-3 text-center text-sky-600">{{ $r['izin'] ?: '—' }}</td>
-                            <td class="px-3 py-3 text-center text-amber-600">{{ $r['sakit'] ?: '—' }}</td>
-                            <td class="px-3 py-3 text-center font-bold text-brand-danger-text">{{ $r['alpa'] ?: '—' }}</td>
-                            <td class="px-3 py-3 text-center text-brand-muted">{{ $r['belum'] ?: '—' }}</td>
-                            <td class="px-6 py-3">
+                            <td data-utama class="px-6 py-3 font-medium text-brand-ink dark:text-white">{{ $r['kelas']->nama_kelas }}</td>
+                            <td data-label="Siswa" class="px-3 py-3 text-center text-brand-muted">{{ $r['total'] }}</td>
+                            <td data-label="Hadir" class="px-3 py-3 text-center font-semibold text-emerald-600">{{ $r['hadir'] }}</td>
+                            <td data-label="Izin" class="px-3 py-3 text-center text-sky-600">{{ $r['izin'] ?: '—' }}</td>
+                            <td data-label="Sakit" class="px-3 py-3 text-center text-amber-600">{{ $r['sakit'] ?: '—' }}</td>
+                            <td data-label="Alpa" class="px-3 py-3 text-center font-bold text-brand-danger-text">{{ $r['alpa'] ?: '—' }}</td>
+                            <td data-label="Belum" class="px-3 py-3 text-center text-brand-muted">{{ $r['belum'] ?: '—' }}</td>
+                            <td data-label="Kehadiran" class="px-6 py-3">
                                 @if ($r['persen'] === null)
                                     <span class="text-xs text-brand-muted">Belum ada siswa</span>
                                 @else
@@ -286,7 +289,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[880px] table-auto" wire:loading.class="opacity-50" wire:target="tanggal,kelas_id">
+                <table class="tabel-kartu w-full table-auto md:min-w-[880px]" wire:loading.class="opacity-50" wire:target="tanggal,kelas_id">
                     <thead>
                         <tr class="bg-gray-50 text-left dark:bg-gray-800">
                             <th class="px-4 py-4 text-xs font-semibold uppercase tracking-wide text-brand-ink dark:text-white">NIS</th>
@@ -299,15 +302,15 @@
                     <tbody>
                         @forelse ($this->baris as $b)
                             <tr wire:key="siswa-{{ $b['siswa']->id }}">
-                                <td class="border-b border-gray-200 px-4 py-4 font-mono text-sm text-brand-muted dark:border-gray-800 dark:text-brand-faint">
+                                <td data-label="NIS" class="border-b border-gray-200 px-4 py-4 font-mono text-sm text-brand-muted dark:border-gray-800 dark:text-brand-faint">
                                     {{ $b['siswa']->nis }}
                                 </td>
 
-                                <td class="border-b border-gray-200 px-4 py-4 font-medium text-brand-ink dark:border-gray-800 dark:text-white">
+                                <td data-utama class="border-b border-gray-200 px-4 py-4 font-medium text-brand-ink dark:border-gray-800 dark:text-white">
                                     {{ $b['siswa']->nama }}
                                 </td>
 
-                                <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                                <td data-label="Scan gerbang" class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
                                     @if ($b['jam'])
                                         <span class="font-mono text-sm text-brand-ink dark:text-white">{{ $b['jam'] }}</span>
                                     @else
@@ -315,7 +318,7 @@
                                     @endif
                                 </td>
 
-                                <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                                <td data-label="Kedatangan" class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
                                     @php
                                         $s = $b['statusGerbang'];
                                         $badge = match (true) {
@@ -332,7 +335,9 @@
                                     </span>
                                 </td>
 
-                                <td class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                                <td data-label="Pantauan KBM" class="border-b border-gray-200 px-4 py-4 dark:border-gray-800">
+                                    {{-- Dibungkus satu <div>: di mode kartu HP, sel berlabel adalah flex dua kolom (label | nilai). --}}
+                                    <div class="min-w-0">
                                     @php $total = $this->totalJamHariItu; @endphp
 
                                     @if ($total === 0)
@@ -370,6 +375,7 @@
                                             </p>
                                         @endif
                                     @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
