@@ -23,7 +23,7 @@
             Lembar Paraf Guru Mengajar
         </h1>
         <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-            Cetakan A4 harian untuk paraf guru. Guru berizin otomatis tertulis <strong>GURU IZIN</strong>.
+            Cetakan A4 harian untuk paraf guru mapel dan pembina ekskul. Guru berizin otomatis tertulis <strong>GURU IZIN</strong>.
         </p>
     </div>
 
@@ -102,6 +102,9 @@
                     {{ $data['ringkas']['jadwal'] }} jam pelajaran &middot; {{ $data['ringkas']['guru'] }} guru
                     &middot; {{ $data['ringkas']['guru_izin'] }} guru izin/sakit
                     &middot; {{ $data['ringkas']['tercatat'] }} sudah tercatat scan QR
+                    @if ($data['ringkas']['ekskul'] > 0)
+                        &middot; {{ $data['ringkas']['ekskul'] }} ekskul
+                    @endif
                 </p>
             </div>
 
@@ -159,6 +162,73 @@
                 </table>
             </div>
         </div>
+
+        {{-- ============ BAGIAN B: PEMBINA EKSKUL ============
+             Hanya tampil kalau ada ekskul terjadwal pada hari itu — hari
+             tanpa ekskul tidak perlu tabel kosong kedua. --}}
+        @if (! empty($data['ekskul']))
+            <div class="mt-6 rounded-sm border border-gray-200 bg-brand-surface shadow-theme-sm dark:border-gray-800 dark:bg-gray-900">
+
+                <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+                    <h3 class="font-semibold text-brand-ink dark:text-white">Pembina Ekstrakurikuler</h3>
+                    <p class="mt-1 text-xs text-brand-muted dark:text-brand-faint">
+                        {{ $data['ringkas']['ekskul'] }} ekskul
+                        &middot; {{ $data['ringkas']['ekskul_izin'] }} pembina izin/sakit
+                        &middot; {{ $data['ringkas']['ekskul_tercatat'] }} sudah tercatat scan QR ekskul
+                    </p>
+                </div>
+
+                <div class="max-w-full overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100 text-left dark:bg-gray-800">
+                                <th class="px-4 py-4 text-center text-sm font-semibold text-brand-ink dark:text-white">No</th>
+                                <th class="px-4 py-4 text-sm font-semibold text-brand-ink dark:text-white">Jam</th>
+                                <th class="px-4 py-4 text-sm font-semibold text-brand-ink dark:text-white">Ekskul</th>
+                                <th class="px-4 py-4 text-sm font-semibold text-brand-ink dark:text-white">Pembina</th>
+                                <th class="px-4 py-4 text-sm font-semibold text-brand-ink dark:text-white">Catatan Sistem</th>
+                                <th class="px-4 py-4 text-sm font-semibold text-brand-ink dark:text-white">Paraf</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($data['ekskul'] as $b)
+                                <tr class="border-b border-gray-200 last:border-0 dark:border-gray-800">
+                                    <td class="px-4 py-3 text-center text-sm text-brand-muted dark:text-brand-faint">{{ $b['no'] }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-brand-ink dark:text-white">{{ $b['jam'] }}</td>
+                                    <td class="px-4 py-3 text-sm font-semibold text-brand-ink dark:text-white">{{ $b['ekskul'] }}</td>
+                                    <td class="px-4 py-3">
+                                        <p class="text-sm text-brand-ink dark:text-white">{{ $b['pembina'] }}</p>
+                                        @if ($b['pembina_luar'])
+                                            <p class="mt-0.5 text-xs text-brand-muted dark:text-brand-faint">Pelatih luar (belum tertaut akun)</p>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-sm {{ match ($b['sistem']['nada']) {
+                                        'ok' => 'text-success-500',
+                                        'kurang' => 'text-warning-500',
+                                        'nihil' => 'font-semibold text-error-600',
+                                        default => 'text-brand-muted dark:text-brand-faint',
+                                    } }}">{{ $b['sistem']['teks'] }}</td>
+                                    <td class="px-4 py-3">
+                                        @if ($b['izin'])
+                                            <span class="inline-flex rounded-full bg-error-500/10 px-2.5 py-1 text-xs font-semibold text-error-600">
+                                                {{ $b['izin']['label'] }}
+                                            </span>
+                                            @if ($b['izin']['rinci'])
+                                                <p class="mt-1 text-xs text-brand-muted dark:text-brand-faint">{{ $b['izin']['rinci'] }}</p>
+                                            @endif
+                                        @elseif ($b['izin_menunggu'])
+                                            <span class="text-xs text-warning-500">Izin diajukan, belum disetujui</span>
+                                        @else
+                                            <span class="text-xs text-brand-muted dark:text-brand-faint">— diparaf di kertas —</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
     @endif
 
 @endsection

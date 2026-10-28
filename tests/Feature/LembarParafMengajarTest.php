@@ -4,14 +4,18 @@ namespace Tests\Feature;
 
 use App\Enums\AbsensiStatus;
 use App\Enums\Hari;
+use App\Enums\JenisAgenda;
 use App\Enums\JenisIzinGuru;
 use App\Enums\StatusApproval;
 use App\Models\AbsensiMengajar;
 use App\Models\AbsensiPegawai;
+use App\Models\AgendaAkademik;
+use App\Models\JadwalEkskul;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\Pegawai;
 use App\Models\PengajuanIzinGuru;
+use App\Models\SesiEkskul;
 use App\Models\User;
 use App\Services\LembarParafMengajar;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -278,11 +282,12 @@ class LembarParafMengajarTest extends TestCase
         $sesudah = $hitung();
 
         $this->assertSame($sebelum, $sesudah, "Query bertambah dari {$sebelum} menjadi {$sesudah} — ada N+1.");
-        // Rinciannya 11: jadwal + kelas + guru (eager load), izin disetujui,
-        // izin menunggu, absensi harian, sesi mengajar, kepala sekolah +
-        // pegawainya, pengaturan hari KBM + agenda kalender. Angka ini
-        // boleh naik SEDIKIT kalau ada sumber data baru, tapi tidak pernah
-        // boleh ikut naik bersama jumlah jadwal.
+        // Rinciannya 12: jadwal + kelas + guru (eager load), jadwal ekskul
+        // (kosong di data ini, jadi pembina & sesi ekskul tidak ditanya),
+        // izin disetujui, izin menunggu, absensi harian, sesi mengajar,
+        // kepala sekolah + pegawainya, pengaturan hari KBM + agenda
+        // kalender. Angka ini boleh naik SEDIKIT kalau ada sumber data
+        // baru, tapi tidak pernah boleh ikut naik bersama jumlah jadwal.
         $this->assertLessThanOrEqual(12, $sesudah);
     }
 
@@ -382,5 +387,311 @@ class LembarParafMengajarTest extends TestCase
             ->get('/kepsek/lembar-paraf-mengajar/cetak?tanggal=2026-09-27')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    /* ===================== BAGIAN B: PEMBINA EKSKUL ===================== */
+
+    /**
+     * Empat ekskul hari Kamis yang mewakili setiap keadaan, plus satu
+     * ekskul Jumat yang TIDAK boleh ikut. Penulisan hari sengaja dibuat
+     * berantakan ("kamis ", "KAMIS") karena kolom hari ekskul berupa teks
+     * bebas yang diketik admin.
+     *
+     * Pukul 11.00:
+     *   Rohis     07:00 Citra (izin ITT disetujui)    -> GURU IZIN
+     *   Futsal    08:00 pelatih luar, sesi selesai    -> Scan 08:02–09:28
+     *   Paskibra  09:00 Dedi (izin menunggu), sesi    -> Scan 09:05, belum diakhiri
+     *   Pramuka   14:00 Budi                           -> Belum waktunya
+     */
+    private function ekskulKamis(): void
+    {
+        $e = fn (string $nama, string $hari, string $mulai, string $selesai, ?string $guru, ?string $luar = null) => JadwalEkskul::create([
+            'nama_ekskul' => $nama, 'hari' => $hari, 'jam_mulai' => $mulai, 'jam_selesai' => $selesai,
+            'pembina_id' => $guru ? $this->guru[$guru]['pegawai']->id : null,
+            'pembina_luar' => $luar,
+        ]);
+
+        $e('Pramuka', 'Kamis', '14:00', '16:00', 'budi');
+        $e('Rohis', ' kamis ', '07:00', '08:00', 'citra');
+        $futsal = $e('Futsal', 'KAMIS', '08:00', '09:30', null, 'Coach Rian');
+        $paskib = $e('Paskibra', 'Kamis', '09:00', '10:30', 'dedi');
+        $e('Basket', 'Jumat', '14:00', '16:00', 'budi');
+
+        SesiEkskul::create([
+            'jadwal_ekskul_id' => $futsal->id, 'user_id' => $this->kepsek->id, 'tanggal' => self::TANGGAL,
+            'waktu_mulai' => self::TANGGAL . ' 08:02:00', 'waktu_selesai' => self::TANGGAL . ' 09:28:00',
+        ]);
+        SesiEkskul::create([
+            'jadwal_ekskul_id' => $paskib->id, 'user_id' => $this->guru['dedi']['akun']->id, 'tanggal' => self::TANGGAL,
+            'waktu_mulai' => self::TANGGAL . ' 09:05:00',
+        ]);
+    }
+
+    private function ekskul(array $data, string $nama): array
+    {
+        $ketemu = collect($data['ekskul'])->firstWhere('ekskul', $nama);
+        $this->assertNotNull($ketemu, "Baris ekskul {$nama} tidak ada.");
+
+        return $ketemu;
+    }
+
+    public function test_hari_tanpa_ekskul_tidak_memunculkan_bagian_b(): void
+    {
+        $data = $this->susun();
+
+        $this->assertSame([], $data['ekskul']);
+        $this->assertSame(0, $data['ringkas']['ekskul']);
+
+        $html = view('laporan.lembar-paraf-mengajar-pdf', $data + [
+            'dicetak_pada' => now(), 'dicetak_oleh' => 'Uji', 'peran_pencetak' => 'Kepala Sekolah',
+        ])->render();
+
+        $this->assertStringNotContainsString('PEMBINA EKSTRAKURIKULER', $html);
+        $this->assertStringNotContainsString('A. GURU MATA PELAJARAN', $html);
+    }
+
+    public function test_hanya_ekskul_hari_itu_yang_masuk_walau_penulisan_hari_berantakan(): void
+    {
+        $this->ekskulKamis();
+        $data = $this->susun();
+
+        $this->assertSame(['Rohis', 'Futsal', 'Paskibra', 'Pramuka'], array_column($data['ekskul'], 'ekskul'));
+        $this->assertSame([1, 2, 3, 4], array_column($data['ekskul'], 'no'));
+        $this->assertSame('07:00 – 08:00', $this->ekskul($data, 'Rohis')['jam']);
+
+        // Tabel guru mapel tidak terganggu.
+        $this->assertCount(6, $data['baris']);
+    }
+
+    public function test_catatan_sistem_ekskul_membaca_sesi_scan_qr_ekskul(): void
+    {
+        $this->ekskulKamis();
+        $data = $this->susun();
+
+        $this->assertSame(['teks' => 'Scan 08:02–09:28', 'nada' => 'ok'], $this->ekskul($data, 'Futsal')['sistem']);
+        $this->assertSame(['teks' => 'Scan 09:05, belum diakhiri', 'nada' => 'kurang'], $this->ekskul($data, 'Paskibra')['sistem']);
+        $this->assertSame(['teks' => 'Belum waktunya', 'nada' => 'netral'], $this->ekskul($data, 'Pramuka')['sistem']);
+        $this->assertSame(['teks' => 'Tidak ada scan', 'nada' => 'nihil'], $this->ekskul($data, 'Rohis')['sistem']);
+    }
+
+    /**
+     * Aturan kolom paraf pembina SAMA dengan guru mapel: hanya izin yang
+     * sah yang dicetak, izin menunggu sekadar catatan kecil.
+     */
+    public function test_izin_pembina_mengikuti_aturan_yang_sama_dengan_guru_mapel(): void
+    {
+        $this->ekskulKamis();
+        $data = $this->susun();
+
+        $rohis = $this->ekskul($data, 'Rohis');
+        $this->assertSame('GURU IZIN', $rohis['izin']['label']);
+        $this->assertSame(JenisIzinGuru::Itt->label(), $rohis['izin']['rinci']);
+
+        $paskib = $this->ekskul($data, 'Paskibra');
+        $this->assertNull($paskib['izin']);
+        $this->assertTrue($paskib['izin_menunggu']);
+
+        $pramuka = $this->ekskul($data, 'Pramuka');
+        $this->assertNull($pramuka['izin']);
+        $this->assertFalse($pramuka['izin_menunggu']);
+    }
+
+    /**
+     * Pembina yang TIDAK punya jam mapel hari itu (mis. staf TU yang
+     * membina ekskul). Keadaannya hanya terbaca kalau pembina ikut
+     * ditanyakan ke StatusBerhalanganGuru — bukan hanya guru mapel.
+     */
+    public function test_izin_pembina_yang_tidak_mengajar_mapel_hari_itu_tetap_terbaca(): void
+    {
+        $akun = User::factory()->guru()->create(['name' => 'Gita Pembina']);
+        $gita = Pegawai::factory()->create(['user_id' => $akun->id, 'nama' => 'Gita Pembina']);
+        JadwalEkskul::create(['nama_ekskul' => 'PMR', 'hari' => 'Kamis', 'jam_mulai' => '14:00', 'jam_selesai' => '15:30', 'pembina_id' => $gita->id]);
+        AbsensiPegawai::create(['pegawai_id' => $gita->id, 'tanggal' => self::TANGGAL, 'status' => AbsensiStatus::Sakit]);
+
+        $pmr = $this->ekskul($this->susun(), 'PMR');
+
+        $this->assertSame('GURU SAKIT', $pmr['izin']['label']);
+    }
+
+    public function test_pelatih_luar_tetap_mendapat_baris_paraf(): void
+    {
+        $this->ekskulKamis();
+        $futsal = $this->ekskul($this->susun(), 'Futsal');
+
+        $this->assertSame('Coach Rian', $futsal['pembina']);
+        $this->assertTrue($futsal['pembina_luar']);
+        $this->assertNull($futsal['nip']);
+        $this->assertNull($futsal['izin']);
+        $this->assertFalse($futsal['izin_menunggu']);
+    }
+
+    public function test_ekskul_tanpa_pembina_sama_sekali_tetap_tercetak(): void
+    {
+        JadwalEkskul::create(['nama_ekskul' => 'Tari', 'hari' => 'Kamis', 'jam_mulai' => '13:00', 'jam_selesai' => '14:00']);
+
+        $tari = $this->ekskul($this->susun(), 'Tari');
+
+        $this->assertSame('(pembina belum diatur)', $tari['pembina']);
+        $this->assertFalse($tari['pembina_luar']);
+    }
+
+    /**
+     * Pada hari libur agenda, scan QR ekskul DITOLAK sistem. Mencetak
+     * "Tidak ada scan" akan menyalahkan pembina atas hal yang mustahil.
+     */
+    public function test_hari_libur_agenda_ekskul_bertanda_libur_bukan_tidak_ada_scan(): void
+    {
+        $this->ekskulKamis();
+        AgendaAkademik::create(['judul' => 'Libur Maulid', 'tanggal_mulai' => self::TANGGAL, 'tanggal_selesai' => self::TANGGAL, 'jenis' => JenisAgenda::Libur]);
+
+        $data = $this->susun();
+
+        $this->assertSame(['teks' => 'Libur', 'nada' => 'netral'], $this->ekskul($data, 'Rohis')['sistem']);
+        $this->assertSame(['teks' => 'Libur', 'nada' => 'netral'], $this->ekskul($data, 'Pramuka')['sistem']);
+        // Sesi yang terlanjur ada tetap dilaporkan apa adanya.
+        $this->assertSame('ok', $this->ekskul($data, 'Futsal')['sistem']['nada']);
+        $this->assertSame('Libur Maulid', $data['libur']);
+    }
+
+    public function test_urut_guru_mengurutkan_ekskul_per_nama_pembina(): void
+    {
+        $this->ekskulKamis();
+
+        $this->assertSame(
+            ['Budi Santoso', 'Citra Lestari', 'Coach Rian', 'Dedi Kurnia'],
+            array_column($this->susun('guru')['ekskul'], 'pembina'),
+        );
+    }
+
+    public function test_ringkasan_ekskul(): void
+    {
+        $this->ekskulKamis();
+        $r = $this->susun()['ringkas'];
+
+        $this->assertSame(4, $r['ekskul']);
+        $this->assertSame(1, $r['ekskul_izin']);     // Citra
+        $this->assertSame(2, $r['ekskul_tercatat']); // Futsal + Paskibra
+
+        // Ringkasan guru mapel tidak tercampur angka ekskul.
+        $this->assertSame(6, $r['jadwal']);
+        $this->assertSame(2, $r['tercatat']);
+    }
+
+    public function test_cetakan_memuat_bagian_b_pembina_ekskul(): void
+    {
+        $this->ekskulKamis();
+
+        $html = view('laporan.lembar-paraf-mengajar-pdf', $this->susun() + [
+            'dicetak_pada' => now(), 'dicetak_oleh' => 'Drs. Kepala Uji', 'peran_pencetak' => 'Kepala Sekolah',
+        ])->render();
+
+        $this->assertStringContainsString('A. GURU MATA PELAJARAN', $html);
+        $this->assertStringContainsString('B. PEMBINA EKSTRAKURIKULER', $html);
+        $this->assertStringContainsString('Paraf Pembina', $html);
+        $this->assertStringContainsString('Coach Rian', $html);
+        $this->assertStringContainsString('Pelatih luar', $html);
+        $this->assertStringContainsString('Paskibra', $html);
+        $this->assertStringNotContainsString('Basket', $html);
+        $this->assertStringContainsString('ekskul sudah memiliki scan QR ekskul', $html);
+
+        // Stempel izin: Citra & Eka di tabel A, Citra lagi di tabel B (Rohis).
+        $this->assertSame(3, substr_count($html, 'class="cap"'));
+        // "izin diajukan" muncul untuk Dedi di tabel A DAN tabel B.
+        $this->assertSame(2, substr_count($html, 'izin diajukan, belum disetujui'));
+    }
+
+    public function test_pdf_dan_halaman_dengan_ekskul_tetap_terbentuk(): void
+    {
+        $this->ekskulKamis();
+
+        $this->actingAs($this->kepsek)
+            ->get('/kepsek/lembar-paraf-mengajar?tanggal=' . self::TANGGAL)
+            ->assertOk()
+            ->assertSee('Pembina Ekstrakurikuler')
+            ->assertSee('Coach Rian')
+            ->assertSee('Pelatih luar (belum tertaut akun)')
+            ->assertDontSee('Basket');
+
+        $respons = $this->actingAs($this->kepsek)
+            ->get('/kepsek/lembar-paraf-mengajar/cetak?tanggal=' . self::TANGGAL);
+
+        $respons->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $respons->getContent());
+    }
+
+    /**
+     * Hari tanpa KBM (mis. Sabtu) yang punya ekskul: tabel A berisi
+     * keterangan kosong, tabel B tetap tercetak untuk diparaf.
+     */
+    public function test_hari_hanya_ekskul_tetap_bisa_dicetak(): void
+    {
+        JadwalEkskul::create(['nama_ekskul' => 'Pramuka Sabtu', 'hari' => 'Sabtu', 'jam_mulai' => '13:30', 'jam_selesai' => '15:30',
+            'pembina_id' => $this->guru['budi']['pegawai']->id]);
+
+        $this->actingAs($this->kepsek)
+            ->get('/kepsek/lembar-paraf-mengajar?tanggal=2026-09-26')
+            ->assertOk()
+            ->assertSee('Tidak ada jadwal pelajaran')
+            ->assertSee('Pramuka Sabtu');
+
+        $this->actingAs($this->kepsek)
+            ->get('/kepsek/lembar-paraf-mengajar/cetak?tanggal=2026-09-26')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_nama_ekskul_diurutkan_secara_natural(): void
+    {
+        foreach (['Futsal 10', 'futsal 2', 'Futsal 1'] as $nama) {
+            JadwalEkskul::create(['nama_ekskul' => $nama, 'hari' => 'Kamis', 'jam_mulai' => '15:00', 'jam_selesai' => '16:00', 'pembina_luar' => 'Pelatih']);
+        }
+
+        $this->assertSame(['Futsal 1', 'futsal 2', 'Futsal 10'], array_column($this->susun()['ekskul'], 'ekskul'));
+    }
+
+    public function test_cetakan_hari_hanya_ekskul_tidak_menulis_nol_dari_nol_jam_pelajaran(): void
+    {
+        JadwalEkskul::create(['nama_ekskul' => 'Pramuka Sabtu', 'hari' => 'Sabtu', 'jam_mulai' => '13:30', 'jam_selesai' => '15:30', 'pembina_luar' => 'Kak Rudi']);
+
+        $data = app(LembarParafMengajar::class)->susun(Carbon::parse('2026-09-26'));
+        $html = view('laporan.lembar-paraf-mengajar-pdf', $data + [
+            'dicetak_pada' => now(), 'dicetak_oleh' => 'Uji', 'peran_pencetak' => 'Kepala Sekolah',
+        ])->render();
+
+        $this->assertStringNotContainsString('jam pelajaran sudah memiliki scan QR ruangan', $html);
+        $this->assertStringContainsString('ekskul sudah memiliki scan QR ekskul', $html);
+        $this->assertStringContainsString('Kak Rudi', $html);
+    }
+
+    public function test_jumlah_query_tetap_walau_ekskul_bertambah_banyak(): void
+    {
+        $this->ekskulKamis();
+
+        $hitung = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $this->susun();
+            $jumlah = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $jumlah;
+        };
+
+        $sebelum = $hitung();
+
+        for ($i = 0; $i < 30; $i++) {
+            $akun = User::factory()->guru()->create();
+            $pegawai = Pegawai::factory()->create(['user_id' => $akun->id]);
+            $e = JadwalEkskul::create(['nama_ekskul' => 'Ekskul ' . $i, 'hari' => 'Kamis', 'jam_mulai' => '15:00', 'jam_selesai' => '16:00', 'pembina_id' => $pegawai->id]);
+            SesiEkskul::create(['jadwal_ekskul_id' => $e->id, 'user_id' => $akun->id, 'tanggal' => self::TANGGAL, 'waktu_mulai' => self::TANGGAL . ' 10:00:00']);
+        }
+
+        $sesudah = $hitung();
+
+        $this->assertSame($sebelum, $sesudah, "Query bertambah dari {$sebelum} menjadi {$sesudah} — ada N+1 di bagian ekskul.");
+        // 12 query bagian A + pembina ekskul (eager load) + sesi ekskul.
+        // Agenda libur ekskul memakai cache kalender yang sama, jadi tidak
+        // menambah query.
+        $this->assertLessThanOrEqual(14, $sesudah);
     }
 }

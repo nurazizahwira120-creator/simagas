@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Enums\UserRole;
 use App\Models\AbsensiMengajar;
+use App\Models\JadwalEkskul;
 use App\Models\JadwalPelajaran;
+use App\Models\SesiEkskul;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -41,10 +43,26 @@ use RuntimeException;
  * disetujui.
  * ============================================
  *
+ * ============ BAGIAN B: PEMBINA EKSTRAKURIKULER ============
+ * Ekskul yang terjadwal pada hari itu dicetak di tabel kedua dengan aturan
+ * kolom paraf yang SAMA: pembina yang izinnya sah tertulis "GURU IZIN" /
+ * "GURU SAKIT", izin menunggu hanya diberi catatan kecil. Catatan Sistem
+ * membaca sesi ekskul (scan QR ekskul -> Akhiri Sesi).
+ *
+ * Pelatih dari luar sekolah (kolom pembina_luar, tanpa baris pegawai) tetap
+ * mendapat baris paraf — justru merekalah yang paling butuh bukti kertas,
+ * karena tidak punya akun untuk scan QR.
+ *
+ * Libur yang dipakai untuk ekskul hanya AGENDA libur di Kalender
+ * Pendidikan, bukan pola libur mingguan — aturan yang sama dengan
+ * AturanSesiEkskul::libur(), karena ekskul memang sering berjalan di hari
+ * tanpa KBM.
+ * ===========================================================
+ *
  * Seluruh data diambil dengan jumlah query yang TETAP (tidak bertambah
- * mengikuti jumlah jadwal): jadwal, izin disetujui, izin menunggu, absensi
- * pegawai, sesi mengajar, dan nama kepala sekolah. Pencocokan per baris
- * terjadi di memori.
+ * mengikuti jumlah jadwal): jadwal, jadwal ekskul + pembinanya, izin
+ * disetujui, izin menunggu, absensi pegawai, sesi mengajar, sesi ekskul,
+ * dan nama kepala sekolah. Pencocokan per baris terjadi di memori.
  */
 class LembarParafMengajar
 {
@@ -71,7 +89,8 @@ class LembarParafMengajar
     /**
      * @return array{
      *     tanggal: Carbon, hari: string, urut: string, libur: string|null,
-     *     baris: array<int, array<string, mixed>>, ringkas: array<string, int>,
+     *     baris: array<int, array<string, mixed>>, ekskul: array<int, array<string, mixed>>,
+     *     ringkas: array<string, int>,
      *     kepsek: array{nama: string|null, nip: string|null}
      * }
      */
@@ -92,9 +111,22 @@ class LembarParafMengajar
             ->orderBy('id')
             ->get();
 
-        if ($jadwal->count() > self::MAKS_BARIS) {
+        // (2) Ekskul hari itu. Kolom `hari` ekskul berupa teks bebas
+        //     ("Senin", "senin ") — dibandingkan setelah LOWER+TRIM, pola
+        //     yang sama dengan Monitoring KBM dan AturanSesiEkskul.
+        $jadwalEkskul = JadwalEkskul::query()
+            ->with('pembina:id,nama,nip,user_id')
+            ->whereRaw('LOWER(TRIM(hari)) = ?', [AturanSesiEkskul::hariDari($tanggal)->value])
+            ->orderBy('jam_mulai')
+            ->orderBy('nama_ekskul')
+            ->orderBy('id')
+            ->get();
+
+        $jumlahBaris = $jadwal->count() + $jadwalEkskul->count();
+
+        if ($jumlahBaris > self::MAKS_BARIS) {
             throw new RuntimeException(
-                'Jadwal pada hari ini terlalu banyak (' . $jadwal->count() . ' baris). '
+                'Jadwal pada hari ini terlalu banyak (' . $jumlahBaris . ' baris). '
                 . 'Periksa kemungkinan data jadwal terimpor ganda.'
             );
         }
@@ -105,7 +137,16 @@ class LembarParafMengajar
         // lembar ini, halaman Guru Inval, dan Live Monitoring selalu
         // sepakat. Daftar gurunya diambil dari eager load di atas, jadi
         // tidak ada query tambahan per guru.
-        $daftarGuru = $jadwal->pluck('guru')->filter();
+        //
+        // Pembina ekskul DIGABUNG ke daftar yang sama sebelum ditanyakan:
+        // satu kali tanya untuk guru mapel + pembina, bukan dua kali.
+        // Hasilnya dikunci pegawai.id, jadi guru yang sekaligus pembina
+        // otomatis mendapat keadaan yang sama di kedua tabel.
+        $daftarGuru = $jadwal->pluck('guru')
+            ->concat($jadwalEkskul->map(fn (JadwalEkskul $e) => $this->pembinaPegawai($e)))
+            ->filter()
+            ->unique('id')
+            ->values();
         $berhalangan = $this->berhalangan->pada($daftarGuru, $tanggal);
         $izinMenunggu = $this->berhalangan->menunggu($daftarGuru, $tanggal);
         $sesiPerGuru = $this->sesiMengajar($idAkun, $tanggal);
@@ -145,14 +186,165 @@ class LembarParafMengajar
             ->map(fn (array $b, int $i) => ['no' => $i + 1] + $b)
             ->all();
 
+        $ekskul = $this->barisEkskul($jadwalEkskul, $tanggal, $sekarang, $berhalangan, $izinMenunggu, $urut);
+
         return [
             'tanggal' => $tanggal,
             'hari' => $hari->label(),
             'urut' => $urut,
             'libur' => $this->alasanLibur($tanggal),
             'baris' => $baris,
-            'ringkas' => $this->ringkas($baris),
+            'ekskul' => $ekskul,
+            'ringkas' => $this->ringkas($baris) + $this->ringkasEkskul($ekskul),
             'kepsek' => $this->kepalaSekolah(),
+        ];
+    }
+
+    /* ===================== BAGIAN B: EKSKUL ===================== */
+
+    /**
+     * Baris paraf pembina ekskul. Nomor urut dimulai lagi dari 1 karena
+     * dicetak sebagai tabel tersendiri (bagian B).
+     *
+     * @param  Collection<int, JadwalEkskul>  $jadwalEkskul
+     * @return array<int, array<string, mixed>>
+     */
+    private function barisEkskul(
+        Collection $jadwalEkskul,
+        Carbon $tanggal,
+        Carbon $sekarang,
+        Collection $berhalangan,
+        Collection $izinMenunggu,
+        string $urut,
+    ): array {
+        if ($jadwalEkskul->isEmpty()) {
+            return [];
+        }
+
+        // Satu query untuk seluruh sesi ekskul hari itu. Indeks unik
+        // (jadwal_ekskul_id, tanggal) menjamin paling banyak satu sesi per
+        // ekskul per hari, jadi keyBy aman.
+        $sesi = SesiEkskul::query()
+            ->whereIn('jadwal_ekskul_id', $jadwalEkskul->pluck('id'))
+            ->wherePadaTanggal('tanggal', $tanggal->toDateString())
+            ->get(['id', 'jadwal_ekskul_id', 'waktu_mulai', 'waktu_selesai'])
+            ->keyBy('jadwal_ekskul_id');
+
+        // Agenda libur dibaca SEKALI untuk seluruh ekskul, memakai aturan
+        // AturanSesiEkskul::libur() — aturan yang sama yang menolak scan QR
+        // ekskul di hari libur. AturanSesiEkskul sengaja dibuat dengan
+        // instans kalender MILIK lembar ini: KalenderAkademik menyimpan
+        // agenda per bulan di memori, jadi alasanLibur() dan pemeriksaan
+        // ini berbagi satu query agenda, bukan dua.
+        // Kalender yang gagal dibaca tidak boleh menggagalkan cetakan.
+        try {
+            $libur = (new AturanSesiEkskul($this->kalender))->libur($tanggal);
+        } catch (\Throwable $e) {
+            report($e);
+            $libur = null;
+        }
+
+        $baris = $jadwalEkskul->map(function (JadwalEkskul $e) use (
+            $tanggal, $sekarang, $berhalangan, $izinMenunggu, $sesi, $libur
+        ) {
+            $pembina = $this->pembinaPegawai($e);
+
+            return [
+                'jadwal_ekskul_id' => $e->id,
+                // Jam kosong diurutkan paling akhir, bukan paling awal.
+                'jam_mulai' => filled($e->jam_mulai) ? JadwalEkskul::jam($e->jam_mulai) : '99:99',
+                'jam' => filled($e->jam_mulai) && filled($e->jam_selesai) ? $e->rentangJam() : '—',
+                'ekskul' => $e->nama_ekskul ?: '(tanpa nama)',
+                'pembina' => ($nama = $e->namaPembina()) !== '-' ? $nama : '(pembina belum diatur)',
+                'nip' => $pembina?->nip ?: null,
+                'pembina_luar' => $pembina === null && $e->namaPembina() !== '-',
+                'izin' => $this->keadaanIzin($pembina ? $berhalangan->get($pembina->id) : null),
+                'izin_menunggu' => $pembina !== null && $izinMenunggu->has($pembina->id),
+                'sistem' => $this->catatanSistemEkskul($sesi->get($e->id), $e, $tanggal, $sekarang, $libur),
+            ];
+        });
+
+        // Nama dibandingkan secara "natural" & tanpa beda huruf besar:
+        // "Futsal 2" sebelum "Futsal 10", "rohis" sejajar "Rohis".
+        $nama = fn (string $kolom) => fn (array $a, array $b) => strnatcasecmp($a[$kolom], $b[$kolom]);
+        $jam = fn (array $a, array $b) => strcmp($a['jam_mulai'], $b['jam_mulai']);
+
+        $baris = $urut === 'guru'
+            ? $baris->sortBy([$nama('pembina'), $jam, $nama('ekskul')])
+            : $baris->sortBy([$jam, $nama('ekskul')]);
+
+        return $baris->values()
+            ->map(fn (array $b, int $i) => ['no' => $i + 1] + $b)
+            ->all();
+    }
+
+    /**
+     * Pembina ekskul sebagai model Pegawai, atau null untuk pelatih luar.
+     *
+     * getRelationValue(), bukan $e->pembina — alasannya sama dengan
+     * JadwalEkskul::namaPembina(): di skema lama `pembina` adalah KOLOM
+     * teks, dan atribut didahulukan di atas relasi.
+     */
+    private function pembinaPegawai(JadwalEkskul $e): ?\App\Models\Pegawai
+    {
+        if ($e->pembina_id === null) {
+            return null;
+        }
+
+        $orang = $e->getRelationValue('pembina');
+
+        return $orang instanceof \App\Models\Pegawai ? $orang : null;
+    }
+
+    /**
+     * Catatan Sistem untuk ekskul — kalimatnya sengaja SAMA dengan KBM
+     * supaya kepala sekolah membaca kedua tabel dengan cara yang sama.
+     *
+     * @return array{teks: string, nada: string}
+     */
+    private function catatanSistemEkskul(?SesiEkskul $sesi, JadwalEkskul $e, Carbon $tanggal, Carbon $sekarang, ?string $libur): array
+    {
+        if ($sesi && $sesi->waktu_mulai) {
+            $mulai = $sesi->waktu_mulai->format('H:i');
+
+            return $sesi->waktu_selesai
+                ? ['teks' => 'Scan ' . $mulai . '–' . $sesi->waktu_selesai->format('H:i'), 'nada' => 'ok']
+                : ['teks' => 'Scan ' . $mulai . ', belum diakhiri', 'nada' => 'kurang'];
+        }
+
+        // Hari libur agenda: sesi ekskul memang DITOLAK sistem pada hari
+        // itu (AturanSesiEkskul::alasanTidakBisaMulai), jadi "Tidak ada
+        // scan" akan menyalahkan pembina atas sesuatu yang mustahil.
+        if ($libur !== null) {
+            return ['teks' => 'Libur', 'nada' => 'netral'];
+        }
+
+        // Jam mulai kosong/rusak -> dianggap akhir hari, sehingga tidak
+        // pernah tercetak "Tidak ada scan" untuk jadwal yang jamnya pun
+        // tidak jelas sebelum hari itu berakhir.
+        $mulaiJadwal = filled($e->jam_mulai) && preg_match('/^\s*(\d{1,2}):(\d{2})/', (string) $e->jam_mulai, $m)
+            ? $tanggal->copy()->setTime((int) $m[1], (int) $m[2])
+            : $tanggal->copy()->endOfDay();
+
+        if ($mulaiJadwal->gt($sekarang)) {
+            return ['teks' => 'Belum waktunya', 'nada' => 'netral'];
+        }
+
+        return ['teks' => 'Tidak ada scan', 'nada' => 'nihil'];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $ekskul
+     * @return array<string, int>
+     */
+    private function ringkasEkskul(array $ekskul): array
+    {
+        $koleksi = collect($ekskul);
+
+        return [
+            'ekskul' => $koleksi->count(),
+            'ekskul_izin' => $koleksi->whereNotNull('izin')->pluck('pembina')->unique()->count(),
+            'ekskul_tercatat' => $koleksi->filter(fn ($b) => in_array($b['sistem']['nada'], ['ok', 'kurang'], true))->count(),
         ];
     }
 

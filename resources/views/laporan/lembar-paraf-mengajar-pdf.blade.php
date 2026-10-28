@@ -25,6 +25,12 @@
     $namaSekolah = \App\Models\PengaturanSistem::namaSekolah();
     $judulTanggal = $hari . ', ' . $tanggal->translatedFormat('d F Y');
     $waktuCetak = $dicetak_pada->translatedFormat('l, d F Y') . ' pukul ' . $dicetak_pada->format('H.i') . ' WIB';
+
+    // Bagian B hanya dicetak bila ada ekskul hari itu. `?? []` menjaga
+    // template tetap bisa dirender oleh pemanggil lama yang belum
+    // mengirim kunci ekskul.
+    $ekskul = $ekskul ?? [];
+    $adaEkskul = ! empty($ekskul);
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -97,6 +103,13 @@
         .izin .rinci { font-size: 6.5px; color: #7f1d1d; margin-top: 2px; }
 
         .menunggu { font-size: 6.5px; color: #b45309; }
+
+        /* Judul bagian (A/B) di dalam <thead>, supaya ikut terulang di
+           halaman berikutnya bila tabelnya terbelah. */
+        .data th.bagian { background: #ffffff; color: #0f766e; font-size: 8.5px; text-align: left;
+                          text-transform: none; letter-spacing: 0.3px; padding: 6px 2px 4px;
+                          border: 0; border-bottom: 0.7px solid #6b7280; }
+        .data-ekskul { margin-top: 12px; }
 
         .kosong { text-align: center; color: #6b7280; padding: 18px; font-style: italic;
                   border: 0.7px dashed #9ca3af; margin-top: 10px; }
@@ -172,6 +185,9 @@
                 @if ($ringkas['guru_izin'] > 0)
                     &middot; <strong>{{ $ringkas['guru_izin'] }}</strong> guru izin/sakit
                 @endif
+                @if ($adaEkskul)
+                    &middot; <strong>{{ $ringkas['ekskul'] }}</strong> ekskul
+                @endif
             </td>
         </tr>
     </table>
@@ -189,6 +205,9 @@
     @else
         <table class="data">
             <thead>
+                @if ($adaEkskul)
+                    <tr><th colspan="7" class="bagian">A. GURU MATA PELAJARAN</th></tr>
+                @endif
                 <tr>
                     <th style="width:4%;">No</th>
                     <th style="width:11%;">Jam</th>
@@ -254,9 +273,85 @@
         </table>
     @endif
 
+    {{-- ============ BAGIAN B: PARAF PEMBINA EKSKUL ============
+         Pola sel paraf & cap izin SAMA dengan tabel A. Kolom Kelas dan
+         Mata Pelajaran digabung jadi satu kolom Ekskul. --}}
+    @if ($adaEkskul)
+        <table class="data data-ekskul">
+            <thead>
+                <tr><th colspan="6" class="bagian">B. PEMBINA EKSTRAKURIKULER</th></tr>
+                <tr>
+                    <th style="width:4%;">No</th>
+                    <th style="width:11%;">Jam</th>
+                    <th style="width:29%;">Ekstrakurikuler</th>
+                    <th style="width:21%;">Nama Pembina</th>
+                    <th style="width:14%;">Catatan Sistem</th>
+                    <th style="width:21%;">Paraf Pembina</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($ekskul as $b)
+                    <tr class="{{ $b['no'] % 2 === 0 ? 'zebra' : '' }}">
+                        <td class="tengah">{{ $b['no'] }}</td>
+                        <td class="tengah">{{ $b['jam'] }}</td>
+                        <td class="tebal">{{ $b['ekskul'] }}</td>
+                        <td>
+                            {{ $b['pembina'] }}
+                            @if ($b['nip'])
+                                <div class="kecil">NIP {{ $b['nip'] }}</div>
+                            @elseif ($b['pembina_luar'])
+                                <div class="kecil">Pelatih luar</div>
+                            @endif
+                        </td>
+                        <td class="tengah sistem-{{ $b['sistem']['nada'] }}">{{ $b['sistem']['teks'] }}</td>
+
+                        @if ($b['izin'])
+                            <td class="izin">
+                                <span class="cap">{{ $b['izin']['label'] }}</span>
+                                @if ($b['izin']['rinci'])
+                                    <div class="rinci">{{ $b['izin']['rinci'] }}</div>
+                                @endif
+                            </td>
+                        @else
+                            <td class="paraf">
+                                @php $kiri = $b['no'] % 2 === 1; @endphp
+                                <table>
+                                    <tr>
+                                        <td>
+                                            @if ($kiri)
+                                                <span class="nomor">{{ $b['no'] }}.</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @unless ($kiri)
+                                                <span class="nomor">{{ $b['no'] }}.</span>
+                                            @endunless
+                                        </td>
+                                    </tr>
+                                </table>
+                                @if ($b['izin_menunggu'])
+                                    <div class="menunggu" style="padding: 0 4px 2px;">izin diajukan, belum disetujui</div>
+                                @endif
+                            </td>
+                        @endif
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     <div class="ringkas">
-        Catatan sistem pada saat dicetak: <strong>{{ $ringkas['tercatat'] }}</strong> dari
-        <strong>{{ $ringkas['jadwal'] }}</strong> jam pelajaran sudah memiliki scan QR ruangan.
+        Catatan sistem pada saat dicetak:
+        {{-- Bagian jam pelajaran dilewati pada hari yang hanya berisi
+             ekskul, supaya tidak tercetak "0 dari 0 jam pelajaran". --}}
+        @if (! empty($baris) || ! $adaEkskul)
+            <strong>{{ $ringkas['tercatat'] }}</strong> dari
+            <strong>{{ $ringkas['jadwal'] }}</strong> jam pelajaran sudah memiliki scan QR ruangan.
+        @endif
+        @if ($adaEkskul)
+            <strong>{{ $ringkas['ekskul_tercatat'] }}</strong> dari <strong>{{ $ringkas['ekskul'] }}</strong>
+            ekskul sudah memiliki scan QR ekskul.
+        @endif
     </div>
 
     {{-- ============ TANDA TANGAN ============ --}}
@@ -285,6 +380,9 @@
     <div class="petunjuk">
         <strong>Petunjuk:</strong> guru membubuhkan paraf pada baris jam pelajarannya sendiri
         (nomor ganjil di sisi kiri kolom, nomor genap di sisi kanan).
+        @if ($adaEkskul)
+            Pembina ekskul memaraf baris ekskulnya di bagian B dengan cara yang sama.
+        @endif
         Kolom paraf yang sudah terisi <strong>GURU IZIN</strong> / <strong>GURU SAKIT</strong> berarti izinnya
         sudah tercatat sah di sistem dan tidak perlu diparaf.
         <strong>Catatan Sistem</strong> menunjukkan hasil scan QR ruangan <em>pada saat lembar ini dicetak</em>
