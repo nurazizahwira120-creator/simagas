@@ -87,8 +87,10 @@
         @else
             {{-- max-h + overflow: dengan 8 notifikasi panel ini bisa lebih
                  tinggi dari layar HP, dan panel yang menjulur ke luar layar
-                 tidak bisa digulung sendiri. --}}
-            <ul class="custom-scrollbar max-h-[60vh] divide-y divide-gray-200 overflow-y-auto sm:max-h-96 dark:divide-gray-800">
+                 tidak bisa digulung sendiri. Di layar lebar pun memakai 60vh
+                 (bukan 24rem tetap) supaya pengumuman panjang yang sedang
+                 dibentangkan punya ruang baca yang layak. --}}
+            <ul class="custom-scrollbar max-h-[60vh] divide-y divide-gray-200 overflow-y-auto dark:divide-gray-800">
                 @foreach ($this->daftar as $n)
                     @php
                         $isi = $n->data;
@@ -98,6 +100,14 @@
                             'success' => 'bg-success-500/10 text-success-600 dark:text-success-400',
                             default => 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
                         };
+
+                        // Pengumuman: tampilkan ISI LENGKAP dari tabel
+                        // pengumuman (lihat NotificationBell::isiPengumuman).
+                        // Cuplikan 120 karakter hanya cadangan kalau
+                        // pengumumannya sudah tidak ada.
+                        $idPengumuman = $isi['pengumuman_id'] ?? null;
+                        $isiPenuh = $idPengumuman !== null ? $this->isiPengumuman->get((int) $idPengumuman) : null;
+                        $teksPanjang = $isiPenuh ?? ($isi['cuplikan'] ?? null);
                     @endphp
 
                     {{-- Tombol hapus TIDAK boleh berada di dalam tombol
@@ -161,7 +171,7 @@
                              lanjutannya" dan tombolnya tidak pernah muncul.
                              ResizeObserver menembak lagi begitu panelnya terlihat.
                              ============================================================ --}}
-                        @if (! empty($isi['cuplikan']))
+                        @if (filled($teksPanjang))
                             <div class="pl-16 pr-4"
                                 x-data="{
                                     lengkap: false,
@@ -178,11 +188,32 @@
                                 }"
                                 x-init="ukur(); new ResizeObserver(() => ukur()).observe($refs.teks)">
 
-                                <p x-ref="teks"
-                                    :class="lengkap ? '' : 'line-clamp-2'"
-                                    class="text-xs italic leading-relaxed text-gray-400 dark:text-gray-500">
-                                    &ldquo;{{ $isi['cuplikan'] }}&rdquo;
-                                </p>
+                                {{-- whitespace-pre-line: paragraf & baris baru yang
+                                     diketik pengirim tetap terpisah.
+                                     [overflow-wrap:anywhere]: tautan panjang tanpa
+                                     spasi tidak melebarkan panel keluar layar. --}}
+                                @if ($isiPenuh !== null)
+                                    <p x-ref="teks"
+                                        :class="lengkap ? '' : 'line-clamp-3'"
+                                        class="whitespace-pre-line text-xs leading-relaxed text-gray-600 [overflow-wrap:anywhere] dark:text-gray-300">{{ \App\Support\TeksBertaut::html($isiPenuh, 'font-medium text-brand-600 underline dark:text-brand-400') }}</p>
+                                @else
+                                    <p x-ref="teks"
+                                        :class="lengkap ? '' : 'line-clamp-2'"
+                                        class="text-xs italic leading-relaxed text-gray-400 [overflow-wrap:anywhere] dark:text-gray-500">
+                                        &ldquo;{{ $teksPanjang }}&rdquo;
+                                    </p>
+
+                                    {{-- Cuplikan yang memang dipotong saat notifikasi dibuat
+                                         (berakhir "...", mis. alasan izin) tidak bisa
+                                         dibentangkan lebih jauh di sini. Beri tahu di mana
+                                         isi lengkapnya, daripada "Lihat selengkapnya" yang
+                                         tetap berakhir dengan titik-titik. --}}
+                                    @if (str_ends_with((string) $teksPanjang, '...') && filled($isi['rute'] ?? null))
+                                        <p class="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">
+                                            Isi lengkap ada di halaman tujuan &mdash; ketuk judul notifikasi.
+                                        </p>
+                                    @endif
+                                @endif
 
                                 <button type="button"
                                     x-show="adaLanjutan || lengkap"

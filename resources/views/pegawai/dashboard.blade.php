@@ -196,7 +196,10 @@
                                     @if ($item->status === \App\Enums\AbsensiStatus::Hadir && $item->jam_masuk)
                                         <p class="text-xs text-brand-muted">Masuk pukul {{ $item->jam_masuk->format('H:i') }}</p>
                                     @elseif ($item->keterangan)
-                                        <p class="truncate text-xs text-brand-muted">{{ $item->keterangan }}</p>
+                                        {{-- Keterangan (alasan izin/sakit) dibungkus, BUKAN truncate:
+                                             satu baris terpotong "Sakit demam, surat dokter..." membuat
+                                             alasannya tidak pernah bisa dibaca utuh di HP. --}}
+                                        <p class="break-words text-xs text-brand-muted [overflow-wrap:anywhere]">{{ $item->keterangan }}</p>
                                     @endif
                                 </div>
                                 <span class="inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium {{ $badge['chip'] }}">

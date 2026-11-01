@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Models\Pengumuman;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -57,6 +59,41 @@ class NotificationBell extends Component
         return $q->latest()->limit(self::BATAS)->get();
     }
 
+    /**
+     * ISI LENGKAP pengumuman untuk notifikasi yang sedang tampil, dikunci
+     * id pengumuman.
+     *
+     * Baris notifikasi hanya menyimpan cuplikan 120 karakter (dibuat saat
+     * pengumuman dikirim). Dulu cuplikan itulah yang dibentangkan tombol
+     * "Lihat selengkapnya" — pengumuman yang lebih panjang tidak pernah
+     * bisa dibaca utuh oleh guru maupun wali murid, padahal mereka tidak
+     * punya halaman lain untuk membacanya.
+     *
+     * Satu query untuk seluruh panel (bukan satu per notifikasi), dan
+     * id-nya hanya diambil dari notifikasi MILIK pengguna ini — pengguna
+     * tidak bisa meminta isi pengumuman yang tidak dikirim kepadanya.
+     * Isinya dibaca dari tabel pengumuman, jadi pengumuman yang sudah
+     * disunting admin tampil dalam versi terbarunya.
+     *
+     * @return Collection<int, string>
+     */
+    #[Computed]
+    public function isiPengumuman(): Collection
+    {
+        $id = $this->daftar
+            ->map(fn ($n) => $n->data['pengumuman_id'] ?? null)
+            ->filter(fn ($v) => is_numeric($v))
+            ->map(fn ($v) => (int) $v)
+            ->unique()
+            ->values();
+
+        if ($id->isEmpty()) {
+            return collect();
+        }
+
+        return Pengumuman::query()->whereIn('id', $id)->pluck('isi_pesan', 'id');
+    }
+
     #[Computed]
     public function jumlah(): int
     {
@@ -71,7 +108,7 @@ class NotificationBell extends Component
 
     private function segarkan(): void
     {
-        unset($this->daftar, $this->jumlah, $this->totalSemua);
+        unset($this->daftar, $this->isiPengumuman, $this->jumlah, $this->totalSemua);
     }
 
     /**

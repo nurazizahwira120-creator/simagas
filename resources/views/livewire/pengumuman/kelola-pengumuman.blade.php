@@ -220,9 +220,32 @@
                                     {{-- [overflow-wrap:anywhere]: URL panjang (tautan Drive) tidak
                                          punya spasi; tanpa ini ia memaksa tabel melebar. --}}
                                     <p class="font-semibold text-gray-800 [overflow-wrap:anywhere] dark:text-gray-100">{{ $p->judul }}</p>
-                                    <p class="mt-0.5 text-xs leading-relaxed text-gray-500 [overflow-wrap:anywhere] dark:text-gray-400">
-                                        {{ \Illuminate\Support\Str::limit($p->isi_pesan, 140) }}
-                                    </p>
+                                    {{-- Isi LENGKAP, dilipat 3 baris. Dulu dipotong
+                                         Str::limit(140) tanpa jalan untuk membaca sisanya
+                                         selain membuka form Edit. Tombolnya hanya muncul
+                                         kalau teksnya memang terpotong. --}}
+                                    <div x-data="{
+                                            lengkap: false,
+                                            adaLanjutan: false,
+                                            ukur() {
+                                                if (this.lengkap || ! this.$refs.teks) return;
+                                                this.adaLanjutan = this.$refs.teks.scrollHeight > this.$refs.teks.clientHeight + 2;
+                                            },
+                                        }"
+                                        x-init="ukur(); new ResizeObserver(() => ukur()).observe($refs.teks)">
+                                        <p x-ref="teks"
+                                            :class="lengkap ? '' : 'line-clamp-3'"
+                                            class="mt-0.5 whitespace-pre-line text-xs leading-relaxed text-gray-500 [overflow-wrap:anywhere] dark:text-gray-400">{{ \App\Support\TeksBertaut::html($p->isi_pesan, 'font-medium text-brand-600 underline dark:text-brand-400') }}</p>
+                                        <button type="button"
+                                            x-show="adaLanjutan || lengkap"
+                                            x-on:click="lengkap = ! lengkap"
+                                            x-bind:aria-expanded="lengkap ? 'true' : 'false'"
+                                            x-cloak
+                                            class="mt-1 rounded text-[11px] font-semibold text-brand-600 transition-colors hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-400"
+                                            x-text="lengkap ? 'Sembunyikan' : 'Lihat selengkapnya'">
+                                            Lihat selengkapnya
+                                        </button>
+                                    </div>
                                 </td>
 
                                 <td class="px-5 py-4 align-top">
