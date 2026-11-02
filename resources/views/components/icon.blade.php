@@ -17,6 +17,9 @@
 
         'academic-cap' => '<path d="M12 4 2.5 8.5 12 13l9.5-4.5L12 4Z" /><path d="M6.5 10.8V16c0 1.2 2.5 3 5.5 3s5.5-1.8 5.5-3v-5.2" /><path d="M21 9v6" />',
 
+        // Satu orang — dipakai butir "Akun" di bilah menu bawah.
+        'user' => '<circle cx="12" cy="8" r="3.8" /><path d="M4.5 20.5c.6-3.9 3.7-6.5 7.5-6.5s6.9 2.6 7.5 6.5" />',
+
         'identification' => '<rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="11" r="2" /><path d="M6 15.8c.4-1.5 1.4-2.4 2.5-2.4s2.1.9 2.5 2.4" /><path d="M14 9.3h4" /><path d="M14 12.7h4" />',
 
         'logout' => '<path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4" /><path d="M13 16l4-4-4-4" /><path d="M17 12H9" />',

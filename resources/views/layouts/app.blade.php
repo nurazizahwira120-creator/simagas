@@ -159,7 +159,7 @@
      | dikenal bukan error. Pernah terjadi dan butuh berjam-jam untuk
      | ditelusuri; sekarang aplikasinya yang memberi tahu sendiri.
      */
-    $versiAset = '2026-10-16c';
+    $versiAset = '2026-11-02a';
 
     $pengguna = auth()->user();
     $inisial = $pengguna
@@ -167,6 +167,11 @@
         : '?';
     $adaPencarian = $panelPrefix !== '' && Route::has($panelPrefix . '.siswa.index');
     $adaProfil = $panelPrefix !== '' && Route::has($panelPrefix . '.profil');
+
+    // Bilah menu bawah (components/menu-bawah) — sementara khusus wali murid.
+    // Menentukan juga ruang kosong di bawah konten supaya isi halaman
+    // terakhir tidak tertutup bilah itu.
+    $adaMenuBawah = $pengguna?->role === \App\Enums\UserRole::WaliMurid;
 @endphp
 
 {{-- Latar gelap saat sidebar dibuka di layar kecil --}}
@@ -325,7 +330,10 @@
         </header>
 
         {{-- ================= KONTEN ================= --}}
-        <main class="mx-auto w-full max-w-[1536px] p-4 md:p-6">
+        {{-- pb-28 md:pb-28: ruang untuk bilah menu bawah. md: ikut ditulis
+             karena md:p-6 di bawahnya akan menimpa pb-28 di layar tablet,
+             sedangkan bilahnya baru hilang mulai lg. --}}
+        <main class="mx-auto w-full max-w-[1536px] p-4 md:p-6 {{ $adaMenuBawah ? 'pb-28 md:pb-28 lg:pb-6' : '' }}">
 
             @if (session('status'))
                 <div class="mb-6 flex items-start gap-3 rounded-2xl border border-success-200 bg-success-50 p-4 dark:border-success-500/30 dark:bg-success-500/10">
@@ -354,6 +362,10 @@
         </main>
     </div>
 </div>
+
+@if ($adaMenuBawah)
+    <x-menu-bawah />
+@endif
 
 <script>
     /*

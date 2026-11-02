@@ -7,6 +7,7 @@ use App\Enums\StatusKbm;
 use App\Models\AbsensiKbmSiswa;
 use App\Models\JadwalPelajaran;
 use App\Models\Siswa;
+use App\Support\AnakTerpilih;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -25,7 +26,19 @@ class PantauanKbm extends Component
 
     public function mount(): void
     {
-        $this->anak_id = $this->daftarAnak->first()?->id;
+        // Mulai dari anak yang terakhir dipilih di halaman lain (Beranda,
+        // Absensi Kedatangan) — lihat App\Support\AnakTerpilih.
+        $this->anak_id = AnakTerpilih::idDiingat($this->daftarAnak);
+    }
+
+    /**
+     * Pilihan anak di halaman ini diingat untuk halaman lain. Id dicocokkan
+     * ulang ke anak milik akun ini oleh AnakTerpilih::pilih() — id siswa
+     * keluarga lain yang dikirim dari konsol browser tidak tersimpan.
+     */
+    public function updatedAnakId(): void
+    {
+        $this->anak_id = AnakTerpilih::pilih($this->daftarAnak, $this->anak_id)?->id;
     }
 
     /**

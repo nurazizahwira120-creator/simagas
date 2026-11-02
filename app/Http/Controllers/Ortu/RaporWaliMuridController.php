@@ -9,6 +9,7 @@ use App\Models\Penghargaan;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\ValidasiRapor;
+use App\Support\AnakTerpilih;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -43,8 +44,9 @@ class RaporWaliMuridController extends Controller
             ->orderBy('nama')
             ->get(['id', 'nis', 'nama', 'kelas_id']);
 
-        $anak = $daftarAnak->firstWhere('id', (int) $request->query('anak'))
-            ?? $daftarAnak->first();
+        // Anak yang diminta lewat ?anak=, atau yang terakhir dipilih di
+        // halaman lain (lihat App\Support\AnakTerpilih).
+        $anak = AnakTerpilih::pilih($daftarAnak, $request->query('anak'));
 
         // Pilihan semester diambil dari tabel tahun_ajaran (sumber tunggal),
         // bukan dirangkai sendiri dari tahun berjalan.

@@ -8,7 +8,7 @@
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-brand-ink">Absensi Kedatangan</h1>
             <p class="mt-1 text-sm text-brand-muted line-clamp-2">
-                Hasil scan anak Anda di gerbang: status hari ini dan riwayat bulan ini.
+                {{ now()->translatedFormat('l, d F Y') }} &middot; hasil scan anak Anda di gerbang sekolah.
             </p>
         </div>
     </div>
@@ -40,59 +40,11 @@
                 </div>
             @endif
 
-            @php
-                $status = $absensiHariIni?->status;
-                $kartu = match (true) {
-                    $status === \App\Enums\AbsensiStatus::Hadir => [
-                        'bg' => 'bg-emerald-600',
-                        'icon' => 'check-circle',
-                        'label' => 'Hadir',
-                        // jam_masuk bisa NULL kalau kehadiran diinput manual oleh
-                        // wali kelas (bukan hasil scan QR), jadi wajib dicek dulu.
-                        'sub' => $absensiHariIni->jam_masuk
-                            ? 'Tercatat masuk pukul ' . $absensiHariIni->jam_masuk->format('H:i')
-                            : 'Ditandai hadir oleh wali kelas',
-                    ],
-                    $status === \App\Enums\AbsensiStatus::Izin => [
-                        'bg' => 'bg-amber-500',
-                        'icon' => 'exclamation-triangle',
-                        'label' => 'Izin',
-                        'sub' => $absensiHariIni->keterangan ?: 'Tidak masuk dengan izin',
-                    ],
-                    $status === \App\Enums\AbsensiStatus::Sakit => [
-                        'bg' => 'bg-sky-600',
-                        'icon' => 'exclamation-triangle',
-                        'label' => 'Sakit',
-                        'sub' => $absensiHariIni->keterangan ?: 'Tidak masuk karena sakit',
-                    ],
-                    $status === \App\Enums\AbsensiStatus::Alpha => [
-                        'bg' => 'bg-brand-danger',
-                        'icon' => 'x-circle',
-                        'label' => 'Alpa',
-                        'sub' => 'Tidak ada keterangan kehadiran hari ini',
-                    ],
-                    default => [
-                        'bg' => 'bg-brand-danger',
-                        'icon' => 'x-circle',
-                        'label' => 'Belum Absen',
-                        'sub' => 'Belum ada catatan kehadiran hari ini',
-                    ],
-                };
-            @endphp
-
-            <div class="rounded-3xl {{ $kartu['bg'] }} p-6 text-white shadow-soft">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-white/80">{{ $anak->nama }} &middot; {{ $anak->kelas?->nama_kelas ?? '-' }}</p>
-                        <p class="mt-1 text-xs text-white/70">{{ now()->translatedFormat('l, d F Y') }}</p>
-                    </div>
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                        <x-icon name="{{ $kartu['icon'] }}" class="h-6 w-6" />
-                    </span>
-                </div>
-                <p class="mt-5 text-4xl font-bold">{{ $kartu['label'] }}</p>
-                <p class="mt-1 text-sm text-white/85">{{ $kartu['sub'] }}</p>
-            </div>
+            {{-- Kartu status yang SAMA dengan Beranda (components/kartu-status-anak).
+                 Dulu kartu ini merah "Belum Absen" setiap kali belum ada catatan —
+                 juga tengah malam dan di hari libur — dengan warna yang sama
+                 seperti Alpa. Aturan barunya ada di App\Services\StatusKedatanganAnak. --}}
+            <x-kartu-status-anak :status="$status" :anak="$anak" :kontak="$kontak" />
 
             <section>
                 <h2 class="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-brand-muted">

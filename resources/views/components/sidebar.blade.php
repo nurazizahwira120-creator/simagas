@@ -284,7 +284,9 @@
      | salinan kedua dari halaman yang sama.
      */
     $menuWaliMurid = [
-        $butirDashboard,
+        // "Beranda", bukan "Dashboard": sama dengan bilah menu bawah di HP
+        // (components/menu-bawah) dan lebih akrab bagi orang tua.
+        ['label' => 'Beranda', 'icon' => 'home', 'route' => '.dashboard', 'match' => '.dashboard'],
         $butirProfil,
         ['label' => 'Absensi Kedatangan',        'icon' => 'qr-code',         'route' => '.absensi-kedatangan', 'match' => '.absensi-kedatangan'],
         ['label' => 'Pantauan KBM Harian',       'icon' => 'eye',             'route' => '.pantauan-kbm',       'match' => '.pantauan-kbm'],
